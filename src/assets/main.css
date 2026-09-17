@@ -1,0 +1,546 @@
+/* ================================================================ */
+/* RESET                                                            */
+/* ================================================================ */
+
+
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+
+  min-width: 320px;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #071b38;
+
+  background: #ffffff;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+
+/* ================================================================ */
+/* NAVBAR                                                           */
+/* ================================================================ */
+
+.navbar {
+  width: 100%;
+  height: 78px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 58px;
+
+  background: #ffffff;
+
+  border-bottom: 1px solid #edf2f7;
+
+  position: relative;
+  z-index: 100;
+}
+
+
+/* ================================================================ */
+/* BRAND                                                            */
+/* ================================================================ */
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+
+  min-width: 250px;
+
+  text-decoration: none;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #062f61,
+      #087f94
+    );
+
+  color: #ffffff;
+
+  font-size: 24px;
+
+  font-weight: 800;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-copy strong {
+  font-size: 17px;
+
+  line-height: 1.1;
+
+  letter-spacing: -0.3px;
+}
+
+.brand-copy span {
+  margin-top: 4px;
+
+  font-size: 10px;
+
+  color: #8191a6;
+
+  letter-spacing: 0.2px;
+}
+
+
+/* ================================================================ */
+/* NAVIGATION                                                       */
+/* ================================================================ */
+
+.navbar-navigation {
+  display: flex;
+  align-items: center;
+
+  gap: 30px;
+
+  flex: 1;
+}
+
+.nav-link {
+  position: relative;
+
+  padding: 30px 0;
+
+  color: #263b55;
+
+  font-size: 13px;
+
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #086ca8;
+}
+
+.nav-link.active {
+  color: #086ca8;
+}
+
+.nav-link.active::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+
+  bottom: 17px;
+
+  height: 2px;
+
+  background: #087fb4;
+
+  border-radius: 999px;
+}
+
+
+/* ================================================================ */
+/* NAVBAR ACTIONS                                                   */
+/* ================================================================ */
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.search-button,
+.language-button {
+  border: 0;
+
+  background: transparent;
+
+  color: #203751;
+}
+
+.search-button {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.language-button {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  padding: 8px 7px;
+
+  font-size: 13px;
+}
+
+.login-button {
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 19px;
+
+  border: 1px solid #b9c7d5;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: #102a47;
+
+  font-size: 13px;
+
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.login-button:hover {
+  background: #f6f9fc;
+
+  border-color: #8fa4b8;
+}
+
+.open-account-button {
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 18px;
+
+  border-radius: 7px;
+
+  background: #063e73;
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.open-account-button:hover {
+  background: #07518f;
+
+  transform: translateY(-1px);
+}
+
+.open-account-button .arrow {
+  font-size: 17px;
+}
+
+
+/* ================================================================ */
+/* HERO                                                             */
+/* ================================================================ */
+
+.hero {
+  min-height:
+    calc(100vh - 78px);
+
+  display: flex;
+  align-items: center;
+
+  padding:
+    80px 8%;
+
+  background:
+    linear-gradient(
+      110deg,
+      #f5fbff 0%,
+      #ffffff 55%,
+      #eefaff 100%
+    );
+}
+
+.hero-content {
+  max-width: 650px;
+}
+
+.hero-eyebrow {
+  display: inline-block;
+
+  margin-bottom: 22px;
+
+  color: #087da0;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 2.2px;
+}
+
+.hero h1 {
+  margin: 0;
+
+  font-size:
+    clamp(
+      52px,
+      6vw,
+      82px
+    );
+
+  line-height: 0.98;
+
+  letter-spacing: -4px;
+
+  font-weight: 750;
+
+  color: #071b38;
+}
+
+.hero h1 span {
+  color: #176fc1;
+}
+
+.hero p {
+  max-width: 500px;
+
+  margin:
+    27px 0 32px;
+
+  color: #5c7087;
+
+  font-size: 17px;
+
+  line-height: 1.7;
+}
+
+
+/* ================================================================ */
+/* HERO BUTTONS                                                     */
+/* ================================================================ */
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+}
+
+.hero-primary-button {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 13px;
+
+  padding:
+    14px 22px;
+
+  border-radius: 7px;
+
+  background: #063e73;
+
+  color: white;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+}
+
+.hero-primary-button span {
+  font-size: 17px;
+}
+
+.hero-secondary-button {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding:
+    13px 20px;
+
+  border: 1px solid #c9d7e4;
+
+  border-radius: 7px;
+
+  background: white;
+
+  color: #163250;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+.play-icon {
+  width: 22px;
+  height: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #b6c7d7;
+
+  border-radius: 50%;
+
+  font-size: 8px;
+}
+
+
+/* ================================================================ */
+/* RESPONSIVE                                                       */
+/* ================================================================ */
+
+@media (max-width: 1100px) {
+
+  .navbar {
+    padding: 0 30px;
+  }
+
+  .navbar-brand {
+    min-width: auto;
+  }
+
+  .navbar-navigation {
+    margin-left: 35px;
+
+    gap: 20px;
+  }
+
+}
+
+@media (max-width: 850px) {
+
+  .navbar {
+    padding: 0 20px;
+  }
+
+  .navbar-navigation {
+    display: none;
+  }
+
+  .language-button {
+    display: none;
+  }
+
+  .login-button {
+    display: none;
+  }
+
+  .open-account-button {
+    padding: 0 13px;
+  }
+
+  .hero {
+    padding:
+      70px 25px;
+  }
+
+}
+
+@media (max-width: 550px) {
+
+  .navbar {
+    height: 70px;
+  }
+
+  .brand-copy span {
+    display: none;
+  }
+
+  .brand-copy strong {
+    font-size: 15px;
+  }
+
+  .hero {
+    min-height:
+      calc(100vh - 70px);
+  }
+
+  .hero h1 {
+    font-size: 48px;
+
+    letter-spacing: -2.5px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .hero-primary-button,
+  .hero-secondary-button {
+    justify-content: center;
+  }
+
+}
