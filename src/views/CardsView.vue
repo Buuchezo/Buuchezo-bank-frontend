@@ -1,0 +1,1519 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+import {
+  ArrowLeftRight,
+  Bell,
+  CreditCard,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  LayoutDashboard,
+  Lock,
+  LogOut,
+  Menu,
+  Send,
+  Settings,
+  WalletCards,
+  Wifi,
+} from 'lucide-vue-next'
+
+interface Role {
+  id: number
+  name: string
+}
+
+interface User {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  enabled: boolean
+  roles: Role[]
+  createdAt: string
+}
+
+interface Account {
+  id: number
+  accountNumber: string
+  balance: number
+  currency: string
+  accountType: string
+  accountStatus: string
+  ownerEmail?: string
+  createdAt: string
+}
+
+interface UserWithAccount {
+  user: User
+  account: Account
+}
+
+interface ApiResponse<T> {
+  statusCode: number
+  message: string
+  data: T
+}
+
+const API_BASE_URL = 'http://13.48.104.209:8084'
+
+const router = useRouter()
+
+const mobileMenuOpen = ref(false)
+const loading = ref(true)
+const errorMessage = ref('')
+
+const showCardNumber = ref(false)
+const cardLocked = ref(false)
+
+const user = ref<User>({
+  id: 0,
+  email: '',
+  firstName: '',
+  lastName: '',
+  enabled: false,
+  roles: [],
+  createdAt: '',
+})
+
+const account = ref<Account>({
+  id: 0,
+  accountNumber: '',
+  balance: 0,
+  currency: 'EUR',
+  accountType: '',
+  accountStatus: '',
+  ownerEmail: '',
+  createdAt: '',
+})
+
+const fullName = computed(() => {
+  return `${user.value.firstName} ${user.value.lastName}`.trim()
+})
+
+const userInitials = computed(() => {
+  const first = user.value.firstName?.charAt(0) || ''
+  const last = user.value.lastName?.charAt(0) || ''
+
+  return `${first}${last}`.toUpperCase() || 'U'
+})
+
+const maskedCardNumber = computed(() => {
+  return showCardNumber.value ? '4532 7819 6421 3456' : '•••• •••• •••• 3456'
+})
+
+const cardHolderName = computed(() => {
+  return fullName.value || 'ACCOUNT HOLDER'
+})
+
+async function loadUserAndAccount() {
+  loading.value = true
+  errorMessage.value = ''
+
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+
+  if (!token) {
+    await router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.status === 401) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+      sessionStorage.removeItem('accessToken')
+      sessionStorage.removeItem('user')
+
+      await router.push('/login')
+      return
+    }
+
+    const result: ApiResponse<UserWithAccount> = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Unable to load your account information.')
+    }
+
+    user.value = result.data.user
+    account.value = result.data.account
+  } catch (error) {
+    console.error('Failed to load user and account:', error)
+
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Unable to load your account information.'
+  } finally {
+    loading.value = false
+  }
+}
+
+function navigateTo(path: string) {
+  mobileMenuOpen.value = false
+  router.push(path)
+}
+
+function toggleCardLock() {
+  cardLocked.value = !cardLocked.value
+}
+
+function logout() {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('user')
+
+  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('user')
+
+  router.push('/login')
+}
+
+onMounted(loadUserAndAccount)
+</script>
+
+<template>
+  <div class="cards-page">
+    <!-- MOBILE OVERLAY -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
+      <div class="sidebar-top">
+        <RouterLink to="/" class="dashboard-logo" @click="mobileMenuOpen = false">
+          <span>B</span>
+          <strong>Buuchezo Bank</strong>
+        </RouterLink>
+
+        <button
+          type="button"
+          class="mobile-close"
+          aria-label="Close menu"
+          @click="mobileMenuOpen = false"
+        >
+          ×
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <p class="nav-section-title">MAIN</p>
+
+        <RouterLink to="/dashboard" class="nav-item" @click="mobileMenuOpen = false">
+          <LayoutDashboard :size="19" />
+          <span>Overview</span>
+        </RouterLink>
+
+        <RouterLink to="/accounts" class="nav-item" @click="mobileMenuOpen = false">
+          <WalletCards :size="19" />
+          <span>Accounts</span>
+        </RouterLink>
+
+        <RouterLink to="/transactions" class="nav-item" @click="mobileMenuOpen = false">
+          <ArrowLeftRight :size="19" />
+          <span>Transactions</span>
+        </RouterLink>
+
+        <RouterLink to="/cards" class="nav-item active" @click="mobileMenuOpen = false">
+          <CreditCard :size="19" />
+          <span>Cards</span>
+        </RouterLink>
+
+        <p class="nav-section-title second">SERVICES</p>
+
+        <RouterLink to="/transfers" class="nav-item" @click="mobileMenuOpen = false">
+          <Send :size="19" />
+          <span>Transfers</span>
+        </RouterLink>
+
+        <a href="#" class="nav-item" @click.prevent>
+          <Settings :size="19" />
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="support-box">
+          <div class="support-icon">
+            <HelpCircle :size="18" />
+          </div>
+
+          <div>
+            <strong>Need help?</strong>
+            <span>We're here for you.</span>
+          </div>
+        </div>
+
+        <button type="button" class="logout-button" @click="logout">
+          <LogOut :size="18" />
+          <span>Log out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+      <!-- HEADER -->
+      <header class="dashboard-header">
+        <div class="header-left">
+          <button
+            type="button"
+            class="mobile-menu-button"
+            aria-label="Open menu"
+            @click="mobileMenuOpen = true"
+          >
+            <Menu :size="22" />
+          </button>
+
+          <div>
+            <span class="page-label">BANKING</span>
+            <h1>Cards</h1>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button type="button" class="notification-button" aria-label="Notifications">
+            <Bell :size="20" />
+            <span class="notification-dot" />
+          </button>
+
+          <div class="profile">
+            <div class="avatar">
+              {{ userInitials }}
+            </div>
+
+            <div class="profile-info">
+              <strong>
+                {{ fullName || 'Account holder' }}
+              </strong>
+
+              <span>
+                {{ user.email || '—' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT -->
+      <section class="content">
+        <div class="page-intro">
+          <div>
+            <p class="eyebrow">YOUR CARDS</p>
+
+            <h2>Cards made simple.</h2>
+
+            <p class="intro-text">Manage your Buuchezo Bank cards and card security.</p>
+          </div>
+        </div>
+
+        <!-- ERROR -->
+        <div v-if="errorMessage" class="error-box">
+          <strong>Something went wrong</strong>
+
+          <span>{{ errorMessage }}</span>
+
+          <button type="button" @click="loadUserAndAccount">Try again</button>
+        </div>
+
+        <!-- LOADING -->
+        <div v-if="loading" class="loading-card">
+          <div class="spinner" />
+
+          <p>Loading your card...</p>
+        </div>
+
+        <template v-else-if="!errorMessage">
+          <!-- CARD + DETAILS -->
+          <section class="cards-layout">
+            <!-- VISUAL BANK CARD -->
+            <div class="card-column">
+              <div class="bank-card" :class="{ locked: cardLocked }">
+                <div class="card-lock-overlay">
+                  <Lock :size="25" />
+
+                  <span>Card locked</span>
+                </div>
+
+                <div class="card-top">
+                  <div class="card-brand">
+                    <span>B</span>
+                    <strong>Buuchezo</strong>
+                  </div>
+
+                  <Wifi :size="25" class="contactless" />
+                </div>
+
+                <div class="chip">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+
+                <div class="card-number">
+                  {{ maskedCardNumber }}
+                </div>
+
+                <div class="card-bottom">
+                  <div>
+                    <span>CARD HOLDER</span>
+
+                    <strong>
+                      {{ cardHolderName }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>VALID THRU</span>
+
+                    <strong>12/29</strong>
+                  </div>
+
+                  <div class="visa">VISA</div>
+                </div>
+              </div>
+
+              <div class="card-number-control">
+                <button type="button" @click="showCardNumber = !showCardNumber">
+                  <EyeOff v-if="showCardNumber" :size="17" />
+
+                  <Eye v-else :size="17" />
+
+                  {{ showCardNumber ? 'Hide card number' : 'Show card number' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- CARD DETAILS -->
+            <div class="card-details">
+              <div class="details-header">
+                <div>
+                  <p class="eyebrow">VISA DEBIT</p>
+
+                  <h3>Personal Card</h3>
+                </div>
+
+                <span class="card-status" :class="{ locked: cardLocked }">
+                  <span />
+
+                  {{ cardLocked ? 'Locked' : 'Active' }}
+                </span>
+              </div>
+
+              <div class="details-list">
+                <div class="detail-row">
+                  <span>Card holder</span>
+
+                  <strong>
+                    {{ cardHolderName }}
+                  </strong>
+                </div>
+
+                <div class="detail-row">
+                  <span>Card type</span>
+
+                  <strong>Visa Debit</strong>
+                </div>
+
+                <div class="detail-row">
+                  <span>Card number</span>
+
+                  <strong>•••• 3456</strong>
+                </div>
+
+                <div class="detail-row">
+                  <span>Expiration</span>
+
+                  <strong>12/2029</strong>
+                </div>
+
+                <div class="detail-row">
+                  <span>Currency</span>
+
+                  <strong>
+                    {{ account.currency || 'EUR' }}
+                  </strong>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="lock-card-button"
+                :class="{ unlock: cardLocked }"
+                @click="toggleCardLock"
+              >
+                <Lock v-if="!cardLocked" :size="18" />
+
+                <CreditCard v-else :size="18" />
+
+                {{ cardLocked ? 'Unlock card' : 'Lock card' }}
+              </button>
+
+              <p class="security-note">
+                <Lock :size="14" />
+
+                Locking your card is a frontend demonstration until card-management endpoints are
+                added to the backend.
+              </p>
+            </div>
+          </section>
+
+          <!-- CARD FEATURES -->
+          <section class="features-section">
+            <div class="section-heading">
+              <p class="eyebrow">CARD SERVICES</p>
+
+              <h2>Everything in one place.</h2>
+            </div>
+
+            <div class="features-grid">
+              <article class="feature-card">
+                <div class="feature-icon blue">
+                  <Lock :size="20" />
+                </div>
+
+                <h3>Card security</h3>
+
+                <p>Lock your card quickly if you notice anything unusual.</p>
+
+                <span class="feature-status"> Available </span>
+              </article>
+
+              <article class="feature-card">
+                <div class="feature-icon purple">
+                  <CreditCard :size="20" />
+                </div>
+
+                <h3>Digital card</h3>
+
+                <p>Your digital banking card can be used for supported online payments.</p>
+
+                <span class="feature-status"> Coming soon </span>
+              </article>
+
+              <article class="feature-card">
+                <div class="feature-icon green">
+                  <Wifi :size="20" />
+                </div>
+
+                <h3>Contactless payments</h3>
+
+                <p>Use contactless payments wherever your card is accepted.</p>
+
+                <span class="feature-status"> Available </span>
+              </article>
+            </div>
+          </section>
+
+          <!-- COMING SOON -->
+          <section class="coming-soon">
+            <div class="coming-soon-content">
+              <div class="coming-icon">
+                <CreditCard :size="22" />
+              </div>
+
+              <div>
+                <p class="eyebrow">NEXT STEP</p>
+
+                <h3>More card controls are coming.</h3>
+
+                <p>
+                  Card limits, online-payment controls, replacement cards and additional cards can
+                  be connected here once the corresponding backend endpoints are available.
+                </p>
+              </div>
+            </div>
+          </section>
+        </template>
+      </section>
+    </main>
+  </div>
+</template>
+
+<style scoped>
+* {
+  box-sizing: border-box;
+}
+
+.cards-page {
+  min-height: 100vh;
+  background: #f5f8fc;
+  color: #10243e;
+  display: flex;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #e8edf4;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+}
+
+.sidebar-top {
+  padding: 27px 24px 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: #10243e;
+}
+
+.dashboard-logo span {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #07559b;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.dashboard-logo strong {
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
+
+.mobile-close {
+  display: none;
+  border: 0;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+  color: #50647b;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 15px 14px;
+}
+
+.nav-section-title {
+  margin: 0 12px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  color: #9aa8b8;
+}
+
+.nav-section-title.second {
+  margin-top: 29px;
+}
+
+.nav-item {
+  min-height: 45px;
+  padding: 0 13px;
+  margin: 4px 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: #64758a;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.nav-item:hover {
+  background: #f1f6fb;
+  color: #07559b;
+}
+
+.nav-item.active {
+  background: #eaf3fb;
+  color: #07559b;
+}
+
+.sidebar-bottom {
+  padding: 18px 15px 21px;
+}
+
+.support-box {
+  background: #f4f8fc;
+  border-radius: 13px;
+  padding: 14px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.support-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #07559b;
+  display: grid;
+  place-items: center;
+}
+
+.support-box strong,
+.support-box span {
+  display: block;
+}
+
+.support-box strong {
+  color: #243b55;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.support-box span {
+  color: #8998a9;
+  font-size: 10px;
+}
+
+.logout-button {
+  width: 100%;
+  height: 43px;
+  border: 0;
+  background: transparent;
+  color: #718198;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 13px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #f7f9fb;
+  color: #d34d4d;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main-content {
+  flex: 1;
+  margin-left: 250px;
+  min-width: 0;
+}
+
+.dashboard-header {
+  height: 88px;
+  background: #ffffff;
+  border-bottom: 1px solid #e9eef4;
+  padding: 0 39px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.page-label {
+  display: block;
+  color: #99a8b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+
+.header-left h1 {
+  margin: 0;
+  color: #122a45;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+
+.mobile-menu-button {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e4eaf1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #28445f;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.notification-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e7ecf2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #64778d;
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.notification-dot {
+  width: 7px;
+  height: 7px;
+  background: #ef5c5c;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  right: 7px;
+  top: 6px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  background: #07559b;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.profile-info strong,
+.profile-info span {
+  display: block;
+}
+
+.profile-info strong {
+  color: #253c55;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.profile-info span {
+  color: #9aa7b5;
+  font-size: 10px;
+}
+
+/* =========================
+   CONTENT
+========================= */
+
+.content {
+  padding: 34px 39px 60px;
+  max-width: 1400px;
+}
+
+.page-intro {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: #07559b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.page-intro h2 {
+  margin: 0;
+  color: #122a45;
+  font-size: 27px;
+  letter-spacing: -0.8px;
+}
+
+.intro-text {
+  margin: 8px 0 0;
+  color: #8b9bad;
+  font-size: 13px;
+}
+
+/* =========================
+   ERROR / LOADING
+========================= */
+
+.error-box {
+  padding: 18px 20px;
+  background: #fff3f3;
+  border: 1px solid #f2d3d3;
+  border-radius: 12px;
+  margin-bottom: 22px;
+  color: #9e4545;
+}
+
+.error-box strong,
+.error-box span {
+  display: block;
+}
+
+.error-box strong {
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.error-box span {
+  font-size: 12px;
+  margin-bottom: 13px;
+}
+
+.error-box button {
+  border: 0;
+  background: #a94b4b;
+  color: #ffffff;
+  padding: 8px 13px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.loading-card {
+  min-height: 260px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8796a7;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #dce7f1;
+  border-top-color: #07559b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 13px;
+}
+
+.loading-card p {
+  margin: 0;
+  font-size: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================
+   CARDS LAYOUT
+========================= */
+
+.cards-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(400px, 1.1fr)
+    minmax(350px, 0.9fr);
+  gap: 25px;
+  margin-bottom: 42px;
+}
+
+.card-column {
+  min-width: 0;
+}
+
+.bank-card {
+  width: min(100%, 500px);
+  min-height: 285px;
+  border-radius: 21px;
+  padding: 28px 30px 25px;
+  background:
+    radial-gradient(circle at 88% 15%, rgba(85, 164, 231, 0.34), transparent 27%),
+    linear-gradient(130deg, #063d74 0%, #07559b 50%, #143fbd 100%);
+  color: #ffffff;
+  box-shadow: 0 22px 45px rgba(8, 57, 103, 0.19);
+  position: relative;
+  overflow: hidden;
+  transition: filter 0.2s ease;
+}
+
+.bank-card::before {
+  content: '';
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  right: -80px;
+  top: -120px;
+}
+
+.bank-card::after {
+  content: '';
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  left: -100px;
+  bottom: -100px;
+}
+
+.bank-card.locked {
+  filter: grayscale(0.35);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.card-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.card-brand span {
+  width: 31px;
+  height: 31px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.card-brand strong {
+  font-size: 13px;
+}
+
+.contactless {
+  transform: rotate(90deg);
+  opacity: 0.85;
+}
+
+.chip {
+  width: 43px;
+  height: 32px;
+  border-radius: 6px;
+  background: #d7b66e;
+  margin-top: 39px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding: 5px;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+
+.chip span {
+  border: 1px solid rgba(72, 58, 24, 0.38);
+  border-radius: 2px;
+}
+
+.card-number {
+  margin-top: 22px;
+  font-family: 'Courier New', monospace;
+  font-size: 19px;
+  letter-spacing: 1.3px;
+  position: relative;
+  z-index: 2;
+}
+
+.card-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+  margin-top: 23px;
+  position: relative;
+  z-index: 2;
+}
+
+.card-bottom span,
+.card-bottom strong {
+  display: block;
+}
+
+.card-bottom span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 6px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.card-bottom strong {
+  font-size: 8px;
+  letter-spacing: 0.8px;
+}
+
+.visa {
+  margin-left: auto;
+  font-size: 21px;
+  font-style: italic;
+  font-weight: 800;
+}
+
+.card-lock-overlay {
+  display: none;
+}
+
+.bank-card.locked .card-lock-overlay {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(5, 26, 50, 0.47);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.card-number-control {
+  margin-top: 13px;
+}
+
+.card-number-control button {
+  border: 0;
+  background: transparent;
+  color: #6f8094;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 0;
+  cursor: pointer;
+}
+
+.card-number-control button:hover {
+  color: #07559b;
+}
+
+/* =========================
+   DETAILS
+========================= */
+
+.card-details {
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 17px;
+  padding: 25px;
+  box-shadow: 0 7px 20px rgba(29, 59, 89, 0.035);
+  align-self: start;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  padding-bottom: 21px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.details-header h3 {
+  margin: 0;
+  color: #193550;
+  font-size: 20px;
+}
+
+.card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: #eaf8f2;
+  color: #2a8e67;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.card-status span {
+  width: 6px;
+  height: 6px;
+  background: #35a874;
+  border-radius: 50%;
+}
+
+.card-status.locked {
+  background: #fff1f1;
+  color: #b04f4f;
+}
+
+.card-status.locked span {
+  background: #d55b5b;
+}
+
+.details-list {
+  padding: 5px 0;
+}
+
+.detail-row {
+  min-height: 52px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid #f0f3f6;
+}
+
+.detail-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-row span {
+  color: #8e9cad;
+  font-size: 11px;
+}
+
+.detail-row strong {
+  color: #304860;
+  font-size: 11px;
+  text-align: right;
+}
+
+/* =========================
+   BUTTON
+========================= */
+
+.lock-card-button {
+  width: 100%;
+  height: 44px;
+  margin-top: 17px;
+  border: 1px solid #dce5ee;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #34506b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lock-card-button:hover {
+  background: #f5f8fb;
+}
+
+.lock-card-button.unlock {
+  border-color: #bfe3d2;
+  background: #eefaf4;
+  color: #27855e;
+}
+
+.security-note {
+  margin: 14px 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #9aa8b6;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+/* =========================
+   FEATURES
+========================= */
+
+.features-section {
+  margin-bottom: 38px;
+}
+
+.section-heading {
+  margin-bottom: 17px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  color: #122a45;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.feature-card {
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 14px;
+  padding: 20px;
+  min-height: 180px;
+}
+
+.feature-icon {
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 15px;
+}
+
+.feature-icon.blue {
+  color: #07559b;
+  background: #eaf3fb;
+}
+
+.feature-icon.purple {
+  color: #7356a9;
+  background: #f2edfa;
+}
+
+.feature-icon.green {
+  color: #299267;
+  background: #eaf8f2;
+}
+
+.feature-card h3 {
+  margin: 0 0 7px;
+  color: #263f58;
+  font-size: 13px;
+}
+
+.feature-card p {
+  margin: 0;
+  color: #94a2b0;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.feature-status {
+  display: inline-block;
+  margin-top: 14px;
+  color: #07559b;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* =========================
+   COMING SOON
+========================= */
+
+.coming-soon {
+  border: 1px solid #dce8f2;
+  background: linear-gradient(135deg, #f4f9fd, #ffffff);
+  border-radius: 15px;
+  padding: 20px 23px;
+}
+
+.coming-soon-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.coming-icon {
+  width: 43px;
+  height: 43px;
+  flex-shrink: 0;
+  background: #eaf3fb;
+  color: #07559b;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.coming-soon h3 {
+  margin: 0 0 6px;
+  color: #243d57;
+  font-size: 14px;
+}
+
+.coming-soon p:last-child {
+  margin: 0;
+  color: #8e9dab;
+  font-size: 10px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+.mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 1000px) {
+  .cards-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-card {
+    width: min(100%, 520px);
+  }
+
+  .card-details {
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 850px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 15px 0 40px rgba(20, 45, 72, 0.12);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 31, 52, 0.35);
+    z-index: 40;
+  }
+
+  .mobile-close {
+    display: block;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+
+  .dashboard-header {
+    padding: 0 22px;
+  }
+
+  .content {
+    padding: 28px 22px 50px;
+  }
+}
+
+@media (max-width: 650px) {
+  .dashboard-header {
+    height: 75px;
+  }
+
+  .header-left h1 {
+    font-size: 19px;
+  }
+
+  .profile-info {
+    display: none;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .page-intro h2 {
+    font-size: 23px;
+  }
+
+  .cards-layout {
+    gap: 18px;
+  }
+
+  .bank-card {
+    min-height: 240px;
+    padding: 22px 22px 20px;
+  }
+
+  .chip {
+    margin-top: 27px;
+  }
+
+  .card-number {
+    margin-top: 17px;
+    font-size: 15px;
+  }
+
+  .card-bottom {
+    margin-top: 17px;
+    gap: 17px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coming-soon-content {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dashboard-header {
+    padding: 0 16px;
+  }
+
+  .bank-card {
+    min-height: 220px;
+  }
+
+  .card-number {
+    font-size: 13px;
+    letter-spacing: 0.7px;
+  }
+
+  .card-bottom {
+    gap: 11px;
+  }
+}
+</style>

@@ -1,5 +1,8 @@
 <template>
   <main class="auth-page">
+    <!-- =====================================================
+         LEFT VISUAL
+    ====================================================== -->
     <div class="auth-visual">
       <div class="auth-visual-glow"></div>
 
@@ -16,7 +19,10 @@
           <span>your control.</span>
         </h1>
 
-        <p>Securely access your accounts and stay connected to everything that matters.</p>
+        <p>
+          Securely access your accounts and stay connected to everything
+          that matters.
+        </p>
 
         <div class="auth-card-preview">
           <div class="preview-top">
@@ -26,7 +32,9 @@
 
           <div class="preview-chip"></div>
 
-          <div class="preview-number">5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456</div>
+          <div class="preview-number">
+            5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456
+          </div>
 
           <div class="preview-bottom">
             <span>JOHN DOE</span>
@@ -41,13 +49,18 @@
       </div>
     </div>
 
+    <!-- =====================================================
+         FORM AREA
+    ====================================================== -->
     <div class="auth-form-area">
       <div class="auth-form-container">
+        <!-- Mobile brand -->
         <div class="mobile-brand">
           <span class="auth-brand-mark">B</span>
           <span>Buuchezo Bank</span>
         </div>
 
+        <!-- Heading -->
         <div class="form-heading">
           <span class="form-label">SIGN IN</span>
 
@@ -56,7 +69,9 @@
           <p>Enter your details to access your account.</p>
         </div>
 
+        <!-- Login form -->
         <form class="auth-form" @submit.prevent="handleLogin">
+          <!-- Email -->
           <div class="form-group">
             <label for="email">Email address</label>
 
@@ -70,11 +85,18 @@
             />
           </div>
 
+          <!-- Password -->
           <div class="form-group">
             <div class="label-row">
               <label for="password">Password</label>
 
-              <button type="button" class="forgot-password">Forgot password?</button>
+              <button
+                type="button"
+                class="forgot-password"
+                @click="handleForgotPassword"
+              >
+                Forgot password?
+              </button>
             </div>
 
             <div class="password-input">
@@ -87,12 +109,17 @@
                 required
               />
 
-              <button type="button" class="password-toggle" @click="showPassword = !showPassword">
+              <button
+                type="button"
+                class="password-toggle"
+                @click="showPassword = !showPassword"
+              >
                 {{ showPassword ? 'Hide' : 'Show' }}
               </button>
             </div>
           </div>
 
+          <!-- Remember me -->
           <div class="remember-row">
             <label class="remember-label">
               <input v-model="rememberMe" type="checkbox" />
@@ -101,16 +128,31 @@
             </label>
           </div>
 
-          <button type="submit" class="auth-submit">
-            <span>Sign in</span>
+          <!-- Error -->
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            class="auth-submit"
+            :disabled="isLoading"
+          >
+            <span>
+              {{ isLoading ? 'Signing in...' : 'Sign in' }}
+            </span>
+
             <ArrowUpRight :size="17" />
           </button>
         </form>
 
+        <!-- Divider -->
         <div class="auth-divider">
           <span>OR</span>
         </div>
 
+        <!-- Register -->
         <div class="register-prompt">
           <span>Don't have an account?</span>
 
@@ -120,6 +162,7 @@
           </RouterLink>
         </div>
 
+        <!-- Legal -->
         <p class="auth-legal">
           By continuing, you agree to our
           <RouterLink to="/terms">Terms</RouterLink>
@@ -133,18 +176,130 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowRight, ArrowUpRight } from 'lucide-vue-next'
+
+const router = useRouter()
 
 const email = ref('')
 const password = ref('')
-const rememberMe = ref(false)
 const showPassword = ref(false)
+const rememberMe = ref(false)
 
-function handleLogin() {
-  console.log('Login UI submitted', {
-    email: email.value,
-    rememberMe: rememberMe.value,
-  })
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+const handleLogin = async () => {
+  errorMessage.value = ''
+
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Please enter your email and password.'
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    const response = await fetch(
+      'http://13.48.104.209:8084/api/auth/login',
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: JSON.stringify({
+          email: email.value,
+          password: password.value,
+        }),
+      },
+    )
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+        'Login failed. Please check your credentials.',
+      )
+    }
+
+    /*
+     * Backend response:
+     *
+     * {
+     *   statusCode: 200,
+     *   message: "User logged in successfully",
+     *   data: {
+     *     token: "...",
+     *     user: {
+     *       id: 1,
+     *       email: "...",
+     *       firstName: "...",
+     *       lastName: "...",
+     *       enabled: true,
+     *       roles: [...]
+     *     }
+     *   }
+     * }
+     */
+
+    const token = result?.data?.token
+    const user = result?.data?.user
+
+    if (!token || !user) {
+      throw new Error('Invalid login response from server.')
+    }
+
+    /*
+     * If "Remember me" is checked:
+     *
+     * localStorage
+     *
+     * Otherwise:
+     *
+     * sessionStorage
+     */
+
+    const storage = rememberMe.value
+      ? localStorage
+      : sessionStorage
+
+    storage.setItem('accessToken', token)
+    storage.setItem('user', JSON.stringify(user))
+
+    /*
+     * Check the user's backend role.
+     *
+     * ADMIN users go to the administration dashboard.
+     * All other users go to the normal customer dashboard.
+     */
+
+    const isAdmin = user.roles?.some(
+      (role: { name: string }) => role.name === 'ADMIN',
+    )
+
+    if (isAdmin) {
+      await router.push('/admin/dashboard')
+    } else {
+      await router.push('/dashboard')
+    }
+  } catch (error) {
+    console.error('Login error:', error)
+
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Something went wrong. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleForgotPassword = () => {
+  errorMessage.value =
+    'Password recovery will be available soon.'
 }
 </script>
 
@@ -174,7 +329,13 @@ function handleLogin() {
 
   color: white;
 
-  background: linear-gradient(145deg, #062f59 0%, #07559b 55%, #143fbd 100%);
+  background:
+    linear-gradient(
+      145deg,
+      #062f59 0%,
+      #07559b 55%,
+      #143fbd 100%
+    );
 
   overflow: hidden;
 }
@@ -331,7 +492,13 @@ function handleLogin() {
 
   padding: 23px;
 
-  background: linear-gradient(145deg, #084b84, #0862a8 55%, #233fc0);
+  background:
+    linear-gradient(
+      145deg,
+      #084b84,
+      #0862a8 55%,
+      #233fc0
+    );
 
   border: 1px solid rgba(255, 255, 255, 0.2);
 
@@ -339,7 +506,10 @@ function handleLogin() {
 
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
 
-  transform: perspective(1000px) rotateY(-10deg) rotateZ(-4deg);
+  transform:
+    perspective(1000px)
+    rotateY(-10deg)
+    rotateZ(-4deg);
 }
 
 .preview-top {
@@ -543,7 +713,8 @@ function handleLogin() {
 .form-group input:focus {
   border-color: #0b5da7;
 
-  box-shadow: 0 0 0 3px rgba(11, 93, 167, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(11, 93, 167, 0.08);
 }
 
 .form-group input::placeholder {
@@ -608,6 +779,26 @@ function handleLogin() {
 }
 
 /* =========================================================
+   ERROR
+========================================================= */
+
+.error-message {
+  padding: 12px 14px;
+
+  color: #b42318;
+
+  background: #fff4f2;
+
+  border: 1px solid #ffd8d2;
+
+  border-radius: 7px;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+}
+
+/* =========================================================
    SUBMIT
 ========================================================= */
 
@@ -636,13 +827,20 @@ function handleLogin() {
 
   transition:
     background 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.auth-submit:hover {
+.auth-submit:hover:not(:disabled) {
   background: #082f56;
 
   transform: translateY(-1px);
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+
+  cursor: not-allowed;
 }
 
 .auth-submit svg {

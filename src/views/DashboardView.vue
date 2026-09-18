@@ -58,7 +58,11 @@
           </div>
         </div>
 
-        <button class="logout-button">
+        <button
+          class="logout-button"
+          type="button"
+          @click="logout"
+        >
           <LogOut :size="17" />
           <span>Sign out</span>
         </button>
@@ -71,26 +75,55 @@
 
     <div class="dashboard-main">
       <header class="dashboard-header">
-        <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = !mobileMenuOpen">
+        <button
+          class="mobile-menu-button"
+          type="button"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
           <Menu :size="21" />
         </button>
 
         <div class="header-title">
           <span>OVERVIEW</span>
-          <h1>Good morning, John.</h1>
+          <h1>{{ greeting }}, {{ user.firstName || 'there' }}.</h1>
         </div>
 
         <div class="header-actions">
-          <button class="header-icon">
+          <RouterLink
+            v-if="isAdmin"
+            to="/admin/dashboard"
+            class="admin-dashboard-button"
+          >
+            <ShieldCheck :size="16" />
+            <span>Admin Dashboard</span>
+          </RouterLink>
+
+          <button
+            class="header-icon"
+            type="button"
+            aria-label="Refresh dashboard"
+            :disabled="refreshing"
+            @click="refreshDashboard"
+          >
+            <RefreshCw :size="17" :class="{ spinning: refreshing }" />
+          </button>
+
+          <button
+            class="header-icon"
+            type="button"
+            aria-label="Notifications"
+          >
             <Bell :size="19" />
             <span class="notification-dot"></span>
           </button>
 
           <div class="header-profile">
-            <div class="profile-avatar">JD</div>
+            <div class="profile-avatar">
+              {{ userInitials }}
+            </div>
 
             <div class="profile-info">
-              <strong>John Doe</strong>
+              <strong>{{ fullName }}</strong>
               <span>Personal</span>
             </div>
 
@@ -101,321 +134,491 @@
 
       <div class="dashboard-content">
         <!-- =================================================
-             BALANCE
+             LOADING
         ================================================== -->
 
-        <section class="balance-section">
-          <div class="balance-main-card">
-            <div class="balance-card-header">
-              <div>
-                <span>AVAILABLE BALANCE</span>
-                <h2>€12,840.65</h2>
-              </div>
-
-              <div class="balance-card-icon">
-                <WalletCards :size="21" />
-              </div>
-            </div>
-
-            <div class="balance-card-footer">
-              <span>Personal Account</span>
-              <span>•••• 3456</span>
-            </div>
-          </div>
-
-          <div class="balance-stat">
-            <div class="stat-icon income">
-              <ArrowDownLeft :size="17" />
-            </div>
-
-            <div>
-              <span>Income</span>
-              <strong>€4,820.00</strong>
-              <small>This month</small>
-            </div>
-          </div>
-
-          <div class="balance-stat">
-            <div class="stat-icon expense">
-              <ArrowUpRight :size="17" />
-            </div>
-
-            <div>
-              <span>Expenses</span>
-              <strong>€1,284.20</strong>
-              <small>This month</small>
-            </div>
-          </div>
-        </section>
-
-        <!-- =================================================
-             QUICK ACTIONS
-        ================================================== -->
-
-        <section class="quick-section">
-          <div class="section-heading">
-            <div>
-              <span>QUICK ACTIONS</span>
-              <h2>What would you like to do?</h2>
-            </div>
-          </div>
-
-          <div class="dashboard-actions">
-            <button class="action-card">
-              <div class="action-icon">
-                <Send :size="19" />
-              </div>
-
-              <strong>Send money</strong>
-              <span>Make a transfer</span>
-
-              <ArrowUpRight class="action-arrow" :size="17" />
-            </button>
-
-            <button class="action-card">
-              <div class="action-icon">
-                <ArrowDownLeft :size="19" />
-              </div>
-
-              <strong>Receive money</strong>
-              <span>View your details</span>
-
-              <ArrowUpRight class="action-arrow" :size="17" />
-            </button>
-
-            <button class="action-card">
-              <div class="action-icon">
-                <CreditCard :size="19" />
-              </div>
-
-              <strong>Manage cards</strong>
-              <span>View your cards</span>
-
-              <ArrowUpRight class="action-arrow" :size="17" />
-            </button>
-
-            <button class="action-card">
-              <div class="action-icon">
-                <BarChart3 :size="19" />
-              </div>
-
-              <strong>Spending</strong>
-              <span>See your activity</span>
-
-              <ArrowUpRight class="action-arrow" :size="17" />
-            </button>
-          </div>
-        </section>
-
-        <!-- =================================================
-             LOWER AREA
-        ================================================== -->
-
-        <div class="dashboard-lower">
-          <!-- TRANSACTIONS -->
-
-          <section class="dashboard-panel transactions-panel">
-            <div class="panel-heading">
-              <div>
-                <span>RECENT ACTIVITY</span>
-                <h2>Transactions</h2>
-              </div>
-
-              <RouterLink to="/transactions">
-                View all
-                <ArrowRight :size="14" />
-              </RouterLink>
-            </div>
-
-            <div class="transaction-list">
-              <div class="dashboard-transaction">
-                <div class="transaction-symbol">
-                  <ShoppingBag :size="17" />
-                </div>
-
-                <div class="transaction-description">
-                  <strong>Groceries</strong>
-                  <span>Today · Card payment</span>
-                </div>
-
-                <strong class="transaction-value negative"> −€84.20 </strong>
-              </div>
-
-              <div class="dashboard-transaction">
-                <div class="transaction-symbol income-symbol">
-                  <ArrowDownLeft :size="17" />
-                </div>
-
-                <div class="transaction-description">
-                  <strong>Salary</strong>
-                  <span>Yesterday · Incoming</span>
-                </div>
-
-                <strong class="transaction-value positive"> +€3,240.00 </strong>
-              </div>
-
-              <div class="dashboard-transaction">
-                <div class="transaction-symbol">
-                  <Coffee :size="17" />
-                </div>
-
-                <div class="transaction-description">
-                  <strong>Coffee House</strong>
-                  <span>Yesterday · Card payment</span>
-                </div>
-
-                <strong class="transaction-value negative"> −€5.80 </strong>
-              </div>
-
-              <div class="dashboard-transaction">
-                <div class="transaction-symbol">
-                  <ArrowUpRight :size="17" />
-                </div>
-
-                <div class="transaction-description">
-                  <strong>Alex Morgan</strong>
-                  <span>18 Sep · Transfer</span>
-                </div>
-
-                <strong class="transaction-value negative"> −€120.00 </strong>
-              </div>
-
-              <div class="dashboard-transaction">
-                <div class="transaction-symbol income-symbol">
-                  <ArrowDownLeft :size="17" />
-                </div>
-
-                <div class="transaction-description">
-                  <strong>Refund</strong>
-                  <span>17 Sep · Incoming</span>
-                </div>
-
-                <strong class="transaction-value positive"> +€45.00 </strong>
-              </div>
-            </div>
-          </section>
-
-          <!-- SPENDING -->
-
-          <section class="dashboard-panel spending-panel">
-            <div class="panel-heading">
-              <div>
-                <span>MONTHLY OVERVIEW</span>
-                <h2>Spending</h2>
-              </div>
-
-              <button class="period-button">
-                September
-                <ChevronDown :size="13" />
-              </button>
-            </div>
-
-            <div class="spending-number">€1,284.20</div>
-
-            <div class="spending-change">
-              <TrendingDown :size="14" />
-              8.4% less than last month
-            </div>
-
-            <div class="spending-chart">
-              <div class="chart-grid">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-
-              <div class="chart-bars">
-                <div style="height: 38%"></div>
-                <div style="height: 55%"></div>
-                <div style="height: 46%"></div>
-                <div style="height: 68%"></div>
-                <div style="height: 51%"></div>
-                <div style="height: 82%"></div>
-                <div style="height: 63%"></div>
-              </div>
-
-              <div class="chart-labels">
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-                <span>Sun</span>
-              </div>
-            </div>
-
-            <div class="spending-categories">
-              <div>
-                <span class="category-dot"></span>
-                <span>Shopping</span>
-                <strong>38%</strong>
-              </div>
-
-              <div>
-                <span class="category-dot"></span>
-                <span>Food</span>
-                <strong>27%</strong>
-              </div>
-
-              <div>
-                <span class="category-dot"></span>
-                <span>Transport</span>
-                <strong>18%</strong>
-              </div>
-            </div>
-          </section>
+        <div
+          v-if="loading"
+          class="dashboard-state"
+        >
+          <strong>Loading your dashboard...</strong>
+          <span>
+            Fetching your account and transaction information securely.
+          </span>
         </div>
 
         <!-- =================================================
-             ACCOUNT CARD
+             ERROR
         ================================================== -->
 
-        <section class="dashboard-card-section">
-          <div class="dashboard-card-heading">
-            <div>
-              <span>YOUR CARD</span>
-              <h2>Manage your card</h2>
-            </div>
+        <div
+          v-else-if="errorMessage"
+          class="dashboard-state dashboard-state-error"
+        >
+          <strong>Unable to load your dashboard</strong>
 
-            <RouterLink to="/cards">
-              Manage
-              <ArrowUpRight :size="15" />
-            </RouterLink>
-          </div>
+          <span>
+            {{ errorMessage }}
+          </span>
 
-          <div class="dashboard-bank-card">
-            <div class="bank-card-top">
-              <div class="bank-card-brand">
-                <div>B</div>
-                <strong>Buuchezo Bank</strong>
+          <button
+            type="button"
+            @click="loadDashboard"
+          >
+            Try again
+          </button>
+        </div>
+
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <template v-else>
+
+          <!-- =================================================
+               BALANCE
+          ================================================== -->
+
+          <section class="balance-section">
+            <div class="balance-main-card">
+              <div class="balance-card-header">
+                <div>
+                  <span>AVAILABLE BALANCE</span>
+
+                  <div class="balance-value-row">
+                    <h2>
+                      {{ showBalance ? formatMoney(account.balance) : '••••••' }}
+                    </h2>
+
+                    <button
+                      type="button"
+                      class="balance-visibility-button"
+                      :aria-label="showBalance ? 'Hide balance' : 'Show balance'"
+                      @click="showBalance = !showBalance"
+                    >
+                      <Eye v-if="showBalance" :size="17" />
+                      <EyeOff v-else :size="17" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="balance-card-icon">
+                  <WalletCards :size="21" />
+                </div>
               </div>
 
-              <Wifi :size="22" />
+              <div class="balance-card-footer">
+                <span>
+                  {{ account.accountType || 'Account' }}
+                </span>
+
+                <span>
+                  •••• {{ maskedAccountNumber }}
+                </span>
+
+                <span class="account-status" :class="account.accountStatus?.toLowerCase()">
+                  <span class="status-dot"></span>
+                  {{ account.accountStatus || 'ACTIVE' }}
+                </span>
+              </div>
             </div>
 
-            <div class="bank-card-chip"></div>
+            <!-- INCOME -->
 
-            <div class="bank-card-number">5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456</div>
+            <div class="balance-stat">
+              <div class="stat-icon income">
+                <ArrowDownLeft :size="17" />
+              </div>
 
-            <div class="bank-card-bottom">
               <div>
-                <span>CARD HOLDER</span>
-                <strong>JOHN DOE</strong>
+                <span>Income</span>
+
+                <strong>
+                  {{ formatMoney(monthlyIncome) }}
+                </strong>
+
+                <small>This month</small>
+              </div>
+            </div>
+
+            <!-- EXPENSES -->
+
+            <div class="balance-stat">
+              <div class="stat-icon expense">
+                <ArrowUpRight :size="17" />
               </div>
 
-              <div class="card-type">VISA</div>
+              <div>
+                <span>Expenses</span>
+
+                <strong>
+                  {{ formatMoney(monthlyExpenses) }}
+                </strong>
+
+                <small>This month</small>
+              </div>
             </div>
+          </section>
+
+          <!-- =================================================
+               QUICK ACTIONS
+          ================================================== -->
+
+          <section class="quick-section">
+            <div class="section-heading">
+              <div>
+                <span>QUICK ACTIONS</span>
+                <h2>What would you like to do?</h2>
+              </div>
+            </div>
+
+            <div class="dashboard-actions">
+
+              <button
+                class="action-card"
+                type="button"
+                @click="router.push('/transfers')"
+              >
+                <div class="action-icon">
+                  <Send :size="19" />
+                </div>
+
+                <strong>Send money</strong>
+
+                <span>
+                  Make a transfer
+                </span>
+
+                <ArrowUpRight
+                  class="action-arrow"
+                  :size="17"
+                />
+              </button>
+
+              <button
+                class="action-card"
+                type="button"
+                @click="router.push('/accounts')"
+              >
+                <div class="action-icon">
+                  <ArrowDownLeft :size="19" />
+                </div>
+
+                <strong>Receive money</strong>
+
+                <span>
+                  View your details
+                </span>
+
+                <ArrowUpRight
+                  class="action-arrow"
+                  :size="17"
+                />
+              </button>
+
+              <button
+                class="action-card"
+                type="button"
+                @click="router.push('/cards')"
+              >
+                <div class="action-icon">
+                  <CreditCard :size="19" />
+                </div>
+
+                <strong>Manage cards</strong>
+
+                <span>
+                  View your cards
+                </span>
+
+                <ArrowUpRight
+                  class="action-arrow"
+                  :size="17"
+                />
+              </button>
+
+              <button
+                class="action-card"
+                type="button"
+                @click="router.push('/transactions')"
+              >
+                <div class="action-icon">
+                  <BarChart3 :size="19" />
+                </div>
+
+                <strong>Spending</strong>
+
+                <span>
+                  See your activity
+                </span>
+
+                <ArrowUpRight
+                  class="action-arrow"
+                  :size="17"
+                />
+              </button>
+
+            </div>
+          </section>
+
+          <!-- =================================================
+               LOWER AREA
+          ================================================== -->
+
+          <div class="dashboard-lower">
+
+            <!-- =================================================
+                 TRANSACTIONS
+            ================================================== -->
+
+            <section class="dashboard-panel transactions-panel">
+
+              <div class="panel-heading">
+                <div>
+                  <span>RECENT ACTIVITY</span>
+                  <h2>Transactions</h2>
+                </div>
+
+                <RouterLink to="/transactions">
+                  View all
+                  <ArrowRight :size="14" />
+                </RouterLink>
+              </div>
+
+              <div class="transaction-list">
+
+                <!-- NO TRANSACTIONS -->
+
+                <div
+                  v-if="recentTransactions.length === 0"
+                  class="dashboard-transaction"
+                >
+                  <div class="transaction-symbol">
+                    <ArrowLeftRight :size="17" />
+                  </div>
+
+                  <div class="transaction-description">
+                    <strong>
+                      No transactions yet
+                    </strong>
+
+                    <span>
+                      Your recent activity will appear here.
+                    </span>
+                  </div>
+                </div>
+
+                <!-- REAL TRANSACTIONS -->
+
+                <div
+                  v-for="transaction in recentTransactions"
+                  :key="transaction.id || transaction.reference"
+                  class="dashboard-transaction"
+                >
+
+                  <div
+                    class="transaction-symbol"
+                    :class="{
+                      'income-symbol':
+                        transaction.transactionDirection === 'CREDIT'
+                    }"
+                  >
+                    <component
+                      :is="getTransactionIcon(transaction)"
+                      :size="17"
+                    />
+                  </div>
+
+                  <div class="transaction-description">
+                    <strong>
+                      {{ transactionDescription(transaction) }}
+                    </strong>
+
+                    <span>
+                      {{ formatTransactionDate(transaction.createdAt) }}
+                      ·
+                      {{ transactionLabel(transaction) }}
+                    </span>
+                  </div>
+
+                  <strong
+                    class="transaction-value"
+                    :class="
+                      transaction.transactionDirection === 'CREDIT'
+                        ? 'positive'
+                        : 'negative'
+                    "
+                  >
+                    {{
+                      transaction.transactionDirection === 'CREDIT'
+                        ? '+'
+                        : '−'
+                    }}{{ formatMoney(Math.abs(Number(transaction.amount))) }}
+                  </strong>
+
+                </div>
+
+              </div>
+            </section>
+
+            <!-- =================================================
+                 SPENDING
+            ================================================== -->
+
+            <section class="dashboard-panel spending-panel">
+
+              <div class="panel-heading">
+                <div>
+                  <span>MONTHLY OVERVIEW</span>
+                  <h2>Spending</h2>
+                </div>
+
+                <button
+                  class="period-button"
+                  type="button"
+                >
+                  {{ currentMonthName }}
+
+                  <ChevronDown :size="13" />
+                </button>
+              </div>
+
+              <div class="spending-number">
+                {{ formatMoney(spendingTotal) }}
+              </div>
+
+              <div class="spending-change">
+                <BarChart3 :size="14" />
+
+                Based on your activity this month
+              </div>
+
+              <div class="spending-chart">
+
+                <div class="chart-grid">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+
+                <div class="chart-bars">
+
+                  <div
+                    v-for="day in spendingDays"
+                    :key="day.dateKey"
+                    :style="{
+                      height: `${spendingBarHeight(day.amount)}%`
+                    }"
+                    :title="`${day.label}: ${formatMoney(day.amount)}`"
+                  ></div>
+
+                </div>
+
+                <div class="chart-labels">
+
+                  <span
+                    v-for="day in spendingDays"
+                    :key="`${day.dateKey}-label`"
+                  >
+                    {{ day.label }}
+                  </span>
+
+                </div>
+
+              </div>
+
+              <div class="spending-categories">
+
+                <div
+                  v-for="category in spendingCategories"
+                  :key="category.name"
+                >
+                  <span class="category-dot"></span>
+
+                  <span>
+                    {{ category.name }}
+                  </span>
+
+                  <strong>
+                    {{ category.percentage }}%
+                  </strong>
+                </div>
+
+              </div>
+
+            </section>
+
           </div>
-        </section>
+
+          <!-- =================================================
+               ACCOUNT CARD
+          ================================================== -->
+
+          <section class="dashboard-card-section">
+
+            <div class="dashboard-card-heading">
+              <div>
+                <span>YOUR CARD</span>
+                <h2>Manage your card</h2>
+              </div>
+
+              <RouterLink to="/cards">
+                Manage
+                <ArrowUpRight :size="15" />
+              </RouterLink>
+            </div>
+
+            <!--
+              CARD DATA IS CURRENTLY MOCK DATA.
+              We do not have a Card API yet.
+            -->
+
+            <div class="dashboard-bank-card">
+
+              <div class="bank-card-top">
+
+                <div class="bank-card-brand">
+                  <div>B</div>
+                  <strong>Buuchezo Bank</strong>
+                </div>
+
+                <Wifi :size="22" />
+
+              </div>
+
+              <div class="bank-card-chip"></div>
+
+              <div class="bank-card-number">
+                5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456
+              </div>
+
+              <div class="bank-card-bottom">
+
+                <div>
+                  <span>CARD HOLDER</span>
+                  <strong>{{ fullName }}</strong>
+                </div>
+
+                <div class="card-type">
+                  VISA
+                </div>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        </template>
       </div>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
   ArrowDownLeft,
@@ -425,24 +628,927 @@ import {
   BarChart3,
   Bell,
   ChevronDown,
-  Coffee,
   CreditCard,
   HelpCircle,
   LayoutDashboard,
   LogOut,
   Menu,
+  RefreshCw,
   Send,
   Settings,
   ShoppingBag,
-  TrendingDown,
+  ShieldCheck,
   WalletCards,
   Wifi,
+  Eye,
+  EyeOff,
 } from 'lucide-vue-next'
 
+/* =========================================================
+   TYPES
+========================================================= */
+
+interface Role {
+  id: number
+  name: string
+}
+
+interface User {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  enabled: boolean
+  roles: Role[]
+  createdAt: string
+}
+
+interface Account {
+  id: number
+  accountNumber: string
+  balance: number
+  currency: string
+  accountType: string
+  accountStatus: string
+  ownerEmail?: string
+  createdAt: string
+}
+
+interface UserWithAccount {
+  user: User
+  account: Account
+}
+
+interface Transaction {
+  id: number
+  reference: string
+  fromAccountNumber: string
+  fromBankCode?: string
+  toAccountNumber: string
+  toBankCode?: string
+  amount: number
+  description?: string
+  currency?: string
+  transactionType:
+    | 'DEPOSIT'
+    | 'WITHDRAWAL'
+    | 'TRANSFER'
+    | 'PAYMENT'
+  transactionStatus?: string
+  transactionDirection:
+    | 'DEBIT'
+    | 'CREDIT'
+  channel?: string
+  createdAt: string
+}
+
+interface ApiResponse<T> {
+  statusCode: number
+  message: string
+  data: T
+}
+
+interface SpendingDay {
+  dateKey: string
+  label: string
+  amount: number
+}
+
+interface SpendingCategory {
+  name: string
+  percentage: number
+}
+
+/* =========================================================
+   CONFIGURATION
+========================================================= */
+
+const API_BASE_URL = 'http://13.48.104.209:8084'
+
+const router = useRouter()
+
+/* =========================================================
+   STATE
+========================================================= */
+
 const mobileMenuOpen = ref(false)
+
+const loading = ref(true)
+
+const errorMessage = ref('')
+
+const user = ref<User>({
+  id: 0,
+  email: '',
+  firstName: '',
+  lastName: '',
+  enabled: false,
+  roles: [],
+  createdAt: '',
+})
+
+const account = ref<Account>({
+  id: 0,
+  accountNumber: '',
+  balance: 0,
+  currency: 'EUR',
+  accountType: '',
+  accountStatus: '',
+  createdAt: '',
+})
+
+const transactions = ref<Transaction[]>([])
+
+const showBalance = ref(true)
+const refreshing = ref(false)
+
+/* =========================================================
+   USER INFORMATION
+========================================================= */
+
+const fullName = computed(() => {
+  const name =
+    `${user.value.firstName} ${user.value.lastName}`.trim()
+
+  return name || 'User'
+})
+
+const userInitials = computed(() => {
+  const first =
+    user.value.firstName?.charAt(0) || ''
+
+  const last =
+    user.value.lastName?.charAt(0) || ''
+
+  return (
+    `${first}${last}`.toUpperCase() || 'U'
+  )
+})
+
+const isAdmin = computed(() => {
+  return user.value.roles?.some((role) => role.name === 'ADMIN') ?? false
+})
+
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+
+  if (hour < 12) {
+    return 'Good morning'
+  }
+
+  if (hour < 18) {
+    return 'Good afternoon'
+  }
+
+  return 'Good evening'
+})
+
+
+const maskedAccountNumber = computed(() => {
+  const number =
+    account.value.accountNumber || ''
+
+  if (number.length <= 4) {
+    return number
+  }
+
+  return number.slice(-4)
+})
+
+/* =========================================================
+   MONEY
+========================================================= */
+
+function formatMoney(amount: number) {
+  return new Intl.NumberFormat('en-DE', {
+    style: 'currency',
+    currency: account.value.currency || 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount || 0)
+}
+
+/* =========================================================
+   DATE FORMATTING
+========================================================= */
+
+function formatTransactionDate(
+  dateString: string
+) {
+  if (!dateString) {
+    return ''
+  }
+
+  const date = new Date(dateString)
+
+  const now = new Date()
+
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+
+  if (isToday) {
+    return `Today · ${formatTransactionTime(date)}`
+  }
+
+  const yesterday = new Date(now)
+
+  yesterday.setDate(
+    now.getDate() - 1
+  )
+
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear()
+
+  if (isYesterday) {
+    return `Yesterday · ${formatTransactionTime(date)}`
+  }
+
+  return `${date.toLocaleDateString(
+    'en-GB',
+    {
+      day: '2-digit',
+      month: 'short',
+    }
+  )} · ${formatTransactionTime(date)}`
+}
+
+function formatTransactionTime(
+  date: Date
+) {
+  return date.toLocaleTimeString(
+    'en-GB',
+    {
+      hour: '2-digit',
+      minute: '2-digit',
+    }
+  )
+}
+
+/* =========================================================
+   TRANSACTION DESCRIPTION
+========================================================= */
+
+function transactionDescription(
+  transaction: Transaction
+) {
+  if (
+    transaction.description &&
+    transaction.description.trim()
+  ) {
+    return transaction.description
+  }
+
+  switch (
+    transaction.transactionType
+    ) {
+    case 'DEPOSIT':
+      return 'Deposit'
+
+    case 'WITHDRAWAL':
+      return 'Cash withdrawal'
+
+    case 'TRANSFER':
+      return 'Bank transfer'
+
+    case 'PAYMENT':
+      return 'Payment'
+
+    default:
+      return 'Transaction'
+  }
+}
+
+/* =========================================================
+   TRANSACTION LABEL
+========================================================= */
+
+function transactionLabel(
+  transaction: Transaction
+) {
+  switch (
+    transaction.transactionType
+    ) {
+    case 'DEPOSIT':
+      return 'Deposit'
+
+    case 'WITHDRAWAL':
+      return 'Withdrawal'
+
+    case 'TRANSFER':
+      return 'Transfer'
+
+    case 'PAYMENT':
+      return 'Payment'
+
+    default:
+      return 'Transaction'
+  }
+}
+
+/* =========================================================
+   TRANSACTION ICON
+========================================================= */
+
+function getTransactionIcon(
+  transaction: Transaction
+) {
+  if (
+    transaction.transactionDirection ===
+    'CREDIT'
+  ) {
+    return ArrowDownLeft
+  }
+
+  switch (
+    transaction.transactionType
+    ) {
+    case 'PAYMENT':
+      return ShoppingBag
+
+    case 'WITHDRAWAL':
+      return ArrowUpRight
+
+    case 'TRANSFER':
+      return ArrowLeftRight
+
+    default:
+      return ArrowUpRight
+  }
+}
+
+/* =========================================================
+   CURRENT MONTH TRANSACTIONS
+========================================================= */
+
+const currentMonthTransactions =
+  computed(() => {
+    const now = new Date()
+
+    return transactions.value.filter(
+      (transaction) => {
+        const date =
+          new Date(transaction.createdAt)
+
+        return (
+          date.getMonth() ===
+          now.getMonth() &&
+          date.getFullYear() ===
+          now.getFullYear()
+        )
+      }
+    )
+  })
+
+/* =========================================================
+   MONTHLY INCOME
+========================================================= */
+
+const monthlyIncome = computed(() => {
+  return currentMonthTransactions.value
+    .filter(
+      (transaction) =>
+        transaction.transactionDirection ===
+        'CREDIT'
+    )
+    .reduce(
+      (total, transaction) =>
+        total +
+        Number(
+          transaction.amount || 0
+        ),
+      0
+    )
+})
+
+/* =========================================================
+   MONTHLY EXPENSES
+========================================================= */
+
+const monthlyExpenses = computed(() => {
+  return currentMonthTransactions.value
+    .filter(
+      (transaction) =>
+        transaction.transactionDirection ===
+        'DEBIT'
+    )
+    .reduce(
+      (total, transaction) =>
+        total +
+        Number(
+          transaction.amount || 0
+        ),
+      0
+    )
+})
+
+/* =========================================================
+   RECENT TRANSACTIONS
+========================================================= */
+
+const recentTransactions =
+  computed(() => {
+    return [
+      ...transactions.value,
+    ]
+      .sort(
+        (a, b) =>
+          new Date(
+            b.createdAt
+          ).getTime() -
+          new Date(
+            a.createdAt
+          ).getTime()
+      )
+      .slice(0, 5)
+  })
+
+/* =========================================================
+   SPENDING TOTAL
+========================================================= */
+
+const spendingTotal = computed(() => {
+  return monthlyExpenses.value
+})
+
+/* =========================================================
+   CURRENT MONTH NAME
+========================================================= */
+
+const currentMonthName =
+  computed(() => {
+    return new Date().toLocaleDateString(
+      'en-US',
+      {
+        month: 'long',
+      }
+    )
+  })
+
+/* =========================================================
+   LAST 7 DAYS SPENDING
+========================================================= */
+
+const spendingDays =
+  computed<SpendingDay[]>(() => {
+    const today = new Date()
+
+    const days: SpendingDay[] = []
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+
+      date.setHours(
+        0,
+        0,
+        0,
+        0
+      )
+
+      date.setDate(
+        today.getDate() - i
+      )
+
+      const dateKey =
+        `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, '0')}-${String(
+          date.getDate()
+        ).padStart(2, '0')}`
+
+      const amount =
+        transactions.value
+          .filter(
+            (transaction) => {
+              if (
+                transaction.transactionDirection !==
+                'DEBIT'
+              ) {
+                return false
+              }
+
+              const transactionDate =
+                new Date(
+                  transaction.createdAt
+                )
+
+              return (
+                transactionDate.getFullYear() ===
+                date.getFullYear() &&
+                transactionDate.getMonth() ===
+                date.getMonth() &&
+                transactionDate.getDate() ===
+                date.getDate()
+              )
+            }
+          )
+          .reduce(
+            (total, transaction) =>
+              total +
+              Number(
+                transaction.amount || 0
+              ),
+            0
+          )
+
+      days.push({
+        dateKey,
+
+        label:
+          date.toLocaleDateString(
+            'en-US',
+            {
+              weekday: 'short',
+            }
+          ),
+
+        amount,
+      })
+    }
+
+    return days
+  })
+
+/* =========================================================
+   MAXIMUM DAILY SPENDING
+========================================================= */
+
+const maximumSpendingDay =
+  computed(() => {
+    return Math.max(
+      ...spendingDays.value.map(
+        (day) => day.amount
+      ),
+      1
+    )
+  })
+
+/* =========================================================
+   SPENDING BAR HEIGHT
+========================================================= */
+
+function spendingBarHeight(
+  amount: number
+) {
+  if (amount <= 0) {
+    return 4
+  }
+
+  return Math.max(
+    8,
+    Math.round(
+      (amount /
+        maximumSpendingDay.value) *
+      100
+    )
+  )
+}
+
+/* =========================================================
+   SPENDING CATEGORIES
+========================================================= */
+
+const spendingCategories =
+  computed<SpendingCategory[]>(
+    () => {
+      const debitTransactions =
+        currentMonthTransactions.value.filter(
+          (transaction) =>
+            transaction.transactionDirection ===
+            'DEBIT'
+        )
+
+      if (
+        debitTransactions.length === 0
+      ) {
+        return [
+          {
+            name: 'Payments',
+            percentage: 0,
+          },
+          {
+            name: 'Transfers',
+            percentage: 0,
+          },
+          {
+            name: 'Withdrawals',
+            percentage: 0,
+          },
+        ]
+      }
+
+      const totals: {
+        PAYMENT: number
+        TRANSFER: number
+        WITHDRAWAL: number
+        DEPOSIT: number
+      } = {
+        PAYMENT: 0,
+        TRANSFER: 0,
+        WITHDRAWAL: 0,
+        DEPOSIT: 0,
+      }
+
+      debitTransactions.forEach(
+        (transaction) => {
+          totals[
+            transaction.transactionType
+            ] =
+            (totals[
+              transaction.transactionType
+              ] || 0) +
+            Number(
+              transaction.amount || 0
+            )
+        }
+      )
+
+      const total =
+        debitTransactions.reduce(
+          (sum, transaction) =>
+            sum +
+            Number(
+              transaction.amount || 0
+            ),
+          0
+        )
+
+      if (total <= 0) {
+        return [
+          {
+            name: 'Payments',
+            percentage: 0,
+          },
+          {
+            name: 'Transfers',
+            percentage: 0,
+          },
+          {
+            name: 'Withdrawals',
+            percentage: 0,
+          },
+        ]
+      }
+
+      return [
+        {
+          name: 'Payments',
+          percentage: Math.round(
+            (totals.PAYMENT /
+              total) *
+            100
+          ),
+        },
+
+        {
+          name: 'Transfers',
+          percentage: Math.round(
+            (totals.TRANSFER /
+              total) *
+            100
+          ),
+        },
+
+        {
+          name: 'Withdrawals',
+          percentage: Math.round(
+            (totals.WITHDRAWAL /
+              total) *
+            100
+          ),
+        },
+      ]
+    }
+  )
+
+/* =========================================================
+   LOAD DASHBOARD
+========================================================= */
+
+async function loadDashboard() {
+  loading.value = true
+  errorMessage.value = ''
+
+  const token =
+    localStorage.getItem(
+      'accessToken'
+    ) ||
+    sessionStorage.getItem(
+      'accessToken'
+    )
+
+  if (!token) {
+    await router.push('/login')
+    return
+  }
+
+  try {
+    /* =====================================================
+       1. LOAD USER + ACCOUNT
+    ====================================================== */
+
+    const accountResponse =
+      await fetch(
+        `${API_BASE_URL}/api/users/me`,
+        {
+          method: 'GET',
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      )
+
+    if (
+      accountResponse.status ===
+      401
+    ) {
+      logout()
+      return
+    }
+
+    const accountResult:
+      ApiResponse<UserWithAccount> =
+      await accountResponse.json()
+
+    if (!accountResponse.ok) {
+      throw new Error(
+        accountResult.message ||
+        'Unable to load your account information.'
+      )
+    }
+
+    if (
+      !accountResult.data ||
+      !accountResult.data.user ||
+      !accountResult.data.account
+    ) {
+      throw new Error(
+        'The server returned incomplete account information.'
+      )
+    }
+
+    user.value =
+      accountResult.data.user
+
+    account.value =
+      accountResult.data.account
+
+    /* =====================================================
+       2. LOAD TRANSACTION HISTORY
+    ====================================================== */
+
+    const transactionResponse =
+      await fetch(
+        `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
+          account.value.accountNumber
+        )}`,
+        {
+          method: 'GET',
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      )
+
+    if (
+      transactionResponse.status ===
+      401
+    ) {
+      logout()
+      return
+    }
+
+    const transactionResult:
+      ApiResponse<Transaction[]> =
+      await transactionResponse.json()
+
+    if (!transactionResponse.ok) {
+      throw new Error(
+        transactionResult.message ||
+        'Unable to load your transaction history.'
+      )
+    }
+
+    transactions.value =
+      transactionResult.data || []
+
+  } catch (error) {
+    console.error(
+      'Dashboard loading failed:',
+      error
+    )
+
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to load your dashboard.'
+  } finally {
+    loading.value = false
+  }
+}
+/* =========================================================
+   REFRESH DASHBOARD
+========================================================= */
+
+async function refreshDashboard() {
+  if (refreshing.value) {
+    return
+  }
+
+  refreshing.value = true
+
+  try {
+    await loadDashboard()
+  } finally {
+    refreshing.value = false
+  }
+}
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logout() {
+  localStorage.removeItem(
+    'accessToken'
+  )
+
+  localStorage.removeItem('user')
+
+  sessionStorage.removeItem(
+    'accessToken'
+  )
+
+  sessionStorage.removeItem('user')
+
+  router.push('/login')
+}
+
+/* =========================================================
+   INITIAL LOAD
+========================================================= */
+
+onMounted(loadDashboard)
 </script>
 
 <style scoped>
+.dashboard-state {
+  padding: 30px;
+  margin-bottom: 30px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  background: white;
+
+  border: 1px solid #e1e9ee;
+
+  border-radius: 12px;
+
+  color: #082f56;
+}
+
+.dashboard-state span {
+  color: #8998a3;
+
+  font-size: 12px;
+}
+
+.dashboard-state-error {
+  color: #7b2d2d;
+}
+
+.dashboard-state button {
+  width: fit-content;
+
+  margin-top: 10px;
+
+  padding: 9px 14px;
+
+  color: white;
+
+  background: #0b4878;
+
+  border: 0;
+
+  border-radius: 6px;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
 .dashboard-page {
   min-height: 100vh;
 
@@ -861,11 +1967,19 @@ const mobileMenuOpen = ref(false)
 
   color: white;
 
-  background: linear-gradient(135deg, #063d74, #07559b 55%, #143fbd);
+  background:
+    linear-gradient(
+      135deg,
+      #063d74,
+      #07559b 55%,
+      #143fbd
+    );
 
   border-radius: 12px;
 
-  box-shadow: 0 15px 30px rgba(8, 47, 86, 0.13);
+  box-shadow:
+    0 15px 30px
+    rgba(8, 47, 86, 0.13);
 }
 
 .balance-card-header {
@@ -905,7 +2019,8 @@ const mobileMenuOpen = ref(false)
   align-items: center;
   justify-content: center;
 
-  background: rgba(255, 255, 255, 0.12);
+  background:
+    rgba(255, 255, 255, 0.12);
 
   border-radius: 7px;
 }
@@ -919,9 +2034,12 @@ const mobileMenuOpen = ref(false)
 
   margin-top: 25px;
 
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top:
+    1px solid
+    rgba(255, 255, 255, 0.14);
 
-  color: rgba(255, 255, 255, 0.6);
+  color:
+    rgba(255, 255, 255, 0.6);
 
   font-size: 9px;
 }
@@ -1033,7 +2151,8 @@ const mobileMenuOpen = ref(false)
 .dashboard-actions {
   display: grid;
 
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns:
+    repeat(4, 1fr);
 
   gap: 13px;
 
@@ -1073,7 +2192,9 @@ const mobileMenuOpen = ref(false)
 .action-card:hover {
   transform: translateY(-3px);
 
-  box-shadow: 0 12px 30px rgba(8, 47, 86, 0.07);
+  box-shadow:
+    0 12px 30px
+    rgba(8, 47, 86, 0.07);
 }
 
 .action-icon {
@@ -1124,7 +2245,8 @@ const mobileMenuOpen = ref(false)
 .dashboard-lower {
   display: grid;
 
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns:
+    1.2fr 0.8fr;
 
   gap: 15px;
 
@@ -1211,6 +2333,8 @@ const mobileMenuOpen = ref(false)
   font-family: inherit;
 
   font-size: 8px;
+
+  cursor: pointer;
 }
 
 /* =========================================================
@@ -1232,7 +2356,8 @@ const mobileMenuOpen = ref(false)
 
   padding: 13px 0;
 
-  border-bottom: 1px solid #eef2f5;
+  border-bottom:
+    1px solid #eef2f5;
 }
 
 .dashboard-transaction:last-child {
@@ -1275,6 +2400,12 @@ const mobileMenuOpen = ref(false)
   color: #415a6b;
 
   font-size: 10px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
 }
 
 .transaction-description span {
@@ -1378,11 +2509,17 @@ const mobileMenuOpen = ref(false)
 .chart-bars div {
   width: 100%;
 
+  min-height: 4px;
+
   background: #0b5da7;
 
-  border-radius: 4px 4px 0 0;
+  border-radius:
+    4px 4px 0 0;
 
   opacity: 0.78;
+
+  transition:
+    height 0.3s ease;
 }
 
 .chart-labels {
@@ -1406,9 +2543,12 @@ const mobileMenuOpen = ref(false)
 
   justify-content: space-between;
 
+  gap: 12px;
+
   padding-top: 18px;
 
-  border-top: 1px solid #edf1f4;
+  border-top:
+    1px solid #edf1f4;
 }
 
 .spending-categories div {
@@ -1433,6 +2573,8 @@ const mobileMenuOpen = ref(false)
   width: 6px;
   height: 6px;
 
+  flex-shrink: 0;
+
   background: #0b5da7;
 
   border-radius: 50%;
@@ -1450,6 +2592,7 @@ const mobileMenuOpen = ref(false)
   display: flex;
 
   align-items: center;
+
   justify-content: space-between;
 
   margin-bottom: 18px;
@@ -1494,19 +2637,31 @@ const mobileMenuOpen = ref(false)
 }
 
 .dashboard-bank-card {
-  width: min(470px, 100%);
+  width: min(
+    470px,
+    100%
+  );
 
-  aspect-ratio: 410 / 247;
+  aspect-ratio:
+    410 / 247;
 
   padding: 25px;
 
   color: white;
 
-  background: linear-gradient(145deg, #063d74, #07559b 55%, #143fbd);
+  background:
+    linear-gradient(
+      145deg,
+      #063d74,
+      #07559b 55%,
+      #143fbd
+    );
 
   border-radius: 16px;
 
-  box-shadow: 0 25px 50px rgba(8, 47, 86, 0.17);
+  box-shadow:
+    0 25px 50px
+    rgba(8, 47, 86, 0.17);
 
   overflow: hidden;
 }
@@ -1536,7 +2691,8 @@ const mobileMenuOpen = ref(false)
   align-items: center;
   justify-content: center;
 
-  background: rgba(255, 255, 255, 0.13);
+  background:
+    rgba(255, 255, 255, 0.13);
 
   border-radius: 6px;
 
@@ -1581,7 +2737,8 @@ const mobileMenuOpen = ref(false)
 
   margin-bottom: 4px;
 
-  color: rgba(255, 255, 255, 0.45);
+  color:
+    rgba(255, 255, 255, 0.45);
 
   font-size: 6px;
 
@@ -1612,7 +2769,8 @@ const mobileMenuOpen = ref(false)
   }
 
   .dashboard-main {
-    width: calc(100% - 215px);
+    width:
+      calc(100% - 215px);
 
     margin-left: 215px;
   }
@@ -1628,11 +2786,13 @@ const mobileMenuOpen = ref(false)
   }
 
   .balance-section {
-    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-columns:
+      1.4fr 1fr 1fr;
   }
 
   .dashboard-actions {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:
+      repeat(2, 1fr);
   }
 }
 
@@ -1642,15 +2802,20 @@ const mobileMenuOpen = ref(false)
 
 @media (max-width: 850px) {
   .dashboard-sidebar {
-    transform: translateX(-100%);
+    transform:
+      translateX(-100%);
 
-    transition: transform 0.25s ease;
+    transition:
+      transform 0.25s ease;
 
-    box-shadow: 10px 0 35px rgba(8, 47, 86, 0.1);
+    box-shadow:
+      10px 0 35px
+      rgba(8, 47, 86, 0.1);
   }
 
   .dashboard-sidebar.open {
-    transform: translateX(0);
+    transform:
+      translateX(0);
   }
 
   .dashboard-main {
@@ -1692,7 +2857,8 @@ const mobileMenuOpen = ref(false)
   }
 
   .balance-section {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      1fr 1fr;
   }
 
   .balance-main-card {
@@ -1734,7 +2900,8 @@ const mobileMenuOpen = ref(false)
   }
 
   .dashboard-content {
-    padding: 25px 16px 50px;
+    padding:
+      25px 16px 50px;
   }
 
   .balance-section {
@@ -1752,7 +2919,8 @@ const mobileMenuOpen = ref(false)
   }
 
   .dashboard-actions {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      1fr 1fr;
   }
 
   .action-card {
@@ -1775,6 +2943,10 @@ const mobileMenuOpen = ref(false)
 
   .bank-card-number {
     font-size: 13px;
+  }
+
+  .transaction-value {
+    font-size: 9px;
   }
 }
 
@@ -1822,4 +2994,104 @@ const mobileMenuOpen = ref(false)
     font-size: 11px;
   }
 }
+/* =========================================================
+   ENHANCED HEADER ACTIONS
+========================================================= */
+
+.admin-dashboard-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  color: #0b4878;
+  background: #edf6fb;
+  border: 1px solid #dcecf5;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-dashboard-button:hover {
+  background: #e3f1f9;
+  border-color: #cbdfea;
+  transform: translateY(-1px);
+}
+
+.header-icon:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.spinning {
+  animation: dashboard-spin 0.8s linear infinite;
+}
+
+@keyframes dashboard-spin {
+  to { transform: rotate(360deg); }
+}
+
+.balance-value-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.balance-visibility-button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.balance-visibility-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.account-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #5b9d7d;
+}
+
+.account-status.frozen .status-dot {
+  background: #d08a3a;
+}
+
+.account-status.inactive .status-dot,
+.account-status.closed .status-dot {
+  background: #a1adb5;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard-button span {
+    display: none;
+  }
+
+  .admin-dashboard-button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
 </style>
