@@ -58,11 +58,7 @@
           </div>
         </div>
 
-        <button
-          class="logout-button"
-          type="button"
-          @click="logout"
-        >
+        <button class="logout-button" type="button" @click="logout">
           <LogOut :size="17" />
           <span>Sign out</span>
         </button>
@@ -75,11 +71,7 @@
 
     <div class="dashboard-main">
       <header class="dashboard-header">
-        <button
-          class="mobile-menu-button"
-          type="button"
-          @click="mobileMenuOpen = !mobileMenuOpen"
-        >
+        <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = !mobileMenuOpen">
           <Menu :size="21" />
         </button>
 
@@ -89,11 +81,7 @@
         </div>
 
         <div class="header-actions">
-          <RouterLink
-            v-if="isAdmin"
-            to="/admin/dashboard"
-            class="admin-dashboard-button"
-          >
+          <RouterLink v-if="isAdmin" to="/admin/dashboard" class="admin-dashboard-button">
             <ShieldCheck :size="16" />
             <span>Admin Dashboard</span>
           </RouterLink>
@@ -108,12 +96,8 @@
             <RefreshCw :size="17" :class="{ spinning: refreshing }" />
           </button>
 
-          <button
-            class="header-icon"
-            type="button"
-            aria-label="Notifications"
-          >
-            <Bell :size="19" />
+          <button class="header-icon" type="button" aria-label="Notifications">
+            <NotificationDropdown />
             <span class="notification-dot"></span>
           </button>
 
@@ -137,36 +121,23 @@
              LOADING
         ================================================== -->
 
-        <div
-          v-if="loading"
-          class="dashboard-state"
-        >
+        <div v-if="loading" class="dashboard-state">
           <strong>Loading your dashboard...</strong>
-          <span>
-            Fetching your account and transaction information securely.
-          </span>
+          <span> Fetching your account and transaction information securely. </span>
         </div>
 
         <!-- =================================================
              ERROR
         ================================================== -->
 
-        <div
-          v-else-if="errorMessage"
-          class="dashboard-state dashboard-state-error"
-        >
+        <div v-else-if="errorMessage" class="dashboard-state dashboard-state-error">
           <strong>Unable to load your dashboard</strong>
 
           <span>
             {{ errorMessage }}
           </span>
 
-          <button
-            type="button"
-            @click="loadDashboard"
-          >
-            Try again
-          </button>
+          <button type="button" @click="loadDashboard">Try again</button>
         </div>
 
         <!-- =================================================
@@ -174,7 +145,6 @@
         ================================================== -->
 
         <template v-else>
-
           <!-- =================================================
                BALANCE
           ================================================== -->
@@ -212,9 +182,7 @@
                   {{ account.accountType || 'Account' }}
                 </span>
 
-                <span>
-                  •••• {{ maskedAccountNumber }}
-                </span>
+                <span> •••• {{ maskedAccountNumber }} </span>
 
                 <span class="account-status" :class="account.accountStatus?.toLowerCase()">
                   <span class="status-dot"></span>
@@ -273,91 +241,53 @@
             </div>
 
             <div class="dashboard-actions">
-
-              <button
-                class="action-card"
-                type="button"
-                @click="router.push('/transfers')"
-              >
+              <button class="action-card" type="button" @click="router.push('/transfers')">
                 <div class="action-icon">
                   <Send :size="19" />
                 </div>
 
                 <strong>Send money</strong>
 
-                <span>
-                  Make a transfer
-                </span>
+                <span> Make a transfer </span>
 
-                <ArrowUpRight
-                  class="action-arrow"
-                  :size="17"
-                />
+                <ArrowUpRight class="action-arrow" :size="17" />
               </button>
 
-              <button
-                class="action-card"
-                type="button"
-                @click="router.push('/accounts')"
-              >
+              <button class="action-card" type="button" @click="router.push('/accounts')">
                 <div class="action-icon">
                   <ArrowDownLeft :size="19" />
                 </div>
 
                 <strong>Receive money</strong>
 
-                <span>
-                  View your details
-                </span>
+                <span> View your details </span>
 
-                <ArrowUpRight
-                  class="action-arrow"
-                  :size="17"
-                />
+                <ArrowUpRight class="action-arrow" :size="17" />
               </button>
 
-              <button
-                class="action-card"
-                type="button"
-                @click="router.push('/cards')"
-              >
+              <button class="action-card" type="button" @click="router.push('/cards')">
                 <div class="action-icon">
                   <CreditCard :size="19" />
                 </div>
 
                 <strong>Manage cards</strong>
 
-                <span>
-                  View your cards
-                </span>
+                <span> View your cards </span>
 
-                <ArrowUpRight
-                  class="action-arrow"
-                  :size="17"
-                />
+                <ArrowUpRight class="action-arrow" :size="17" />
               </button>
 
-              <button
-                class="action-card"
-                type="button"
-                @click="router.push('/transactions')"
-              >
+              <button class="action-card" type="button" @click="router.push('/transactions')">
                 <div class="action-icon">
                   <BarChart3 :size="19" />
                 </div>
 
                 <strong>Spending</strong>
 
-                <span>
-                  See your activity
-                </span>
+                <span> See your activity </span>
 
-                <ArrowUpRight
-                  class="action-arrow"
-                  :size="17"
-                />
+                <ArrowUpRight class="action-arrow" :size="17" />
               </button>
-
             </div>
           </section>
 
@@ -366,13 +296,11 @@
           ================================================== -->
 
           <div class="dashboard-lower">
-
             <!-- =================================================
                  TRANSACTIONS
             ================================================== -->
 
             <section class="dashboard-panel transactions-panel">
-
               <div class="panel-heading">
                 <div>
                   <span>RECENT ACTIVITY</span>
@@ -386,25 +314,17 @@
               </div>
 
               <div class="transaction-list">
-
                 <!-- NO TRANSACTIONS -->
 
-                <div
-                  v-if="recentTransactions.length === 0"
-                  class="dashboard-transaction"
-                >
+                <div v-if="recentTransactions.length === 0" class="dashboard-transaction">
                   <div class="transaction-symbol">
                     <ArrowLeftRight :size="17" />
                   </div>
 
                   <div class="transaction-description">
-                    <strong>
-                      No transactions yet
-                    </strong>
+                    <strong> No transactions yet </strong>
 
-                    <span>
-                      Your recent activity will appear here.
-                    </span>
+                    <span> Your recent activity will appear here. </span>
                   </div>
                 </div>
 
@@ -415,18 +335,13 @@
                   :key="transaction.id || transaction.reference"
                   class="dashboard-transaction"
                 >
-
                   <div
                     class="transaction-symbol"
                     :class="{
-                      'income-symbol':
-                        transaction.transactionDirection === 'CREDIT'
+                      'income-symbol': transaction.transactionDirection === 'CREDIT',
                     }"
                   >
-                    <component
-                      :is="getTransactionIcon(transaction)"
-                      :size="17"
-                    />
+                    <component :is="getTransactionIcon(transaction)" :size="17" />
                   </div>
 
                   <div class="transaction-description">
@@ -443,21 +358,12 @@
 
                   <strong
                     class="transaction-value"
-                    :class="
-                      transaction.transactionDirection === 'CREDIT'
-                        ? 'positive'
-                        : 'negative'
-                    "
+                    :class="transaction.transactionDirection === 'CREDIT' ? 'positive' : 'negative'"
                   >
-                    {{
-                      transaction.transactionDirection === 'CREDIT'
-                        ? '+'
-                        : '−'
+                    {{ transaction.transactionDirection === 'CREDIT' ? '+' : '−'
                     }}{{ formatMoney(Math.abs(Number(transaction.amount))) }}
                   </strong>
-
                 </div>
-
               </div>
             </section>
 
@@ -466,17 +372,13 @@
             ================================================== -->
 
             <section class="dashboard-panel spending-panel">
-
               <div class="panel-heading">
                 <div>
                   <span>MONTHLY OVERVIEW</span>
                   <h2>Spending</h2>
                 </div>
 
-                <button
-                  class="period-button"
-                  type="button"
-                >
+                <button class="period-button" type="button">
                   {{ currentMonthName }}
 
                   <ChevronDown :size="13" />
@@ -494,7 +396,6 @@
               </div>
 
               <div class="spending-chart">
-
                 <div class="chart-grid">
                   <span></span>
                   <span></span>
@@ -503,52 +404,35 @@
                 </div>
 
                 <div class="chart-bars">
-
                   <div
                     v-for="day in spendingDays"
                     :key="day.dateKey"
                     :style="{
-                      height: `${spendingBarHeight(day.amount)}%`
+                      height: `${spendingBarHeight(day.amount)}%`,
                     }"
                     :title="`${day.label}: ${formatMoney(day.amount)}`"
                   ></div>
-
                 </div>
 
                 <div class="chart-labels">
-
-                  <span
-                    v-for="day in spendingDays"
-                    :key="`${day.dateKey}-label`"
-                  >
+                  <span v-for="day in spendingDays" :key="`${day.dateKey}-label`">
                     {{ day.label }}
                   </span>
-
                 </div>
-
               </div>
 
               <div class="spending-categories">
-
-                <div
-                  v-for="category in spendingCategories"
-                  :key="category.name"
-                >
+                <div v-for="category in spendingCategories" :key="category.name">
                   <span class="category-dot"></span>
 
                   <span>
                     {{ category.name }}
                   </span>
 
-                  <strong>
-                    {{ category.percentage }}%
-                  </strong>
+                  <strong> {{ category.percentage }}% </strong>
                 </div>
-
               </div>
-
             </section>
-
           </div>
 
           <!-- =================================================
@@ -556,7 +440,6 @@
           ================================================== -->
 
           <section class="dashboard-card-section">
-
             <div class="dashboard-card-heading">
               <div>
                 <span>YOUR CARD</span>
@@ -575,16 +458,13 @@
             -->
 
             <div class="dashboard-bank-card">
-
               <div class="bank-card-top">
-
                 <div class="bank-card-brand">
                   <div>B</div>
                   <strong>Buuchezo Bank</strong>
                 </div>
 
                 <Wifi :size="22" />
-
               </div>
 
               <div class="bank-card-chip"></div>
@@ -594,22 +474,15 @@
               </div>
 
               <div class="bank-card-bottom">
-
                 <div>
                   <span>CARD HOLDER</span>
                   <strong>{{ fullName }}</strong>
                 </div>
 
-                <div class="card-type">
-                  VISA
-                </div>
-
+                <div class="card-type">VISA</div>
               </div>
-
             </div>
-
           </section>
-
         </template>
       </div>
     </div>
@@ -619,6 +492,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowDownLeft,
@@ -626,7 +500,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
-  Bell,
   ChevronDown,
   CreditCard,
   HelpCircle,
@@ -689,15 +562,9 @@ interface Transaction {
   amount: number
   description?: string
   currency?: string
-  transactionType:
-    | 'DEPOSIT'
-    | 'WITHDRAWAL'
-    | 'TRANSFER'
-    | 'PAYMENT'
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'PAYMENT'
   transactionStatus?: string
-  transactionDirection:
-    | 'DEBIT'
-    | 'CREDIT'
+  transactionDirection: 'DEBIT' | 'CREDIT'
   channel?: string
   createdAt: string
 }
@@ -767,22 +634,17 @@ const refreshing = ref(false)
 ========================================================= */
 
 const fullName = computed(() => {
-  const name =
-    `${user.value.firstName} ${user.value.lastName}`.trim()
+  const name = `${user.value.firstName} ${user.value.lastName}`.trim()
 
   return name || 'User'
 })
 
 const userInitials = computed(() => {
-  const first =
-    user.value.firstName?.charAt(0) || ''
+  const first = user.value.firstName?.charAt(0) || ''
 
-  const last =
-    user.value.lastName?.charAt(0) || ''
+  const last = user.value.lastName?.charAt(0) || ''
 
-  return (
-    `${first}${last}`.toUpperCase() || 'U'
-  )
+  return `${first}${last}`.toUpperCase() || 'U'
 })
 
 const isAdmin = computed(() => {
@@ -803,10 +665,8 @@ const greeting = computed(() => {
   return 'Good evening'
 })
 
-
 const maskedAccountNumber = computed(() => {
-  const number =
-    account.value.accountNumber || ''
+  const number = account.value.accountNumber || ''
 
   if (number.length <= 4) {
     return number
@@ -832,9 +692,7 @@ function formatMoney(amount: number) {
    DATE FORMATTING
 ========================================================= */
 
-function formatTransactionDate(
-  dateString: string
-) {
+function formatTransactionDate(dateString: string) {
   if (!dateString) {
     return ''
   }
@@ -854,9 +712,7 @@ function formatTransactionDate(
 
   const yesterday = new Date(now)
 
-  yesterday.setDate(
-    now.getDate() - 1
-  )
+  yesterday.setDate(now.getDate() - 1)
 
   const isYesterday =
     date.getDate() === yesterday.getDate() &&
@@ -867,44 +723,29 @@ function formatTransactionDate(
     return `Yesterday · ${formatTransactionTime(date)}`
   }
 
-  return `${date.toLocaleDateString(
-    'en-GB',
-    {
-      day: '2-digit',
-      month: 'short',
-    }
-  )} · ${formatTransactionTime(date)}`
+  return `${date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+  })} · ${formatTransactionTime(date)}`
 }
 
-function formatTransactionTime(
-  date: Date
-) {
-  return date.toLocaleTimeString(
-    'en-GB',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-    }
-  )
+function formatTransactionTime(date: Date) {
+  return date.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 /* =========================================================
    TRANSACTION DESCRIPTION
 ========================================================= */
 
-function transactionDescription(
-  transaction: Transaction
-) {
-  if (
-    transaction.description &&
-    transaction.description.trim()
-  ) {
+function transactionDescription(transaction: Transaction) {
+  if (transaction.description && transaction.description.trim()) {
     return transaction.description
   }
 
-  switch (
-    transaction.transactionType
-    ) {
+  switch (transaction.transactionType) {
     case 'DEPOSIT':
       return 'Deposit'
 
@@ -926,12 +767,8 @@ function transactionDescription(
    TRANSACTION LABEL
 ========================================================= */
 
-function transactionLabel(
-  transaction: Transaction
-) {
-  switch (
-    transaction.transactionType
-    ) {
+function transactionLabel(transaction: Transaction) {
+  switch (transaction.transactionType) {
     case 'DEPOSIT':
       return 'Deposit'
 
@@ -953,19 +790,12 @@ function transactionLabel(
    TRANSACTION ICON
 ========================================================= */
 
-function getTransactionIcon(
-  transaction: Transaction
-) {
-  if (
-    transaction.transactionDirection ===
-    'CREDIT'
-  ) {
+function getTransactionIcon(transaction: Transaction) {
+  if (transaction.transactionDirection === 'CREDIT') {
     return ArrowDownLeft
   }
 
-  switch (
-    transaction.transactionType
-    ) {
+  switch (transaction.transactionType) {
     case 'PAYMENT':
       return ShoppingBag
 
@@ -984,24 +814,15 @@ function getTransactionIcon(
    CURRENT MONTH TRANSACTIONS
 ========================================================= */
 
-const currentMonthTransactions =
-  computed(() => {
-    const now = new Date()
+const currentMonthTransactions = computed(() => {
+  const now = new Date()
 
-    return transactions.value.filter(
-      (transaction) => {
-        const date =
-          new Date(transaction.createdAt)
+  return transactions.value.filter((transaction) => {
+    const date = new Date(transaction.createdAt)
 
-        return (
-          date.getMonth() ===
-          now.getMonth() &&
-          date.getFullYear() ===
-          now.getFullYear()
-        )
-      }
-    )
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
   })
+})
 
 /* =========================================================
    MONTHLY INCOME
@@ -1009,19 +830,8 @@ const currentMonthTransactions =
 
 const monthlyIncome = computed(() => {
   return currentMonthTransactions.value
-    .filter(
-      (transaction) =>
-        transaction.transactionDirection ===
-        'CREDIT'
-    )
-    .reduce(
-      (total, transaction) =>
-        total +
-        Number(
-          transaction.amount || 0
-        ),
-      0
-    )
+    .filter((transaction) => transaction.transactionDirection === 'CREDIT')
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0)
 })
 
 /* =========================================================
@@ -1030,41 +840,19 @@ const monthlyIncome = computed(() => {
 
 const monthlyExpenses = computed(() => {
   return currentMonthTransactions.value
-    .filter(
-      (transaction) =>
-        transaction.transactionDirection ===
-        'DEBIT'
-    )
-    .reduce(
-      (total, transaction) =>
-        total +
-        Number(
-          transaction.amount || 0
-        ),
-      0
-    )
+    .filter((transaction) => transaction.transactionDirection === 'DEBIT')
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0)
 })
 
 /* =========================================================
    RECENT TRANSACTIONS
 ========================================================= */
 
-const recentTransactions =
-  computed(() => {
-    return [
-      ...transactions.value,
-    ]
-      .sort(
-        (a, b) =>
-          new Date(
-            b.createdAt
-          ).getTime() -
-          new Date(
-            a.createdAt
-          ).getTime()
-      )
-      .slice(0, 5)
-  })
+const recentTransactions = computed(() => {
+  return [...transactions.value]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+})
 
 /* =========================================================
    SPENDING TOTAL
@@ -1078,251 +866,164 @@ const spendingTotal = computed(() => {
    CURRENT MONTH NAME
 ========================================================= */
 
-const currentMonthName =
-  computed(() => {
-    return new Date().toLocaleDateString(
-      'en-US',
-      {
-        month: 'long',
-      }
-    )
+const currentMonthName = computed(() => {
+  return new Date().toLocaleDateString('en-US', {
+    month: 'long',
   })
+})
 
 /* =========================================================
    LAST 7 DAYS SPENDING
 ========================================================= */
 
-const spendingDays =
-  computed<SpendingDay[]>(() => {
-    const today = new Date()
+const spendingDays = computed<SpendingDay[]>(() => {
+  const today = new Date()
 
-    const days: SpendingDay[] = []
+  const days: SpendingDay[] = []
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today)
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today)
 
-      date.setHours(
-        0,
-        0,
-        0,
-        0
-      )
+    date.setHours(0, 0, 0, 0)
 
-      date.setDate(
-        today.getDate() - i
-      )
+    date.setDate(today.getDate() - i)
 
-      const dateKey =
-        `${date.getFullYear()}-${String(
-          date.getMonth() + 1
-        ).padStart(2, '0')}-${String(
-          date.getDate()
-        ).padStart(2, '0')}`
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate(),
+    ).padStart(2, '0')}`
 
-      const amount =
-        transactions.value
-          .filter(
-            (transaction) => {
-              if (
-                transaction.transactionDirection !==
-                'DEBIT'
-              ) {
-                return false
-              }
+    const amount = transactions.value
+      .filter((transaction) => {
+        if (transaction.transactionDirection !== 'DEBIT') {
+          return false
+        }
 
-              const transactionDate =
-                new Date(
-                  transaction.createdAt
-                )
+        const transactionDate = new Date(transaction.createdAt)
 
-              return (
-                transactionDate.getFullYear() ===
-                date.getFullYear() &&
-                transactionDate.getMonth() ===
-                date.getMonth() &&
-                transactionDate.getDate() ===
-                date.getDate()
-              )
-            }
-          )
-          .reduce(
-            (total, transaction) =>
-              total +
-              Number(
-                transaction.amount || 0
-              ),
-            0
-          )
-
-      days.push({
-        dateKey,
-
-        label:
-          date.toLocaleDateString(
-            'en-US',
-            {
-              weekday: 'short',
-            }
-          ),
-
-        amount,
+        return (
+          transactionDate.getFullYear() === date.getFullYear() &&
+          transactionDate.getMonth() === date.getMonth() &&
+          transactionDate.getDate() === date.getDate()
+        )
       })
-    }
+      .reduce((total, transaction) => total + Number(transaction.amount || 0), 0)
 
-    return days
-  })
+    days.push({
+      dateKey,
+
+      label: date.toLocaleDateString('en-US', {
+        weekday: 'short',
+      }),
+
+      amount,
+    })
+  }
+
+  return days
+})
 
 /* =========================================================
    MAXIMUM DAILY SPENDING
 ========================================================= */
 
-const maximumSpendingDay =
-  computed(() => {
-    return Math.max(
-      ...spendingDays.value.map(
-        (day) => day.amount
-      ),
-      1
-    )
-  })
+const maximumSpendingDay = computed(() => {
+  return Math.max(...spendingDays.value.map((day) => day.amount), 1)
+})
 
 /* =========================================================
    SPENDING BAR HEIGHT
 ========================================================= */
 
-function spendingBarHeight(
-  amount: number
-) {
+function spendingBarHeight(amount: number) {
   if (amount <= 0) {
     return 4
   }
 
-  return Math.max(
-    8,
-    Math.round(
-      (amount /
-        maximumSpendingDay.value) *
-      100
-    )
-  )
+  return Math.max(8, Math.round((amount / maximumSpendingDay.value) * 100))
 }
 
 /* =========================================================
    SPENDING CATEGORIES
 ========================================================= */
 
-const spendingCategories =
-  computed<SpendingCategory[]>(
-    () => {
-      const debitTransactions =
-        currentMonthTransactions.value.filter(
-          (transaction) =>
-            transaction.transactionDirection ===
-            'DEBIT'
-        )
-
-      if (
-        debitTransactions.length === 0
-      ) {
-        return [
-          {
-            name: 'Payments',
-            percentage: 0,
-          },
-          {
-            name: 'Transfers',
-            percentage: 0,
-          },
-          {
-            name: 'Withdrawals',
-            percentage: 0,
-          },
-        ]
-      }
-
-      const totals: {
-        PAYMENT: number
-        TRANSFER: number
-        WITHDRAWAL: number
-        DEPOSIT: number
-      } = {
-        PAYMENT: 0,
-        TRANSFER: 0,
-        WITHDRAWAL: 0,
-        DEPOSIT: 0,
-      }
-
-      debitTransactions.forEach(
-        (transaction) => {
-          totals[
-            transaction.transactionType
-            ] =
-            (totals[
-              transaction.transactionType
-              ] || 0) +
-            Number(
-              transaction.amount || 0
-            )
-        }
-      )
-
-      const total =
-        debitTransactions.reduce(
-          (sum, transaction) =>
-            sum +
-            Number(
-              transaction.amount || 0
-            ),
-          0
-        )
-
-      if (total <= 0) {
-        return [
-          {
-            name: 'Payments',
-            percentage: 0,
-          },
-          {
-            name: 'Transfers',
-            percentage: 0,
-          },
-          {
-            name: 'Withdrawals',
-            percentage: 0,
-          },
-        ]
-      }
-
-      return [
-        {
-          name: 'Payments',
-          percentage: Math.round(
-            (totals.PAYMENT /
-              total) *
-            100
-          ),
-        },
-
-        {
-          name: 'Transfers',
-          percentage: Math.round(
-            (totals.TRANSFER /
-              total) *
-            100
-          ),
-        },
-
-        {
-          name: 'Withdrawals',
-          percentage: Math.round(
-            (totals.WITHDRAWAL /
-              total) *
-            100
-          ),
-        },
-      ]
-    }
+const spendingCategories = computed<SpendingCategory[]>(() => {
+  const debitTransactions = currentMonthTransactions.value.filter(
+    (transaction) => transaction.transactionDirection === 'DEBIT',
   )
+
+  if (debitTransactions.length === 0) {
+    return [
+      {
+        name: 'Payments',
+        percentage: 0,
+      },
+      {
+        name: 'Transfers',
+        percentage: 0,
+      },
+      {
+        name: 'Withdrawals',
+        percentage: 0,
+      },
+    ]
+  }
+
+  const totals: {
+    PAYMENT: number
+    TRANSFER: number
+    WITHDRAWAL: number
+    DEPOSIT: number
+  } = {
+    PAYMENT: 0,
+    TRANSFER: 0,
+    WITHDRAWAL: 0,
+    DEPOSIT: 0,
+  }
+
+  debitTransactions.forEach((transaction) => {
+    totals[transaction.transactionType] =
+      (totals[transaction.transactionType] || 0) + Number(transaction.amount || 0)
+  })
+
+  const total = debitTransactions.reduce(
+    (sum, transaction) => sum + Number(transaction.amount || 0),
+    0,
+  )
+
+  if (total <= 0) {
+    return [
+      {
+        name: 'Payments',
+        percentage: 0,
+      },
+      {
+        name: 'Transfers',
+        percentage: 0,
+      },
+      {
+        name: 'Withdrawals',
+        percentage: 0,
+      },
+    ]
+  }
+
+  return [
+    {
+      name: 'Payments',
+      percentage: Math.round((totals.PAYMENT / total) * 100),
+    },
+
+    {
+      name: 'Transfers',
+      percentage: Math.round((totals.TRANSFER / total) * 100),
+    },
+
+    {
+      name: 'Withdrawals',
+      percentage: Math.round((totals.WITHDRAWAL / total) * 100),
+    },
+  ]
+})
 
 /* =========================================================
    LOAD DASHBOARD
@@ -1332,13 +1033,7 @@ async function loadDashboard() {
   loading.value = true
   errorMessage.value = ''
 
-  const token =
-    localStorage.getItem(
-      'accessToken'
-    ) ||
-    sessionStorage.getItem(
-      'accessToken'
-    )
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -1350,105 +1045,66 @@ async function loadDashboard() {
        1. LOAD USER + ACCOUNT
     ====================================================== */
 
-    const accountResponse =
-      await fetch(
-        `${API_BASE_URL}/api/users/me`,
-        {
-          method: 'GET',
+    const accountResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      )
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
-    if (
-      accountResponse.status ===
-      401
-    ) {
+    if (accountResponse.status === 401) {
       logout()
       return
     }
 
-    const accountResult:
-      ApiResponse<UserWithAccount> =
-      await accountResponse.json()
+    const accountResult: ApiResponse<UserWithAccount> = await accountResponse.json()
 
     if (!accountResponse.ok) {
-      throw new Error(
-        accountResult.message ||
-        'Unable to load your account information.'
-      )
+      throw new Error(accountResult.message || 'Unable to load your account information.')
     }
 
-    if (
-      !accountResult.data ||
-      !accountResult.data.user ||
-      !accountResult.data.account
-    ) {
-      throw new Error(
-        'The server returned incomplete account information.'
-      )
+    if (!accountResult.data || !accountResult.data.user || !accountResult.data.account) {
+      throw new Error('The server returned incomplete account information.')
     }
 
-    user.value =
-      accountResult.data.user
+    user.value = accountResult.data.user
 
-    account.value =
-      accountResult.data.account
+    account.value = accountResult.data.account
 
     /* =====================================================
        2. LOAD TRANSACTION HISTORY
     ====================================================== */
 
-    const transactionResponse =
-      await fetch(
-        `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
-          account.value.accountNumber
-        )}`,
-        {
-          method: 'GET',
+    const transactionResponse = await fetch(
+      `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
+        account.value.accountNumber,
+      )}`,
+      {
+        method: 'GET',
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      )
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
 
-    if (
-      transactionResponse.status ===
-      401
-    ) {
+    if (transactionResponse.status === 401) {
       logout()
       return
     }
 
-    const transactionResult:
-      ApiResponse<Transaction[]> =
-      await transactionResponse.json()
+    const transactionResult: ApiResponse<Transaction[]> = await transactionResponse.json()
 
     if (!transactionResponse.ok) {
-      throw new Error(
-        transactionResult.message ||
-        'Unable to load your transaction history.'
-      )
+      throw new Error(transactionResult.message || 'Unable to load your transaction history.')
     }
 
-    transactions.value =
-      transactionResult.data || []
-
+    transactions.value = transactionResult.data || []
   } catch (error) {
-    console.error(
-      'Dashboard loading failed:',
-      error
-    )
+    console.error('Dashboard loading failed:', error)
 
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load your dashboard.'
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to load your dashboard.'
   } finally {
     loading.value = false
   }
@@ -1475,15 +1131,11 @@ async function refreshDashboard() {
 ========================================================= */
 
 function logout() {
-  localStorage.removeItem(
-    'accessToken'
-  )
+  localStorage.removeItem('accessToken')
 
   localStorage.removeItem('user')
 
-  sessionStorage.removeItem(
-    'accessToken'
-  )
+  sessionStorage.removeItem('accessToken')
 
   sessionStorage.removeItem('user')
 
@@ -1967,19 +1619,11 @@ onMounted(loadDashboard)
 
   color: white;
 
-  background:
-    linear-gradient(
-      135deg,
-      #063d74,
-      #07559b 55%,
-      #143fbd
-    );
+  background: linear-gradient(135deg, #063d74, #07559b 55%, #143fbd);
 
   border-radius: 12px;
 
-  box-shadow:
-    0 15px 30px
-    rgba(8, 47, 86, 0.13);
+  box-shadow: 0 15px 30px rgba(8, 47, 86, 0.13);
 }
 
 .balance-card-header {
@@ -2019,8 +1663,7 @@ onMounted(loadDashboard)
   align-items: center;
   justify-content: center;
 
-  background:
-    rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.12);
 
   border-radius: 7px;
 }
@@ -2034,12 +1677,9 @@ onMounted(loadDashboard)
 
   margin-top: 25px;
 
-  border-top:
-    1px solid
-    rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 
-  color:
-    rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.6);
 
   font-size: 9px;
 }
@@ -2151,8 +1791,7 @@ onMounted(loadDashboard)
 .dashboard-actions {
   display: grid;
 
-  grid-template-columns:
-    repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 
   gap: 13px;
 
@@ -2192,9 +1831,7 @@ onMounted(loadDashboard)
 .action-card:hover {
   transform: translateY(-3px);
 
-  box-shadow:
-    0 12px 30px
-    rgba(8, 47, 86, 0.07);
+  box-shadow: 0 12px 30px rgba(8, 47, 86, 0.07);
 }
 
 .action-icon {
@@ -2245,8 +1882,7 @@ onMounted(loadDashboard)
 .dashboard-lower {
   display: grid;
 
-  grid-template-columns:
-    1.2fr 0.8fr;
+  grid-template-columns: 1.2fr 0.8fr;
 
   gap: 15px;
 
@@ -2356,8 +1992,7 @@ onMounted(loadDashboard)
 
   padding: 13px 0;
 
-  border-bottom:
-    1px solid #eef2f5;
+  border-bottom: 1px solid #eef2f5;
 }
 
 .dashboard-transaction:last-child {
@@ -2513,13 +2148,11 @@ onMounted(loadDashboard)
 
   background: #0b5da7;
 
-  border-radius:
-    4px 4px 0 0;
+  border-radius: 4px 4px 0 0;
 
   opacity: 0.78;
 
-  transition:
-    height 0.3s ease;
+  transition: height 0.3s ease;
 }
 
 .chart-labels {
@@ -2547,8 +2180,7 @@ onMounted(loadDashboard)
 
   padding-top: 18px;
 
-  border-top:
-    1px solid #edf1f4;
+  border-top: 1px solid #edf1f4;
 }
 
 .spending-categories div {
@@ -2637,31 +2269,19 @@ onMounted(loadDashboard)
 }
 
 .dashboard-bank-card {
-  width: min(
-    470px,
-    100%
-  );
+  width: min(470px, 100%);
 
-  aspect-ratio:
-    410 / 247;
+  aspect-ratio: 410 / 247;
 
   padding: 25px;
 
   color: white;
 
-  background:
-    linear-gradient(
-      145deg,
-      #063d74,
-      #07559b 55%,
-      #143fbd
-    );
+  background: linear-gradient(145deg, #063d74, #07559b 55%, #143fbd);
 
   border-radius: 16px;
 
-  box-shadow:
-    0 25px 50px
-    rgba(8, 47, 86, 0.17);
+  box-shadow: 0 25px 50px rgba(8, 47, 86, 0.17);
 
   overflow: hidden;
 }
@@ -2691,8 +2311,7 @@ onMounted(loadDashboard)
   align-items: center;
   justify-content: center;
 
-  background:
-    rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.13);
 
   border-radius: 6px;
 
@@ -2737,8 +2356,7 @@ onMounted(loadDashboard)
 
   margin-bottom: 4px;
 
-  color:
-    rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.45);
 
   font-size: 6px;
 
@@ -2769,8 +2387,7 @@ onMounted(loadDashboard)
   }
 
   .dashboard-main {
-    width:
-      calc(100% - 215px);
+    width: calc(100% - 215px);
 
     margin-left: 215px;
   }
@@ -2786,13 +2403,11 @@ onMounted(loadDashboard)
   }
 
   .balance-section {
-    grid-template-columns:
-      1.4fr 1fr 1fr;
+    grid-template-columns: 1.4fr 1fr 1fr;
   }
 
   .dashboard-actions {
-    grid-template-columns:
-      repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -2802,20 +2417,15 @@ onMounted(loadDashboard)
 
 @media (max-width: 850px) {
   .dashboard-sidebar {
-    transform:
-      translateX(-100%);
+    transform: translateX(-100%);
 
-    transition:
-      transform 0.25s ease;
+    transition: transform 0.25s ease;
 
-    box-shadow:
-      10px 0 35px
-      rgba(8, 47, 86, 0.1);
+    box-shadow: 10px 0 35px rgba(8, 47, 86, 0.1);
   }
 
   .dashboard-sidebar.open {
-    transform:
-      translateX(0);
+    transform: translateX(0);
   }
 
   .dashboard-main {
@@ -2857,8 +2467,7 @@ onMounted(loadDashboard)
   }
 
   .balance-section {
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .balance-main-card {
@@ -2900,8 +2509,7 @@ onMounted(loadDashboard)
   }
 
   .dashboard-content {
-    padding:
-      25px 16px 50px;
+    padding: 25px 16px 50px;
   }
 
   .balance-section {
@@ -2919,8 +2527,7 @@ onMounted(loadDashboard)
   }
 
   .dashboard-actions {
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .action-card {
@@ -3012,7 +2619,10 @@ onMounted(loadDashboard)
   font-size: 9px;
   font-weight: 800;
   text-decoration: none;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .admin-dashboard-button:hover {
@@ -3031,7 +2641,9 @@ onMounted(loadDashboard)
 }
 
 @keyframes dashboard-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .balance-value-row {
@@ -3047,7 +2659,7 @@ onMounted(loadDashboard)
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
   cursor: pointer;
@@ -3093,5 +2705,4 @@ onMounted(loadDashboard)
     justify-content: center;
   }
 }
-
 </style>
