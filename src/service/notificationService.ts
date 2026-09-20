@@ -6,30 +6,6 @@ function getToken(): string | null {
   return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 }
 
-function getStoredUser(): { email?: string } | null {
-  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-
-  if (!storedUser) {
-    return null
-  }
-
-  try {
-    return JSON.parse(storedUser)
-  } catch {
-    return null
-  }
-}
-
-function getEmail(): string {
-  const user = getStoredUser()
-
-  if (!user?.email) {
-    throw new Error('User email could not be found.')
-  }
-
-  return user.email
-}
-
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
 
@@ -39,6 +15,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 
   const response = await fetch(url, {
     ...options,
+
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -56,37 +33,31 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function getNotifications(): Promise<Notification[]> {
-  const email = encodeURIComponent(getEmail())
-
   const result = await request<{
     statusCode: number
     message: string
     data: Notification[]
-  }>(`${API_BASE_URL}/api/notifications?email=${email}`)
+  }>(`${API_BASE_URL}/api/notifications`)
 
   return result.data || []
 }
 
 export async function getUnreadNotifications(): Promise<Notification[]> {
-  const email = encodeURIComponent(getEmail())
-
   const result = await request<{
     statusCode: number
     message: string
     data: Notification[]
-  }>(`${API_BASE_URL}/api/notifications/unread?email=${email}`)
+  }>(`${API_BASE_URL}/api/notifications/unread`)
 
   return result.data || []
 }
 
 export async function markNotificationAsRead(notificationId: number): Promise<Notification> {
-  const email = encodeURIComponent(getEmail())
-
   const result = await request<{
     statusCode: number
     message: string
     data: Notification
-  }>(`${API_BASE_URL}/api/notifications/${notificationId}/read?email=${email}`, {
+  }>(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
     method: 'PATCH',
   })
 
@@ -94,13 +65,11 @@ export async function markNotificationAsRead(notificationId: number): Promise<No
 }
 
 export async function markAllNotificationsAsRead(): Promise<number> {
-  const email = encodeURIComponent(getEmail())
-
   const result = await request<{
     statusCode: number
     message: string
     data: number
-  }>(`${API_BASE_URL}/api/notifications/read-all?email=${email}`, {
+  }>(`${API_BASE_URL}/api/notifications/read-all`, {
     method: 'PATCH',
   })
 

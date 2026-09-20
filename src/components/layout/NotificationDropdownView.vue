@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { Bell, Check, CheckCheck, Loader2, X } from 'lucide-vue-next'
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  Loader2,
+  X,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Info,
+} from 'lucide-vue-next'
 
 import type { Notification } from '@/types/notification'
 
 import {
-  getUnreadNotifications,
+  getNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '@/service/notificationService.ts'
@@ -17,8 +26,13 @@ const markingAllAsRead = ref(false)
 const notifications = ref<Notification[]>([])
 const error = ref('')
 
+const selectedNotification = ref<Notification | null>(null)
+
 const unreadCount = computed(
-  () => notifications.value.filter((notification) => !notification.read).length,
+  () =>
+    notifications.value.filter(
+      notification => !notification.read
+    ).length
 )
 
 async function loadNotifications() {
@@ -26,9 +40,19 @@ async function loadNotifications() {
   error.value = ''
 
   try {
-    notifications.value = await getUnreadNotifications()
+    /*
+     * We now load ALL notifications instead of only
+     * unread notifications.
+     *
+     * This means a notification remains visible after
+     * it has been read.
+     */
+    notifications.value = await getNotifications()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not load notifications.'
+    error.value =
+      err instanceof Error
+        ? err.message
+        : 'Could not load notifications.'
   } finally {
     loading.value = false
   }
@@ -42,24 +66,47 @@ async function toggleNotifications() {
   }
 }
 
-async function markAsRead(notification: Notification) {
-  if (notification.read) {
-    return
-  }
+async function openNotification(
+  notification: Notification
+) {
+  /*
+   * Show the complete notification first.
+   */
+  selectedNotification.value = notification
 
-  try {
-    await markNotificationAsRead(notification.id)
+  /*
+   * If it is unread, mark it as read in the backend.
+   */
+  if (!notification.read) {
+    try {
+      const updated =
+        await markNotificationAsRead(
+          notification.id
+        )
 
-    notification.read = true
-
-    notifications.value = notifications.value.filter((item) => !item.read)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not mark notification as read.'
+      /*
+       * Update the local notification rather than
+       * removing it from the list.
+       */
+      notification.read = updated.read
+    } catch (err) {
+      error.value =
+        err instanceof Error
+          ? err.message
+          : 'Could not mark notification as read.'
+    }
   }
 }
 
+function closeNotificationDetail() {
+  selectedNotification.value = null
+}
+
 async function markAllAsRead() {
-  if (markingAllAsRead.value || unreadCount.value === 0) {
+  if (
+    markingAllAsRead.value ||
+    unreadCount.value === 0
+  ) {
     return
   }
 
@@ -69,21 +116,37 @@ async function markAllAsRead() {
   try {
     await markAllNotificationsAsRead()
 
-    notifications.value = []
+    /*
+     * Keep the notifications visible.
+     * Only change their read state.
+     */
+    notifications.value.forEach(
+      notification => {
+        notification.read = true
+      }
+    )
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not mark notifications as read.'
+    error.value =
+      err instanceof Error
+        ? err.message
+        : 'Could not mark notifications as read.'
   } finally {
     markingAllAsRead.value = false
   }
 }
 
-function formatNotificationTime(createdAt: string): string {
+function formatNotificationTime(
+  createdAt: string
+): string {
   const date = new Date(createdAt)
   const now = new Date()
 
-  const difference = now.getTime() - date.getTime()
+  const difference =
+    now.getTime() - date.getTime()
 
-  const minutes = Math.floor(difference / (1000 * 60))
+  const minutes = Math.floor(
+    difference / (1000 * 60)
+  )
 
   if (minutes < 1) {
     return 'Just now'
@@ -108,28 +171,87 @@ function formatNotificationTime(createdAt: string): string {
   return `${days} days ago`
 }
 
-function closeOnOutsideClick(event: MouseEvent) {
-  const target = event.target as HTMLElement
+function formatFullDate(
+  createdAt: string
+): string {
+  const date = new Date(createdAt)
 
-  if (!target.closest('.notification-wrapper')) {
+  return date.toLocaleString(
+    undefined,
+    {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }
+  )
+}
+
+function getNotificationIcon(
+  notification: Notification
+) {
+  const message =
+    `${notification.title} ${notification.message}`
+      .toLowerCase()
+
+  if (
+    message.includes('received') ||
+    message.includes('deposited') ||
+    message.includes('credited')
+  ) {
+    return ArrowDownLeft
+  }
+
+  if (
+    message.includes('withdraw') ||
+    message.includes('transferred') ||
+    message.includes('paid')
+  ) {
+    return ArrowUpRight
+  }
+
+  return Info
+}
+
+function closeOnOutsideClick(
+  event: MouseEvent
+) {
+  const target =
+    event.target as HTMLElement
+
+  if (
+    !target.closest(
+      '.notification-wrapper'
+    )
+  ) {
     isOpen.value = false
+    selectedNotification.value = null
   }
 }
 
 onMounted(() => {
-  document.addEventListener('click', closeOnOutsideClick)
+  document.addEventListener(
+    'click',
+    closeOnOutsideClick
+  )
 
   loadNotifications()
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeOnOutsideClick)
+  document.removeEventListener(
+    'click',
+    closeOnOutsideClick
+  )
 })
 </script>
 
 <template>
   <div class="notification-wrapper">
-    <!-- Bell -->
+
+    <!-- Notification bell -->
     <button
       class="notification-button"
       type="button"
@@ -138,67 +260,135 @@ onUnmounted(() => {
     >
       <Bell :size="21" />
 
-      <span v-if="unreadCount > 0" class="notification-badge">
+      <span
+        v-if="unreadCount > 0"
+        class="notification-badge"
+      >
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
     </button>
 
-    <!-- Dropdown -->
+    <!-- Notification dropdown -->
     <Transition name="notification-fade">
-      <div v-if="isOpen" class="notification-dropdown">
+      <div
+        v-if="isOpen"
+        class="notification-dropdown"
+        @click.stop
+      >
+
+        <!-- Header -->
         <div class="notification-header">
+
           <div>
             <h3>Notifications</h3>
 
-            <span v-if="unreadCount > 0"> {{ unreadCount }} unread </span>
+            <span v-if="unreadCount > 0">
+              {{ unreadCount }} unread
+            </span>
 
-            <span v-else> All caught up </span>
+            <span v-else>
+              All caught up
+            </span>
           </div>
 
-          <button class="close-button" type="button" @click="isOpen = false">
+          <button
+            class="close-button"
+            type="button"
+            @click="isOpen = false"
+          >
             <X :size="18" />
           </button>
+
         </div>
 
         <!-- Loading -->
-        <div v-if="loading" class="notification-state">
-          <Loader2 class="loading-icon" :size="24" />
+        <div
+          v-if="loading"
+          class="notification-state"
+        >
+          <Loader2
+            class="loading-icon"
+            :size="24"
+          />
 
-          <p>Loading notifications...</p>
+          <p>
+            Loading notifications...
+          </p>
         </div>
 
         <!-- Error -->
-        <div v-else-if="error" class="notification-state error-state">
+        <div
+          v-else-if="error"
+          class="notification-state error-state"
+        >
           <p>{{ error }}</p>
 
-          <button type="button" @click="loadNotifications">Try again</button>
+          <button
+            type="button"
+            @click="loadNotifications"
+          >
+            Try again
+          </button>
         </div>
 
         <!-- Empty -->
-        <div v-else-if="notifications.length === 0" class="notification-state">
+        <div
+          v-else-if="
+            notifications.length === 0
+          "
+          class="notification-state"
+        >
+
           <div class="empty-icon">
             <Bell :size="24" />
           </div>
 
-          <strong>No new notifications</strong>
+          <strong>
+            No notifications
+          </strong>
 
-          <p>You're all caught up.</p>
+          <p>
+            You're all caught up.
+          </p>
+
         </div>
 
-        <!-- Notifications -->
-        <div v-else class="notification-list">
+        <!-- Notification list -->
+        <div
+          v-else
+          class="notification-list"
+        >
+
           <button
             v-for="notification in notifications"
             :key="notification.id"
             type="button"
             class="notification-item"
-            @click="markAsRead(notification)"
+            :class="{
+              unread: !notification.read
+            }"
+            @click="
+              openNotification(notification)
+            "
           >
-            <div class="notification-icon">
-              <Check :size="17" />
+
+            <div
+              class="notification-icon"
+            >
+              <component
+                :is="
+                  getNotificationIcon(
+                    notification
+                  )
+                "
+                :size="17"
+              />
             </div>
 
-            <div class="notification-content">
+            <div
+              class="notification-content"
+            >
+
               <strong>
                 {{ notification.title }}
               </strong>
@@ -208,26 +398,218 @@ onUnmounted(() => {
               </p>
 
               <span>
-                {{ formatNotificationTime(notification.createdAt) }}
+                {{
+                  formatNotificationTime(
+                    notification.createdAt
+                  )
+                }}
               </span>
+
             </div>
 
-            <span v-if="!notification.read" class="unread-dot" />
+            <span
+              v-if="!notification.read"
+              class="unread-dot"
+            />
+
           </button>
+
         </div>
 
         <!-- Footer -->
-        <div v-if="notifications.length > 0" class="notification-footer">
-          <button type="button" :disabled="markingAllAsRead" @click="markAllAsRead">
-            <Loader2 v-if="markingAllAsRead" class="loading-icon" :size="15" />
+        <div
+          v-if="
+            notifications.length > 0 &&
+            unreadCount > 0
+          "
+          class="notification-footer"
+        >
 
-            <CheckCheck v-else :size="15" />
+          <button
+            type="button"
+            :disabled="markingAllAsRead"
+            @click="markAllAsRead"
+          >
+
+            <Loader2
+              v-if="markingAllAsRead"
+              class="loading-icon"
+              :size="15"
+            />
+
+            <CheckCheck
+              v-else
+              :size="15"
+            />
 
             Mark all as read
+
           </button>
+
         </div>
+
       </div>
     </Transition>
+
+    <!-- Notification detail modal -->
+    <Transition name="detail-fade">
+      <div
+        v-if="selectedNotification"
+        class="notification-detail-overlay"
+        @click.self="
+          closeNotificationDetail
+        "
+      >
+
+        <div
+          class="notification-detail"
+          @click.stop
+        >
+
+          <!-- Detail header -->
+          <div
+            class="detail-header"
+          >
+
+            <div
+              class="detail-icon"
+            >
+              <component
+                :is="
+                  getNotificationIcon(
+                    selectedNotification
+                  )
+                "
+                :size="24"
+              />
+            </div>
+
+            <button
+              type="button"
+              class="detail-close"
+              @click="
+                closeNotificationDetail
+              "
+            >
+              <X :size="20" />
+            </button>
+
+          </div>
+
+          <!-- Detail content -->
+          <div
+            class="detail-content"
+          >
+
+            <span
+              class="detail-type"
+            >
+              {{
+                selectedNotification
+                  .notificationType
+                  .replace('_', ' ')
+              }}
+            </span>
+
+            <h2>
+              {{
+                selectedNotification.title
+              }}
+            </h2>
+
+            <p
+              class="detail-message"
+            >
+              {{
+                selectedNotification.message
+              }}
+            </p>
+
+            <div
+              class="detail-divider"
+            />
+
+            <div
+              class="detail-information"
+            >
+
+              <div
+                class="detail-row"
+              >
+                <span>
+                  Date
+                </span>
+
+                <strong>
+                  {{
+                    formatFullDate(
+                      selectedNotification
+                        .createdAt
+                    )
+                  }}
+                </strong>
+              </div>
+
+              <div
+                v-if="
+                  selectedNotification
+                    .transactionReference
+                "
+                class="detail-row"
+              >
+                <span>
+                  Reference
+                </span>
+
+                <strong>
+                  {{
+                    selectedNotification
+                      .transactionReference
+                  }}
+                </strong>
+              </div>
+
+              <div
+                class="detail-row"
+              >
+                <span>
+                  Status
+                </span>
+
+                <strong
+                  class="status-value"
+                >
+                  <Check :size="14" />
+                  {{
+                    selectedNotification.status
+                  }}
+                </strong>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Detail footer -->
+          <div
+            class="detail-footer"
+          >
+            <button
+              type="button"
+              class="detail-done-button"
+              @click="
+                closeNotificationDetail
+              "
+            >
+              Done
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </Transition>
+
   </div>
 </template>
 
@@ -278,11 +660,12 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  width: 380px;
+  width: 390px;
   background: white;
   border: 1px solid #e5eaf2;
   border-radius: 18px;
-  box-shadow: 0 20px 50px rgba(15, 35, 70, 0.16);
+  box-shadow:
+    0 20px 50px rgba(15, 35, 70, 0.16);
   overflow: hidden;
   z-index: 1000;
 }
@@ -342,6 +725,10 @@ onUnmounted(() => {
 
 .notification-item:hover {
   background: #f8faff;
+}
+
+.notification-item.unread {
+  background: #fbfdff;
 }
 
 .notification-icon {
@@ -469,6 +856,158 @@ onUnmounted(() => {
   animation: spin 1s linear infinite;
 }
 
+/* ========================= */
+/* Notification detail modal */
+/* ========================= */
+
+.notification-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(12, 25, 48, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.notification-detail {
+  width: min(520px, 100%);
+  background: white;
+  border-radius: 22px;
+  box-shadow:
+    0 30px 80px rgba(10, 25, 55, 0.25);
+  overflow: hidden;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+}
+
+.detail-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #eaf3ff;
+  color: #146ef5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f4f6f9;
+  color: #68758a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detail-close:hover {
+  background: #e9edf3;
+  color: #172033;
+}
+
+.detail-content {
+  padding: 22px 24px;
+}
+
+.detail-type {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #146ef5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.detail-content h2 {
+  margin: 0 0 14px;
+  color: #172033;
+  font-size: 23px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.detail-message {
+  margin: 0;
+  color: #4e5c70;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.detail-divider {
+  height: 1px;
+  margin: 22px 0;
+  background: #edf0f5;
+}
+
+.detail-information {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.detail-row span {
+  color: #8b96a8;
+  font-size: 12px;
+}
+
+.detail-row strong {
+  color: #172033;
+  font-size: 12px;
+  text-align: right;
+  max-width: 65%;
+  word-break: break-word;
+}
+
+.status-value {
+  color: #16845b !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.detail-footer {
+  padding: 16px 24px 22px;
+  border-top: 1px solid #edf0f5;
+}
+
+.detail-done-button {
+  width: 100%;
+  border: none;
+  border-radius: 11px;
+  background: #146ef5;
+  color: white;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.detail-done-button:hover {
+  background: #0f5ed8;
+}
+
 .notification-fade-enter-active,
 .notification-fade-leave-active {
   transition:
@@ -480,6 +1019,16 @@ onUnmounted(() => {
 .notification-fade-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+.detail-fade-enter-active,
+.detail-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.detail-fade-enter-from,
+.detail-fade-leave-to {
+  opacity: 0;
 }
 
 @keyframes spin {
@@ -495,6 +1044,22 @@ onUnmounted(() => {
     right: 14px;
     left: 14px;
     width: auto;
+  }
+
+  .notification-detail-overlay {
+    padding: 14px;
+  }
+
+  .notification-detail {
+    border-radius: 18px;
+  }
+
+  .detail-content h2 {
+    font-size: 20px;
+  }
+
+  .detail-message {
+    font-size: 14px;
   }
 }
 </style>

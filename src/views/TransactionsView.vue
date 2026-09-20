@@ -4,10 +4,7 @@
          SIDEBAR
     ====================================================== -->
 
-    <aside
-      class="transactions-sidebar"
-      :class="{ open: mobileMenuOpen }"
-    >
+    <aside class="transactions-sidebar" :class="{ open: mobileMenuOpen }">
       <RouterLink to="/" class="dashboard-logo">
         <span>B</span>
         <strong>Buuchezo Bank</strong>
@@ -16,54 +13,34 @@
       <nav class="dashboard-nav">
         <span class="nav-section-title">MAIN</span>
 
-        <RouterLink
-          to="/dashboard"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/dashboard" class="dashboard-nav-link">
           <LayoutDashboard :size="18" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink
-          to="/accounts"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/accounts" class="dashboard-nav-link">
           <WalletCards :size="18" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink
-          to="/transactions"
-          class="dashboard-nav-link active"
-        >
+        <RouterLink to="/transactions" class="dashboard-nav-link active">
           <ArrowLeftRight :size="18" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink
-          to="/cards"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/cards" class="dashboard-nav-link">
           <CreditCard :size="18" />
           <span>Cards</span>
         </RouterLink>
 
-        <span class="nav-section-title second-nav-title">
-          SERVICES
-        </span>
+        <span class="nav-section-title second-nav-title"> SERVICES </span>
 
-        <RouterLink
-          to="/transfers"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/transfers" class="dashboard-nav-link">
           <Send :size="18" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink
-          to="/settings"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/settings" class="dashboard-nav-link">
           <Settings :size="18" />
           <span>Settings</span>
         </RouterLink>
@@ -81,11 +58,7 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          class="logout-button"
-          @click="logout"
-        >
+        <button type="button" class="logout-button" @click="logout">
           <LogOut :size="17" />
           <span>Sign out</span>
         </button>
@@ -100,11 +73,7 @@
       <!-- HEADER -->
 
       <header class="transactions-header">
-        <button
-          type="button"
-          class="mobile-menu-button"
-          @click="mobileMenuOpen = !mobileMenuOpen"
-        >
+        <button type="button" class="mobile-menu-button" @click="mobileMenuOpen = !mobileMenuOpen">
           <Menu :size="21" />
         </button>
 
@@ -114,14 +83,7 @@
         </div>
 
         <div class="header-actions">
-          <button
-            type="button"
-            class="header-icon"
-            aria-label="Notifications"
-          >
-            <Bell :size="19" />
-            <span class="notification-dot"></span>
-          </button>
+          <NotificationDropdown />
 
           <div class="header-profile">
             <div class="profile-avatar">
@@ -141,48 +103,31 @@
       <!-- CONTENT -->
 
       <div class="transactions-content">
-
         <!-- =================================================
              LOADING
         ================================================== -->
 
-        <div
-          v-if="loading"
-          class="page-state"
-        >
+        <div v-if="loading" class="page-state">
           <strong>Loading transactions...</strong>
 
-          <span>
-            Fetching your transaction history securely.
-          </span>
+          <span> Fetching your transaction history securely. </span>
         </div>
 
         <!-- =================================================
              ERROR
         ================================================== -->
 
-        <div
-          v-else-if="errorMessage"
-          class="page-state page-state-error"
-        >
-          <strong>
-            Unable to load transactions
-          </strong>
+        <div v-else-if="errorMessage" class="page-state page-state-error">
+          <strong> Unable to load transactions </strong>
 
           <span>
             {{ errorMessage }}
           </span>
 
-          <button
-            type="button"
-            @click="loadTransactions"
-          >
-            Try again
-          </button>
+          <button type="button" @click="loadTransactions">Try again</button>
         </div>
 
         <template v-else>
-
           <!-- =================================================
                PAGE INTRO
           ================================================== -->
@@ -191,22 +136,15 @@
             <div>
               <span>YOUR MONEY</span>
 
-              <h2>
-                Keep track of every transaction.
-              </h2>
+              <h2>Keep track of every transaction.</h2>
 
-              <p>
-                Review money coming into and leaving
-                your account.
-              </p>
+              <p>Review money coming into and leaving your account.</p>
             </div>
 
             <div class="account-reference">
               <span>ACCOUNT</span>
 
-              <strong>
-                •••• {{ maskedAccountNumber }}
-              </strong>
+              <strong> •••• {{ maskedAccountNumber }} </strong>
             </div>
           </section>
 
@@ -215,7 +153,6 @@
           ================================================== -->
 
           <section class="transaction-stats">
-
             <div class="transaction-stat-card">
               <div class="transaction-stat-icon">
                 <ArrowLeftRight :size="18" />
@@ -228,9 +165,7 @@
                   {{ filteredTransactions.length }}
                 </strong>
 
-                <small>
-                  Matching current filters
-                </small>
+                <small> Matching current filters </small>
               </div>
             </div>
 
@@ -246,9 +181,7 @@
                   {{ formatMoney(totalIncome) }}
                 </strong>
 
-                <small>
-                  Money received
-                </small>
+                <small> Money received </small>
               </div>
             </div>
 
@@ -264,12 +197,9 @@
                   {{ formatMoney(totalExpenses) }}
                 </strong>
 
-                <small>
-                  Money sent or spent
-                </small>
+                <small> Money sent or spent </small>
               </div>
             </div>
-
           </section>
 
           <!-- =================================================
@@ -277,36 +207,26 @@
           ================================================== -->
 
           <section class="transactions-panel">
-
             <div class="transactions-panel-header">
               <div>
                 <span>ACTIVITY</span>
 
-                <h2>
-                  All transactions
-                </h2>
+                <h2>All transactions</h2>
               </div>
 
               <div class="transaction-count">
                 {{ filteredTransactions.length }}
-                transaction<span
-                v-if="filteredTransactions.length !== 1"
-              >s</span>
+                transaction<span v-if="filteredTransactions.length !== 1">s</span>
               </div>
             </div>
 
             <div class="filters">
-
               <!-- SEARCH -->
 
               <div class="search-field">
                 <Search :size="16" />
 
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Search transactions..."
-                />
+                <input v-model="searchQuery" type="text" placeholder="Search transactions..." />
               </div>
 
               <!-- DIRECTION -->
@@ -315,23 +235,14 @@
                 <label>Direction</label>
 
                 <select v-model="directionFilter">
-                  <option value="ALL">
-                    All transactions
-                  </option>
+                  <option value="ALL">All transactions</option>
 
-                  <option value="CREDIT">
-                    Income
-                  </option>
+                  <option value="CREDIT">Income</option>
 
-                  <option value="DEBIT">
-                    Expenses
-                  </option>
+                  <option value="DEBIT">Expenses</option>
                 </select>
 
-                <ChevronDown
-                  :size="13"
-                  class="select-icon"
-                />
+                <ChevronDown :size="13" class="select-icon" />
               </div>
 
               <!-- TYPE -->
@@ -340,31 +251,18 @@
                 <label>Type</label>
 
                 <select v-model="typeFilter">
-                  <option value="ALL">
-                    All types
-                  </option>
+                  <option value="ALL">All types</option>
 
-                  <option value="DEPOSIT">
-                    Deposits
-                  </option>
+                  <option value="DEPOSIT">Deposits</option>
 
-                  <option value="TRANSFER">
-                    Transfers
-                  </option>
+                  <option value="TRANSFER">Transfers</option>
 
-                  <option value="PAYMENT">
-                    Payments
-                  </option>
+                  <option value="PAYMENT">Payments</option>
 
-                  <option value="WITHDRAWAL">
-                    Withdrawals
-                  </option>
+                  <option value="WITHDRAWAL">Withdrawals</option>
                 </select>
 
-                <ChevronDown
-                  :size="13"
-                  class="select-icon"
-                />
+                <ChevronDown :size="13" class="select-icon" />
               </div>
 
               <!-- RESET -->
@@ -377,7 +275,6 @@
               >
                 Clear filters
               </button>
-
             </div>
 
             <!-- =================================================
@@ -385,193 +282,113 @@
             ================================================== -->
 
             <div class="transaction-table-wrapper">
-
               <table class="transaction-table">
-
                 <thead>
-                <tr>
-                  <th>Transaction</th>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th class="amount-column">
-                    Amount
-                  </th>
-                </tr>
+                  <tr>
+                    <th>Transaction</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th class="amount-column">Amount</th>
+                  </tr>
                 </thead>
 
                 <tbody>
+                  <!-- EMPTY -->
 
-                <!-- EMPTY -->
-
-                <tr
-                  v-if="
-                      filteredTransactions.length === 0
-                    "
-                >
-                  <td
-                    colspan="5"
-                    class="empty-table"
-                  >
-                    <div class="empty-icon">
-                      <ArrowLeftRight :size="21" />
-                    </div>
-
-                    <strong>
-                      No transactions found
-                    </strong>
-
-                    <span>
-                        Try changing your filters or
-                        make your first transaction.
-                      </span>
-                  </td>
-                </tr>
-
-                <!-- TRANSACTIONS -->
-
-                <tr
-                  v-for="transaction in filteredTransactions"
-                  :key="
-                      transaction.id ||
-                      transaction.reference
-                    "
-                  class="transaction-row"
-                  @click="selectTransaction(transaction)"
-                >
-
-                  <!-- TRANSACTION -->
-
-                  <td>
-                    <div class="table-transaction">
-
-                      <div
-                        class="table-transaction-icon"
-                        :class="{
-                            credit:
-                              transaction.transactionDirection ===
-                              'CREDIT'
-                          }"
-                      >
-                        <component
-                          :is="
-                              getTransactionIcon(
-                                transaction
-                              )
-                            "
-                          :size="17"
-                        />
+                  <tr v-if="filteredTransactions.length === 0">
+                    <td colspan="5" class="empty-table">
+                      <div class="empty-icon">
+                        <ArrowLeftRight :size="21" />
                       </div>
 
-                      <div>
+                      <strong> No transactions found </strong>
+
+                      <span> Try changing your filters or make your first transaction. </span>
+                    </td>
+                  </tr>
+
+                  <!-- TRANSACTIONS -->
+
+                  <tr
+                    v-for="transaction in filteredTransactions"
+                    :key="transaction.id || transaction.reference"
+                    class="transaction-row"
+                    @click="selectTransaction(transaction)"
+                  >
+                    <!-- TRANSACTION -->
+
+                    <td>
+                      <div class="table-transaction">
+                        <div
+                          class="table-transaction-icon"
+                          :class="{
+                            credit: transaction.transactionDirection === 'CREDIT',
+                          }"
+                        >
+                          <component :is="getTransactionIcon(transaction)" :size="17" />
+                        </div>
+
+                        <div>
+                          <strong>
+                            {{ transactionDescription(transaction) }}
+                          </strong>
+
+                          <span>
+                            {{ transaction.reference }}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- DATE -->
+
+                    <td>
+                      <div class="table-date">
                         <strong>
-                          {{
-                            transactionDescription(
-                              transaction
-                            )
-                          }}
+                          {{ formatTransactionDate(transaction.createdAt) }}
                         </strong>
 
                         <span>
-                            {{
-                            transaction.reference
-                          }}
-                          </span>
-                      </div>
-
-                    </div>
-                  </td>
-
-                  <!-- DATE -->
-
-                  <td>
-                    <div class="table-date">
-                      <strong>
-                        {{
-                          formatTransactionDate(
-                            transaction.createdAt
-                          )
-                        }}
-                      </strong>
-
-                      <span>
-                          {{
-                          formatTransactionTime(
-                            transaction.createdAt
-                          )
-                        }}
+                          {{ formatTransactionTime(transaction.createdAt) }}
                         </span>
-                    </div>
-                  </td>
+                      </div>
+                    </td>
 
-                  <!-- TYPE -->
+                    <!-- TYPE -->
 
-                  <td>
+                    <td>
                       <span class="transaction-type">
-                        {{
-                          transactionLabel(
-                            transaction
-                          )
-                        }}
+                        {{ transactionLabel(transaction) }}
                       </span>
-                  </td>
+                    </td>
 
-                  <!-- STATUS -->
+                    <!-- STATUS -->
 
-                  <td>
+                    <td>
                       <span
                         class="status-badge"
-                        :class="
-                          statusClass(
-                            transaction.transactionStatus
-                          )
-                        "
+                        :class="statusClass(transaction.transactionStatus)"
                       >
-                        {{
-                          formatStatus(
-                            transaction.transactionStatus
-                          )
-                        }}
+                        {{ formatStatus(transaction.transactionStatus) }}
                       </span>
-                  </td>
+                    </td>
 
-                  <!-- AMOUNT -->
+                    <!-- AMOUNT -->
 
-                  <td class="amount-column">
-                    <strong
-                      class="table-amount"
-                      :class="
-                          transaction.transactionDirection ===
-                          'CREDIT'
-                            ? 'credit'
-                            : 'debit'
-                        "
-                    >
-                      {{
-                        transaction.transactionDirection ===
-                        'CREDIT'
-                          ? '+'
-                          : '−'
-                      }}{{
-                        formatMoney(
-                          Math.abs(
-                            Number(
-                              transaction.amount
-                            )
-                          )
-                        )
-                      }}
-                    </strong>
-                  </td>
-
-                </tr>
-
+                    <td class="amount-column">
+                      <strong
+                        class="table-amount"
+                        :class="transaction.transactionDirection === 'CREDIT' ? 'credit' : 'debit'"
+                      >
+                        {{ transaction.transactionDirection === 'CREDIT' ? '+' : '−'
+                        }}{{ formatMoney(Math.abs(Number(transaction.amount))) }}
+                      </strong>
+                    </td>
+                  </tr>
                 </tbody>
-
               </table>
-
             </div>
-
           </section>
 
           <!-- =================================================
@@ -584,7 +401,6 @@
             @click.self="selectedTransaction = null"
           >
             <section class="transaction-detail">
-
               <button
                 type="button"
                 class="close-detail"
@@ -595,73 +411,38 @@
               </button>
 
               <div class="detail-heading">
-
                 <div
                   class="detail-icon"
                   :class="{
-                    credit:
-                      selectedTransaction.transactionDirection ===
-                      'CREDIT'
+                    credit: selectedTransaction.transactionDirection === 'CREDIT',
                   }"
                 >
-                  <component
-                    :is="
-                      getTransactionIcon(
-                        selectedTransaction
-                      )
-                    "
-                    :size="21"
-                  />
+                  <component :is="getTransactionIcon(selectedTransaction)" :size="21" />
                 </div>
 
                 <div>
                   <span>TRANSACTION DETAILS</span>
 
                   <h2>
-                    {{
-                      transactionDescription(
-                        selectedTransaction
-                      )
-                    }}
+                    {{ transactionDescription(selectedTransaction) }}
                   </h2>
                 </div>
-
               </div>
 
               <div
                 class="detail-amount"
-                :class="
-                  selectedTransaction.transactionDirection ===
-                  'CREDIT'
-                    ? 'credit'
-                    : 'debit'
-                "
+                :class="selectedTransaction.transactionDirection === 'CREDIT' ? 'credit' : 'debit'"
               >
-                {{
-                  selectedTransaction.transactionDirection ===
-                  'CREDIT'
-                    ? '+'
-                    : '−'
-                }}{{
-                  formatMoney(
-                    Math.abs(
-                      Number(
-                        selectedTransaction.amount
-                      )
-                    )
-                  )
-                }}
+                {{ selectedTransaction.transactionDirection === 'CREDIT' ? '+' : '−'
+                }}{{ formatMoney(Math.abs(Number(selectedTransaction.amount))) }}
               </div>
 
               <div class="detail-list">
-
                 <div>
                   <span>Reference</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.reference
-                    }}
+                    {{ selectedTransaction.reference }}
                   </strong>
                 </div>
 
@@ -669,11 +450,7 @@
                   <span>Date</span>
 
                   <strong>
-                    {{
-                      formatFullDate(
-                        selectedTransaction.createdAt
-                      )
-                    }}
+                    {{ formatFullDate(selectedTransaction.createdAt) }}
                   </strong>
                 </div>
 
@@ -681,11 +458,7 @@
                   <span>Transaction type</span>
 
                   <strong>
-                    {{
-                      transactionLabel(
-                        selectedTransaction
-                      )
-                    }}
+                    {{ transactionLabel(selectedTransaction) }}
                   </strong>
                 </div>
 
@@ -693,12 +466,7 @@
                   <span>Direction</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.transactionDirection ===
-                      'CREDIT'
-                        ? 'Credit'
-                        : 'Debit'
-                    }}
+                    {{ selectedTransaction.transactionDirection === 'CREDIT' ? 'Credit' : 'Debit' }}
                   </strong>
                 </div>
 
@@ -706,11 +474,7 @@
                   <span>Status</span>
 
                   <strong>
-                    {{
-                      formatStatus(
-                        selectedTransaction.transactionStatus
-                      )
-                    }}
+                    {{ formatStatus(selectedTransaction.transactionStatus) }}
                   </strong>
                 </div>
 
@@ -718,60 +482,36 @@
                   <span>Channel</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.channel ||
-                      'Not specified'
-                    }}
+                    {{ selectedTransaction.channel || 'Not specified' }}
                   </strong>
                 </div>
 
-                <div
-                  v-if="
-                    selectedTransaction.fromAccountNumber
-                  "
-                >
+                <div v-if="selectedTransaction.fromAccountNumber">
                   <span>From account</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.fromAccountNumber
-                    }}
+                    {{ selectedTransaction.fromAccountNumber }}
                   </strong>
                 </div>
 
-                <div
-                  v-if="
-                    selectedTransaction.toAccountNumber
-                  "
-                >
+                <div v-if="selectedTransaction.toAccountNumber">
                   <span>To account</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.toAccountNumber
-                    }}
+                    {{ selectedTransaction.toAccountNumber }}
                   </strong>
                 </div>
 
-                <div
-                  v-if="
-                    selectedTransaction.description
-                  "
-                >
+                <div v-if="selectedTransaction.description">
                   <span>Description</span>
 
                   <strong>
-                    {{
-                      selectedTransaction.description
-                    }}
+                    {{ selectedTransaction.description }}
                   </strong>
                 </div>
-
               </div>
-
             </section>
           </div>
-
         </template>
       </div>
     </div>
@@ -779,20 +519,15 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  ref,
-} from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowDownLeft,
   ArrowLeftRight,
-  ArrowRight,
   ArrowUpRight,
-  Bell,
   ChevronDown,
   CreditCard,
   HelpCircle,
@@ -851,15 +586,9 @@ interface Transaction {
   amount: number
   description?: string
   currency?: string
-  transactionType:
-    | 'DEPOSIT'
-    | 'WITHDRAWAL'
-    | 'TRANSFER'
-    | 'PAYMENT'
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'PAYMENT'
   transactionStatus?: string
-  transactionDirection:
-    | 'DEBIT'
-    | 'CREDIT'
+  transactionDirection: 'DEBIT' | 'CREDIT'
   channel?: string
   createdAt: string
 }
@@ -874,8 +603,7 @@ interface ApiResponse<T> {
    CONFIG
 ========================================================= */
 
-const API_BASE_URL =
-  'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
@@ -883,204 +611,137 @@ const router = useRouter()
    STATE
 ========================================================= */
 
-const mobileMenuOpen =
-  ref(false)
+const mobileMenuOpen = ref(false)
 
-const loading =
-  ref(true)
+const loading = ref(true)
 
-const errorMessage =
-  ref('')
+const errorMessage = ref('')
 
-const transactions =
-  ref<Transaction[]>([])
+const transactions = ref<Transaction[]>([])
 
-const selectedTransaction =
-  ref<Transaction | null>(null)
+const selectedTransaction = ref<Transaction | null>(null)
 
-const searchQuery =
-  ref('')
+const searchQuery = ref('')
 
-const directionFilter =
-  ref<'ALL' | 'CREDIT' | 'DEBIT'>(
-    'ALL'
-  )
+const directionFilter = ref<'ALL' | 'CREDIT' | 'DEBIT'>('ALL')
 
-const typeFilter =
-  ref<
-    | 'ALL'
-    | 'DEPOSIT'
-    | 'WITHDRAWAL'
-    | 'TRANSFER'
-    | 'PAYMENT'
-  >('ALL')
+const typeFilter = ref<'ALL' | 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'PAYMENT'>('ALL')
 
-const user =
-  ref<User>({
-    id: 0,
-    email: '',
-    firstName: '',
-    lastName: '',
-    enabled: false,
-    roles: [],
-    createdAt: '',
-  })
+const user = ref<User>({
+  id: 0,
+  email: '',
+  firstName: '',
+  lastName: '',
+  enabled: false,
+  roles: [],
+  createdAt: '',
+})
 
-const account =
-  ref<Account>({
-    id: 0,
-    accountNumber: '',
-    balance: 0,
-    currency: 'EUR',
-    accountType: '',
-    accountStatus: '',
-    createdAt: '',
-  })
+const account = ref<Account>({
+  id: 0,
+  accountNumber: '',
+  balance: 0,
+  currency: 'EUR',
+  accountType: '',
+  accountStatus: '',
+  createdAt: '',
+})
 
 /* =========================================================
    USER
 ========================================================= */
 
-const fullName =
-  computed(() => {
-    return (
-      `${user.value.firstName} ${user.value.lastName}`
-        .trim() || 'User'
-    )
-  })
+const fullName = computed(() => {
+  return `${user.value.firstName} ${user.value.lastName}`.trim() || 'User'
+})
 
-const userInitials =
-  computed(() => {
-    const first =
-      user.value.firstName?.charAt(0) ||
-      ''
+const userInitials = computed(() => {
+  const first = user.value.firstName?.charAt(0) || ''
 
-    const last =
-      user.value.lastName?.charAt(0) ||
-      ''
+  const last = user.value.lastName?.charAt(0) || ''
 
-    return (
-      `${first}${last}`.toUpperCase() ||
-      'U'
-    )
-  })
+  return `${first}${last}`.toUpperCase() || 'U'
+})
 
-const maskedAccountNumber =
-  computed(() => {
-    const number =
-      account.value.accountNumber ||
-      ''
+const maskedAccountNumber = computed(() => {
+  const number = account.value.accountNumber || ''
 
-    if (number.length <= 4) {
-      return number
-    }
+  if (number.length <= 4) {
+    return number
+  }
 
-    return number.slice(-4)
-  })
+  return number.slice(-4)
+})
 
 /* =========================================================
    MONEY
 ========================================================= */
 
-function formatMoney(
-  amount: number
-) {
-  return new Intl.NumberFormat(
-    'en-DE',
-    {
-      style: 'currency',
+function formatMoney(amount: number) {
+  return new Intl.NumberFormat('en-DE', {
+    style: 'currency',
 
-      currency:
-        account.value.currency ||
-        'EUR',
+    currency: account.value.currency || 'EUR',
 
-      minimumFractionDigits: 2,
+    minimumFractionDigits: 2,
 
-      maximumFractionDigits: 2,
-    }
-  ).format(amount || 0)
+    maximumFractionDigits: 2,
+  }).format(amount || 0)
 }
 
 /* =========================================================
    DATE
 ========================================================= */
 
-function formatTransactionDate(
-  dateString: string
-) {
+function formatTransactionDate(dateString: string) {
   if (!dateString) {
     return ''
   }
 
-  const date =
-    new Date(dateString)
+  const date = new Date(dateString)
 
-  return date.toLocaleDateString(
-    'en-GB',
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }
-  )
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
-function formatTransactionTime(
-  dateString: string
-) {
+function formatTransactionTime(dateString: string) {
   if (!dateString) {
     return ''
   }
 
-  return new Date(
-    dateString
-  ).toLocaleTimeString(
-    'en-GB',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-    }
-  )
+  return new Date(dateString).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-function formatFullDate(
-  dateString: string
-) {
+function formatFullDate(dateString: string) {
   if (!dateString) {
     return ''
   }
 
-  return new Date(
-    dateString
-  ).toLocaleString(
-    'en-GB',
-    {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }
-  )
+  return new Date(dateString).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 /* =========================================================
    TRANSACTION HELPERS
 ========================================================= */
 
-function transactionDescription(
-  transaction: Transaction
-) {
-  if (
-    transaction.description &&
-    transaction.description.trim()
-  ) {
+function transactionDescription(transaction: Transaction) {
+  if (transaction.description && transaction.description.trim()) {
     return transaction.description
   }
 
-  switch (
-    transaction.transactionType
-    ) {
+  switch (transaction.transactionType) {
     case 'DEPOSIT':
       return 'Deposit'
 
@@ -1098,12 +759,8 @@ function transactionDescription(
   }
 }
 
-function transactionLabel(
-  transaction: Transaction
-) {
-  switch (
-    transaction.transactionType
-    ) {
+function transactionLabel(transaction: Transaction) {
+  switch (transaction.transactionType) {
     case 'DEPOSIT':
       return 'Deposit'
 
@@ -1121,19 +778,12 @@ function transactionLabel(
   }
 }
 
-function getTransactionIcon(
-  transaction: Transaction
-) {
-  if (
-    transaction.transactionDirection ===
-    'CREDIT'
-  ) {
+function getTransactionIcon(transaction: Transaction) {
+  if (transaction.transactionDirection === 'CREDIT') {
     return ArrowDownLeft
   }
 
-  switch (
-    transaction.transactionType
-    ) {
+  switch (transaction.transactionType) {
     case 'PAYMENT':
       return ShoppingBag
 
@@ -1152,56 +802,33 @@ function getTransactionIcon(
    STATUS
 ========================================================= */
 
-function formatStatus(
-  status?: string
-) {
+function formatStatus(status?: string) {
   if (!status) {
     return 'Unknown'
   }
 
   return status
     .toLowerCase()
-    .replace(
-      /_/g,
-      ' '
-    )
-    .replace(
-      /\b\w/g,
-      (letter) =>
-        letter.toUpperCase()
-    )
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function statusClass(
-  status?: string
-) {
+function statusClass(status?: string) {
   if (!status) {
     return 'unknown'
   }
 
-  const normalized =
-    status.toUpperCase()
+  const normalized = status.toUpperCase()
 
-  if (
-    normalized === 'SUCCESS' ||
-    normalized === 'COMPLETED' ||
-    normalized === 'SUCCESSFUL'
-  ) {
+  if (normalized === 'SUCCESS' || normalized === 'COMPLETED' || normalized === 'SUCCESSFUL') {
     return 'success'
   }
 
-  if (
-    normalized === 'PENDING' ||
-    normalized === 'PROCESSING'
-  ) {
+  if (normalized === 'PENDING' || normalized === 'PROCESSING') {
     return 'pending'
   }
 
-  if (
-    normalized === 'FAILED' ||
-    normalized === 'CANCELLED' ||
-    normalized === 'REJECTED'
-  ) {
+  if (normalized === 'FAILED' || normalized === 'CANCELLED' || normalized === 'REJECTED') {
     return 'failed'
   }
 
@@ -1212,153 +839,85 @@ function statusClass(
    FILTERING
 ========================================================= */
 
-const filteredTransactions =
-  computed(() => {
-    const search =
-      searchQuery.value
-        .trim()
-        .toLowerCase()
+const filteredTransactions = computed(() => {
+  const search = searchQuery.value.trim().toLowerCase()
 
-    return [
-      ...transactions.value,
-    ]
-      .filter(
-        (transaction) => {
-          if (
-            directionFilter.value !==
-            'ALL'
-          ) {
-            if (
-              transaction.transactionDirection !==
-              directionFilter.value
-            ) {
-              return false
-            }
-          }
-
-          if (
-            typeFilter.value !==
-            'ALL'
-          ) {
-            if (
-              transaction.transactionType !==
-              typeFilter.value
-            ) {
-              return false
-            }
-          }
-
-          if (!search) {
-            return true
-          }
-
-          return [
-            transaction.reference,
-            transaction.description,
-            transaction.transactionType,
-            transaction.transactionStatus,
-            transaction.fromAccountNumber,
-            transaction.toAccountNumber,
-          ]
-            .filter(Boolean)
-            .some(
-              (value) =>
-                String(value)
-                  .toLowerCase()
-                  .includes(search)
-            )
+  return [...transactions.value]
+    .filter((transaction) => {
+      if (directionFilter.value !== 'ALL') {
+        if (transaction.transactionDirection !== directionFilter.value) {
+          return false
         }
-      )
-      .sort(
-        (a, b) =>
-          new Date(
-            b.createdAt
-          ).getTime() -
-          new Date(
-            a.createdAt
-          ).getTime()
-      )
-  })
+      }
+
+      if (typeFilter.value !== 'ALL') {
+        if (transaction.transactionType !== typeFilter.value) {
+          return false
+        }
+      }
+
+      if (!search) {
+        return true
+      }
+
+      return [
+        transaction.reference,
+        transaction.description,
+        transaction.transactionType,
+        transaction.transactionStatus,
+        transaction.fromAccountNumber,
+        transaction.toAccountNumber,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(search))
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+})
 
 /* =========================================================
    TOTAL INCOME
 ========================================================= */
 
-const totalIncome =
-  computed(() => {
-    return filteredTransactions.value
-      .filter(
-        (transaction) =>
-          transaction.transactionDirection ===
-          'CREDIT'
-      )
-      .reduce(
-        (total, transaction) =>
-          total +
-          Number(
-            transaction.amount || 0
-          ),
-        0
-      )
-  })
+const totalIncome = computed(() => {
+  return filteredTransactions.value
+    .filter((transaction) => transaction.transactionDirection === 'CREDIT')
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0)
+})
 
 /* =========================================================
    TOTAL EXPENSES
 ========================================================= */
 
-const totalExpenses =
-  computed(() => {
-    return filteredTransactions.value
-      .filter(
-        (transaction) =>
-          transaction.transactionDirection ===
-          'DEBIT'
-      )
-      .reduce(
-        (total, transaction) =>
-          total +
-          Number(
-            transaction.amount || 0
-          ),
-        0
-      )
-  })
+const totalExpenses = computed(() => {
+  return filteredTransactions.value
+    .filter((transaction) => transaction.transactionDirection === 'DEBIT')
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0)
+})
 
 /* =========================================================
    ACTIVE FILTERS
 ========================================================= */
 
-const hasActiveFilters =
-  computed(() => {
-    return (
-      searchQuery.value.trim() !==
-      '' ||
-      directionFilter.value !==
-      'ALL' ||
-      typeFilter.value !==
-      'ALL'
-    )
-  })
+const hasActiveFilters = computed(() => {
+  return (
+    searchQuery.value.trim() !== '' || directionFilter.value !== 'ALL' || typeFilter.value !== 'ALL'
+  )
+})
 
 function clearFilters() {
   searchQuery.value = ''
 
-  directionFilter.value =
-    'ALL'
+  directionFilter.value = 'ALL'
 
-  typeFilter.value =
-    'ALL'
+  typeFilter.value = 'ALL'
 }
 
 /* =========================================================
    SELECT TRANSACTION
 ========================================================= */
 
-function selectTransaction(
-  transaction: Transaction
-) {
-  selectedTransaction.value =
-    transaction
+function selectTransaction(transaction: Transaction) {
+  selectedTransaction.value = transaction
 }
 
 /* =========================================================
@@ -1370,13 +929,7 @@ async function loadTransactions() {
 
   errorMessage.value = ''
 
-  const token =
-    localStorage.getItem(
-      'accessToken'
-    ) ||
-    sessionStorage.getItem(
-      'accessToken'
-    )
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -1388,95 +941,62 @@ async function loadTransactions() {
        LOAD USER + ACCOUNT
     ====================================================== */
 
-    const accountResponse =
-      await fetch(
-        `${API_BASE_URL}/api/users/me`,
-        {
-          method: 'GET',
+    const accountResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      )
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
-    if (
-      accountResponse.status ===
-      401
-    ) {
+    if (accountResponse.status === 401) {
       logout()
       return
     }
 
-    const accountResult:
-      ApiResponse<UserWithAccount> =
-      await accountResponse.json()
+    const accountResult: ApiResponse<UserWithAccount> = await accountResponse.json()
 
     if (!accountResponse.ok) {
-      throw new Error(
-        accountResult.message ||
-        'Unable to load your account.'
-      )
+      throw new Error(accountResult.message || 'Unable to load your account.')
     }
 
-    user.value =
-      accountResult.data.user
+    user.value = accountResult.data.user
 
-    account.value =
-      accountResult.data.account
+    account.value = accountResult.data.account
 
     /* =====================================================
        LOAD TRANSACTION HISTORY
     ====================================================== */
 
-    const transactionResponse =
-      await fetch(
-        `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
-          account.value.accountNumber
-        )}`,
-        {
-          method: 'GET',
+    const transactionResponse = await fetch(
+      `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
+        account.value.accountNumber,
+      )}`,
+      {
+        method: 'GET',
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      )
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
 
-    if (
-      transactionResponse.status ===
-      401
-    ) {
+    if (transactionResponse.status === 401) {
       logout()
       return
     }
 
-    const transactionResult:
-      ApiResponse<Transaction[]> =
-      await transactionResponse.json()
+    const transactionResult: ApiResponse<Transaction[]> = await transactionResponse.json()
 
     if (!transactionResponse.ok) {
-      throw new Error(
-        transactionResult.message ||
-        'Unable to load transaction history.'
-      )
+      throw new Error(transactionResult.message || 'Unable to load transaction history.')
     }
 
-    transactions.value =
-      transactionResult.data || []
-
+    transactions.value = transactionResult.data || []
   } catch (error) {
-    console.error(
-      'Transaction loading failed:',
-      error
-    )
+    console.error('Transaction loading failed:', error)
 
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load transactions.'
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to load transactions.'
   } finally {
     loading.value = false
   }
@@ -1487,21 +1007,13 @@ async function loadTransactions() {
 ========================================================= */
 
 function logout() {
-  localStorage.removeItem(
-    'accessToken'
-  )
+  localStorage.removeItem('accessToken')
 
-  localStorage.removeItem(
-    'user'
-  )
+  localStorage.removeItem('user')
 
-  sessionStorage.removeItem(
-    'accessToken'
-  )
+  sessionStorage.removeItem('accessToken')
 
-  sessionStorage.removeItem(
-    'user'
-  )
+  sessionStorage.removeItem('user')
 
   router.push('/login')
 }
@@ -1510,9 +1022,7 @@ function logout() {
    INITIAL LOAD
 ========================================================= */
 
-onMounted(
-  loadTransactions
-)
+onMounted(loadTransactions)
 </script>
 
 <style scoped>
@@ -1762,8 +1272,7 @@ onMounted(
 ========================================================= */
 
 .transactions-main {
-  width:
-    calc(100% - 245px);
+  width: calc(100% - 245px);
 
   margin-left: 245px;
 }
@@ -2053,8 +1562,7 @@ onMounted(
 .transaction-stats {
   display: grid;
 
-  grid-template-columns:
-    repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 
   gap: 15px;
 
@@ -2239,16 +1747,14 @@ onMounted(
 
   color: #9aa8b2;
 
-  transform:
-    translateY(-50%);
+  transform: translateY(-50%);
 }
 
 .search-field input {
   width: 100%;
   height: 100%;
 
-  padding:
-    0 12px 0 37px;
+  padding: 0 12px 0 37px;
 
   color: #40586a;
 
@@ -2377,13 +1883,11 @@ onMounted(
 }
 
 .transaction-table th {
-  padding:
-    0 12px 12px;
+  padding: 0 12px 12px;
 
   color: #9aa7b1;
 
-  border-bottom:
-    1px solid #e8eef2;
+  border-bottom: 1px solid #e8eef2;
 
   font-size: 7px;
 
@@ -2395,11 +1899,9 @@ onMounted(
 }
 
 .transaction-table td {
-  padding:
-    15px 12px;
+  padding: 15px 12px;
 
-  border-bottom:
-    1px solid #edf1f4;
+  border-bottom: 1px solid #edf1f4;
 
   vertical-align: middle;
 }
@@ -2407,8 +1909,7 @@ onMounted(
 .transaction-row {
   cursor: pointer;
 
-  transition:
-    background 0.15s ease;
+  transition: background 0.15s ease;
 }
 
 .transaction-row:hover {
@@ -2582,8 +2083,7 @@ onMounted(
 ========================================================= */
 
 .empty-table {
-  padding:
-    65px 20px !important;
+  padding: 65px 20px !important;
 
   text-align: center !important;
 }
@@ -2640,22 +2140,17 @@ onMounted(
 
   padding: 20px;
 
-  background:
-    rgba(8, 47, 86, 0.35);
+  background: rgba(8, 47, 86, 0.35);
 
   z-index: 200;
 
-  backdrop-filter:
-    blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .transaction-detail {
   position: relative;
 
-  width: min(
-    500px,
-    100%
-  );
+  width: min(500px, 100%);
 
   max-height: 90vh;
 
@@ -2667,9 +2162,7 @@ onMounted(
 
   border-radius: 14px;
 
-  box-shadow:
-    0 25px 70px
-    rgba(8, 47, 86, 0.2);
+  box-shadow: 0 25px 70px rgba(8, 47, 86, 0.2);
 }
 
 .close-detail {
@@ -2754,8 +2247,7 @@ onMounted(
 }
 
 .detail-amount {
-  margin:
-    28px 0;
+  margin: 28px 0;
 
   color: #536b7b;
 
@@ -2775,8 +2267,7 @@ onMounted(
 
   flex-direction: column;
 
-  border-top:
-    1px solid #edf1f4;
+  border-top: 1px solid #edf1f4;
 }
 
 .detail-list > div {
@@ -2790,8 +2281,7 @@ onMounted(
 
   padding: 12px 0;
 
-  border-bottom:
-    1px solid #edf1f4;
+  border-bottom: 1px solid #edf1f4;
 }
 
 .detail-list span {
@@ -2822,8 +2312,7 @@ onMounted(
   }
 
   .transactions-main {
-    width:
-      calc(100% - 215px);
+    width: calc(100% - 215px);
 
     margin-left: 215px;
   }
@@ -2853,20 +2342,15 @@ onMounted(
 
 @media (max-width: 850px) {
   .transactions-sidebar {
-    transform:
-      translateX(-100%);
+    transform: translateX(-100%);
 
-    transition:
-      transform 0.25s ease;
+    transition: transform 0.25s ease;
 
-    box-shadow:
-      10px 0 35px
-      rgba(8, 47, 86, 0.1);
+    box-shadow: 10px 0 35px rgba(8, 47, 86, 0.1);
   }
 
   .transactions-sidebar.open {
-    transform:
-      translateX(0);
+    transform: translateX(0);
   }
 
   .transactions-main {
@@ -2908,8 +2392,7 @@ onMounted(
   }
 
   .transaction-stats {
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .transaction-stat-card:last-child {
@@ -2947,8 +2430,7 @@ onMounted(
   }
 
   .transactions-content {
-    padding:
-      25px 16px 50px;
+    padding: 25px 16px 50px;
   }
 
   .page-intro {

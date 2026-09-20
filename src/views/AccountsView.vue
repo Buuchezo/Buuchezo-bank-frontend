@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  Bell,
   ChevronDown,
   Copy,
   CreditCard,
@@ -31,20 +31,50 @@ interface Account {
   createdAt: string
 }
 
+interface Transaction {
+  id: number
+  reference: string
+  fromAccountNumber: string
+  fromBankCode?: string
+  toAccountNumber: string
+  toBankCode?: string
+  amount: number
+  description?: string
+  currency?: string
+  transactionType:
+    | 'DEPOSIT'
+    | 'WITHDRAWAL'
+    | 'TRANSFER'
+    | 'PAYMENT'
+  transactionStatus?: string
+  transactionDirection:
+    | 'DEBIT'
+    | 'CREDIT'
+  channel?: string
+  createdAt: string
+}
+
+
 interface ApiResponse<T> {
   statusCode: number
   message: string
   data: T
 }
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
 const mobileMenuOpen = ref(false)
 const loading = ref(true)
+const transactionsLoading = ref(false)
+
 const errorMessage = ref('')
+const transactionsError = ref('')
+
 const copied = ref(false)
+
+const transactions = ref<Transaction[]>([])
 
 const account = ref<Account>({
   id: 0,
@@ -164,6 +194,159 @@ async function copyAccountNumber() {
   }
 }
 
+function getToken(): string | null {
+  return (
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+  )
+}
+
+function getTransactionIcon(transaction: Transaction) {
+  if (transaction.transactionDirection === 'CREDIT') {
+    return ArrowDownLeft
+  }
+
+  switch (transaction.transactionType) {
+    case 'WITHDRAWAL':
+      return ArrowUpRight
+
+    case 'PAYMENT':
+      return CreditCard
+
+    case 'TRANSFER':
+      return ArrowLeftRight
+
+    default:
+      return ArrowUpRight
+  }
+}
+
+function getTransactionLabel(transaction: Transaction): string {
+  if (transaction.description) {
+    return transaction.description
+  }
+
+  switch (transaction.transactionType) {
+    case 'DEPOSIT':
+      return 'Money deposited'
+
+    case 'WITHDRAWAL':
+      return 'Cash withdrawal'
+
+    case 'TRANSFER':
+      return transaction.transactionDirection === 'CREDIT'
+        ? 'Money received'
+        : 'Money transferred'
+
+    case 'PAYMENT':
+      return 'Payment'
+
+    default:
+      return 'Transaction'
+  }
+}
+
+function formatTransactionDate(createdAt: string): string {
+  const date = new Date(createdAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+
+  const now = new Date()
+
+  const isToday =
+    date.toDateString() === now.toDateString()
+
+  if (isToday) {
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date)
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function getTransactionCounterparty(transaction: Transaction): string {
+  if (transaction.transactionType === 'TRANSFER') {
+    if (transaction.transactionDirection === 'CREDIT') {
+      return `From ${transaction.fromAccountNumber}`
+    }
+
+    return `To ${transaction.toAccountNumber}`
+  }
+
+  if (transaction.transactionType === 'DEPOSIT') {
+    return 'Account deposit'
+  }
+
+  if (transaction.transactionType === 'WITHDRAWAL') {
+    return 'Cash withdrawal'
+  }
+
+  return transaction.transactionType
+}
+
+async function loadTransactions() {
+  const token = getToken()
+
+  if (!token || !account.value.accountNumber) {
+    return
+  }
+
+  transactionsLoading.value = true
+  transactionsError.value = ''
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/transactions/history?accountNumber=${encodeURIComponent(
+        account.value.accountNumber
+      )}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (response.status === 401) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+      sessionStorage.removeItem('accessToken')
+      sessionStorage.removeItem('user')
+
+      await router.push('/login')
+      return
+    }
+
+    const result: ApiResponse<Transaction[]> =
+      await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || 'Unable to load transactions.'
+      )
+    }
+
+    transactions.value = result.data || []
+  } catch (error) {
+    console.error('Transaction loading failed:', error)
+
+    transactionsError.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to load transactions.'
+  } finally {
+    transactionsLoading.value = false
+  }
+}
+
 async function loadAccount() {
   loading.value = true
   errorMessage.value = ''
@@ -231,6 +414,8 @@ async function loadAccount() {
     }
 
     account.value = result.data.account
+
+    await loadTransactions()
   } catch (error) {
     console.error('Account loading failed:', error)
 
@@ -394,14 +579,7 @@ onMounted(loadAccount)
         </div>
 
         <div class="header-right">
-          <button
-            type="button"
-            class="notification-button"
-            aria-label="Notifications"
-          >
-            <Bell :size="20" />
-            <span class="notification-dot" />
-          </button>
+          <NotificationDropdown />
 
           <div class="profile">
             <div class="avatar">
@@ -606,6 +784,136 @@ onMounted(loadAccount)
                 Account creation date.
               </span>
             </article>
+          </section>
+
+          <!-- RECENT ACTIVITY -->
+          <section class="recent-activity-section">
+            <div class="section-heading recent-heading">
+              <div>
+                <p class="eyebrow">RECENT ACTIVITY</p>
+                <h2>Recent transactions</h2>
+              </div>
+
+              <RouterLink
+                to="/transactions"
+                class="view-all-link"
+              >
+                View all
+                <ArrowUpRight :size="15" />
+              </RouterLink>
+            </div>
+
+            <!-- Loading -->
+            <div
+              v-if="transactionsLoading"
+              class="transactions-loading"
+            >
+              <div class="spinner small-spinner" />
+
+              <span>
+                Loading recent transactions...
+              </span>
+            </div>
+
+            <!-- Error -->
+            <div
+              v-else-if="transactionsError"
+              class="transactions-error"
+            >
+              <strong>
+                Unable to load recent transactions
+              </strong>
+
+              <span>
+                {{ transactionsError }}
+              </span>
+
+              <button
+                type="button"
+                @click="loadTransactions"
+              >
+                Try again
+              </button>
+            </div>
+
+            <!-- Empty -->
+            <div
+              v-else-if="transactions.length === 0"
+              class="transactions-empty"
+            >
+              <div class="empty-transaction-icon">
+                <ArrowLeftRight :size="22" />
+              </div>
+
+              <strong>
+                No transactions yet
+              </strong>
+
+              <span>
+                Your recent account activity will appear here.
+              </span>
+            </div>
+
+            <!-- Transactions -->
+            <div
+              v-else
+              class="transactions-list"
+            >
+              <RouterLink
+                v-for="transaction in transactions.slice(0, 5)"
+                :key="transaction.id"
+                to="/transactions"
+                class="transaction-row"
+              >
+                <div
+                  class="transaction-icon"
+                  :class="
+                    transaction.transactionDirection === 'CREDIT'
+                      ? 'credit'
+                      : 'debit'
+                  "
+                >
+                  <component
+                    :is="getTransactionIcon(transaction)"
+                    :size="18"
+                  />
+                </div>
+
+                <div class="transaction-main">
+                  <strong>
+                    {{ getTransactionLabel(transaction) }}
+                  </strong>
+
+                  <span>
+                    {{ getTransactionCounterparty(transaction) }}
+                  </span>
+                </div>
+
+                <div class="transaction-meta">
+                  <strong
+                    :class="
+                      transaction.transactionDirection === 'CREDIT'
+                        ? 'amount-credit'
+                        : 'amount-debit'
+                    "
+                  >
+                    {{
+                      transaction.transactionDirection === 'CREDIT'
+                        ? '+'
+                        : '−'
+                    }}{{
+                      formatMoney(
+                        Math.abs(Number(transaction.amount))
+                      )
+                    }}
+                  </strong>
+
+                  <span>
+                    {{ formatTransactionDate(transaction.createdAt) }}
+                  </span>
+                </div>
+              </RouterLink>
+            </div>
           </section>
 
           <!-- QUICK ACTIONS -->
@@ -1412,6 +1720,224 @@ onMounted(loadAccount)
 }
 
 /* =========================
+   RECENT ACTIVITY
+========================= */
+
+.recent-activity-section {
+  margin-bottom: 38px;
+}
+
+.recent-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #07559b;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.view-all-link:hover {
+  color: #06477f;
+}
+
+.transactions-list {
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.transaction-row {
+  min-height: 76px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+  border-bottom: 1px solid #edf1f5;
+  transition: background 0.2s ease;
+}
+
+.transaction-row:last-child {
+  border-bottom: none;
+}
+
+.transaction-row:hover {
+  background: #f8fbfe;
+}
+
+.transaction-icon {
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.transaction-icon.credit {
+  background: #eaf8f2;
+  color: #299267;
+}
+
+.transaction-icon.debit {
+  background: #fff0f0;
+  color: #d05c5c;
+}
+
+.transaction-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.transaction-main strong,
+.transaction-main span {
+  display: block;
+}
+
+.transaction-main strong {
+  color: #243b55;
+  font-size: 12px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transaction-main span {
+  color: #9aa7b5;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transaction-meta {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.transaction-meta strong,
+.transaction-meta span {
+  display: block;
+}
+
+.transaction-meta strong {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.transaction-meta span {
+  color: #a0acba;
+  font-size: 9px;
+}
+
+.amount-credit {
+  color: #299267;
+}
+
+.amount-debit {
+  color: #d05c5c;
+}
+
+.transactions-loading {
+  min-height: 180px;
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #8796a7;
+  font-size: 12px;
+}
+
+.small-spinner {
+  width: 22px;
+  height: 22px;
+  border-width: 2px;
+  margin-bottom: 0;
+}
+
+.transactions-error {
+  padding: 22px;
+  background: #fff5f5;
+  border: 1px solid #f1d8d8;
+  border-radius: 14px;
+  color: #9e4545;
+}
+
+.transactions-error strong,
+.transactions-error span {
+  display: block;
+}
+
+.transactions-error strong {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.transactions-error span {
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+.transactions-error button {
+  border: 0;
+  background: #a94b4b;
+  color: #ffffff;
+  padding: 8px 13px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.transactions-empty {
+  min-height: 180px;
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 25px;
+}
+
+.empty-transaction-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 13px;
+  background: #eef4f9;
+  color: #7e91a6;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+
+.transactions-empty strong {
+  color: #243b55;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.transactions-empty span {
+  color: #9aa7b5;
+  font-size: 10px;
+}
+
+/* =========================
    QUICK ACTIONS
 ========================= */
 
@@ -1688,6 +2214,27 @@ onMounted(loadAccount)
 }
 
 @media (max-width: 650px) {
+  .recent-heading {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .transaction-row {
+    padding: 13px 14px;
+  }
+
+  .transaction-main strong {
+    max-width: 150px;
+  }
+
+  .transaction-meta strong {
+    font-size: 11px;
+  }
+
+  .transaction-meta span {
+    font-size: 8px;
+  }
+
   .dashboard-header {
     height: 75px;
   }
@@ -1793,3 +2340,4 @@ onMounted(loadAccount)
   }
 }
 </style>
+

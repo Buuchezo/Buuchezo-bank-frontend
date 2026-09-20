@@ -1,10 +1,11 @@
+```
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowLeftRight,
-  Bell,
   CreditCard,
   Eye,
   EyeOff,
@@ -56,7 +57,7 @@ interface ApiResponse<T> {
   data: T
 }
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
@@ -275,10 +276,7 @@ onMounted(loadUserAndAccount)
         </div>
 
         <div class="header-right">
-          <button type="button" class="notification-button" aria-label="Notifications">
-            <Bell :size="20" />
-            <span class="notification-dot" />
-          </button>
+          <NotificationDropdown />
 
           <div class="profile">
             <div class="avatar">
@@ -774,30 +772,6 @@ onMounted(loadUserAndAccount)
   display: flex;
   align-items: center;
   gap: 22px;
-}
-
-.notification-button {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #e7ecf2;
-  border-radius: 50%;
-  background: #ffffff;
-  color: #64778d;
-  position: relative;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.notification-dot {
-  width: 7px;
-  height: 7px;
-  background: #ef5c5c;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  position: absolute;
-  right: 7px;
-  top: 6px;
 }
 
 .profile {
@@ -1517,3 +1491,5 @@ onMounted(loadUserAndAccount)
   }
 }
 </style>
+
+```

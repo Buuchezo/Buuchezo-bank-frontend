@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowLeftRight,
-  Bell,
   Check,
   ChevronDown,
   CreditCard,
@@ -59,7 +59,7 @@ interface ApiResponse<T> {
   data: T
 }
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
@@ -156,9 +156,7 @@ async function loadSettings() {
   loading.value = true
   errorMessage.value = ''
 
-  const token =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -166,15 +164,12 @@ async function loadSettings() {
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/users/me`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
     if (response.status === 401) {
       localStorage.removeItem('accessToken')
@@ -186,14 +181,10 @@ async function loadSettings() {
       return
     }
 
-    const result: ApiResponse<UserWithAccount> =
-      await response.json()
+    const result: ApiResponse<UserWithAccount> = await response.json()
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'Unable to load your account settings.'
-      )
+      throw new Error(result.message || 'Unable to load your account settings.')
     }
 
     user.value = result.data.user
@@ -207,9 +198,7 @@ async function loadSettings() {
     console.error('Settings loading failed:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load your account settings.'
+      error instanceof Error ? error.message : 'Unable to load your account settings.'
   } finally {
     loading.value = false
   }
@@ -231,8 +220,7 @@ function savePreferences() {
 
   window.setTimeout(() => {
     saving.value = false
-    successMessage.value =
-      'Your preferences have been saved on this device.'
+    successMessage.value = 'Your preferences have been saved on this device.'
 
     window.setTimeout(() => {
       successMessage.value = ''
@@ -285,23 +273,12 @@ onMounted(loadSettings)
 <template>
   <div class="settings-page">
     <!-- MOBILE OVERLAY -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    />
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
 
     <!-- SIDEBAR -->
-    <aside
-      class="sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
+    <aside class="sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
       <div class="sidebar-top">
-        <RouterLink
-          to="/"
-          class="dashboard-logo"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/" class="dashboard-logo" @click="mobileMenuOpen = false">
           <span>B</span>
           <strong>Buuchezo Bank</strong>
         </RouterLink>
@@ -319,60 +296,34 @@ onMounted(loadSettings)
       <nav class="sidebar-nav">
         <p class="nav-section-title">MAIN</p>
 
-        <RouterLink
-          to="/dashboard"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/dashboard" class="nav-item" @click="mobileMenuOpen = false">
           <LayoutDashboard :size="19" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink
-          to="/accounts"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/accounts" class="nav-item" @click="mobileMenuOpen = false">
           <WalletCards :size="19" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink
-          to="/transactions"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/transactions" class="nav-item" @click="mobileMenuOpen = false">
           <ArrowLeftRight :size="19" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink
-          to="/cards"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/cards" class="nav-item" @click="mobileMenuOpen = false">
           <CreditCard :size="19" />
           <span>Cards</span>
         </RouterLink>
 
-        <p class="nav-section-title second">
-          SERVICES
-        </p>
+        <p class="nav-section-title second">SERVICES</p>
 
-        <RouterLink
-          to="/transfers"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/transfers" class="nav-item" @click="mobileMenuOpen = false">
           <Send :size="19" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink
-          to="/settings"
-          class="nav-item active"
-          @click="mobileMenuOpen = false"
-        >
+        <RouterLink to="/settings" class="nav-item active" @click="mobileMenuOpen = false">
           <Settings :size="19" />
           <span>Settings</span>
         </RouterLink>
@@ -390,11 +341,7 @@ onMounted(loadSettings)
           </div>
         </div>
 
-        <button
-          type="button"
-          class="logout-button"
-          @click="logout"
-        >
+        <button type="button" class="logout-button" @click="logout">
           <LogOut :size="18" />
           <span>Log out</span>
         </button>
@@ -422,15 +369,7 @@ onMounted(loadSettings)
         </div>
 
         <div class="header-right">
-          <button
-            type="button"
-            class="notification-button"
-            aria-label="Notifications"
-          >
-            <Bell :size="20" />
-
-            <span class="notification-dot" />
-          </button>
+          <NotificationDropdown />
 
           <div class="profile">
             <div class="avatar">
@@ -447,10 +386,7 @@ onMounted(loadSettings)
               </span>
             </div>
 
-            <ChevronDown
-              :size="16"
-              class="profile-chevron"
-            />
+            <ChevronDown :size="16" class="profile-chevron" />
           </div>
         </div>
       </header>
@@ -463,35 +399,21 @@ onMounted(loadSettings)
 
             <h2>Manage your account.</h2>
 
-            <p class="intro-text">
-              Review your profile, security and
-              notification preferences.
-            </p>
+            <p class="intro-text">Review your profile, security and notification preferences.</p>
           </div>
         </div>
 
         <!-- ERROR -->
-        <div
-          v-if="errorMessage"
-          class="error-box"
-        >
+        <div v-if="errorMessage" class="error-box">
           <strong>Something went wrong</strong>
 
           <span>{{ errorMessage }}</span>
 
-          <button
-            type="button"
-            @click="loadSettings"
-          >
-            Try again
-          </button>
+          <button type="button" @click="loadSettings">Try again</button>
         </div>
 
         <!-- SUCCESS -->
-        <div
-          v-if="successMessage"
-          class="success-box"
-        >
+        <div v-if="successMessage" class="success-box">
           <div class="success-icon">
             <Check :size="16" />
           </div>
@@ -500,10 +422,7 @@ onMounted(loadSettings)
         </div>
 
         <!-- LOADING -->
-        <div
-          v-if="loading"
-          class="loading-card"
-        >
+        <div v-if="loading" class="loading-card">
           <div class="spinner" />
 
           <p>Loading your settings...</p>
@@ -521,9 +440,7 @@ onMounted(loadSettings)
                 <p class="eyebrow">PROFILE</p>
                 <h2>Personal information</h2>
 
-                <p>
-                  Your registered Buuchezo Bank profile.
-                </p>
+                <p>Your registered Buuchezo Bank profile.</p>
               </div>
             </div>
 
@@ -536,68 +453,38 @@ onMounted(loadSettings)
                 <div>
                   <h3>{{ fullName }}</h3>
 
-                  <span>
-                    Buuchezo Bank customer
-                  </span>
+                  <span> Buuchezo Bank customer </span>
                 </div>
               </div>
 
               <div class="form-grid">
                 <div class="form-group">
-                  <label for="firstName">
-                    First name
-                  </label>
+                  <label for="firstName"> First name </label>
 
-                  <input
-                    id="firstName"
-                    v-model="profileForm.firstName"
-                    type="text"
-                    disabled
-                  />
+                  <input id="firstName" v-model="profileForm.firstName" type="text" disabled />
                 </div>
 
                 <div class="form-group">
-                  <label for="lastName">
-                    Last name
-                  </label>
+                  <label for="lastName"> Last name </label>
 
-                  <input
-                    id="lastName"
-                    v-model="profileForm.lastName"
-                    type="text"
-                    disabled
-                  />
+                  <input id="lastName" v-model="profileForm.lastName" type="text" disabled />
                 </div>
 
                 <div class="form-group full">
-                  <label for="email">
-                    Email address
-                  </label>
+                  <label for="email"> Email address </label>
 
                   <div class="input-with-icon">
                     <Mail :size="16" />
 
-                    <input
-                      id="email"
-                      :value="user.email"
-                      type="email"
-                      disabled
-                    />
+                    <input id="email" :value="user.email" type="email" disabled />
                   </div>
                 </div>
               </div>
 
               <div class="settings-card-footer">
-                <span>
-                  Profile information is managed by
-                  your bank account.
-                </span>
+                <span> Profile information is managed by your bank account. </span>
 
-                <button
-                  type="button"
-                  class="secondary-button"
-                  @click="requestProfileChange"
-                >
+                <button type="button" class="secondary-button" @click="requestProfileChange">
                   Request a change
                 </button>
               </div>
@@ -616,10 +503,7 @@ onMounted(loadSettings)
 
                 <h2>Account information</h2>
 
-                <p>
-                  Information associated with your bank
-                  account.
-                </p>
+                <p>Information associated with your bank account.</p>
               </div>
             </div>
 
@@ -648,9 +532,7 @@ onMounted(loadSettings)
                     <span
                       class="status-dot"
                       :class="{
-                        active:
-                          account.accountStatus ===
-                          'ACTIVE',
+                        active: account.accountStatus === 'ACTIVE',
                       }"
                     />
 
@@ -681,9 +563,7 @@ onMounted(loadSettings)
 
                 <h2>Security settings</h2>
 
-                <p>
-                  Keep your account protected.
-                </p>
+                <p>Keep your account protected.</p>
               </div>
             </div>
 
@@ -696,17 +576,10 @@ onMounted(loadSettings)
                 <div class="security-row-content">
                   <strong>Password</strong>
 
-                  <span>
-                    Your password is securely stored
-                    by the backend.
-                  </span>
+                  <span> Your password is securely stored by the backend. </span>
                 </div>
 
-                <button
-                  type="button"
-                  class="secondary-button"
-                  @click="requestPasswordChange"
-                >
+                <button type="button" class="secondary-button" @click="requestPasswordChange">
                   Change password
                 </button>
               </div>
@@ -747,33 +620,20 @@ onMounted(loadSettings)
 
                 <h2>Notification preferences</h2>
 
-                <p>
-                  Choose which notifications you want
-                  to receive.
-                </p>
+                <p>Choose which notifications you want to receive.</p>
               </div>
             </div>
 
             <div class="settings-card">
               <div class="preference-row">
                 <div>
-                  <strong>
-                    Transaction notifications
-                  </strong>
+                  <strong> Transaction notifications </strong>
 
-                  <span>
-                    Receive notifications when money
-                    moves in or out of your account.
-                  </span>
+                  <span> Receive notifications when money moves in or out of your account. </span>
                 </div>
 
                 <label class="toggle">
-                  <input
-                    v-model="
-                      settings.transactionNotifications
-                    "
-                    type="checkbox"
-                  />
+                  <input v-model="settings.transactionNotifications" type="checkbox" />
 
                   <span class="toggle-slider" />
                 </label>
@@ -783,23 +643,13 @@ onMounted(loadSettings)
 
               <div class="preference-row">
                 <div>
-                  <strong>
-                    Security notifications
-                  </strong>
+                  <strong> Security notifications </strong>
 
-                  <span>
-                    Receive important account security
-                    alerts.
-                  </span>
+                  <span> Receive important account security alerts. </span>
                 </div>
 
                 <label class="toggle">
-                  <input
-                    v-model="
-                      settings.securityNotifications
-                    "
-                    type="checkbox"
-                  />
+                  <input v-model="settings.securityNotifications" type="checkbox" />
 
                   <span class="toggle-slider" />
                 </label>
@@ -809,21 +659,13 @@ onMounted(loadSettings)
 
               <div class="preference-row">
                 <div>
-                  <strong>
-                    Product and marketing emails
-                  </strong>
+                  <strong> Product and marketing emails </strong>
 
-                  <span>
-                    Receive optional product updates
-                    and information.
-                  </span>
+                  <span> Receive optional product updates and information. </span>
                 </div>
 
                 <label class="toggle">
-                  <input
-                    v-model="settings.marketingEmails"
-                    type="checkbox"
-                  />
+                  <input v-model="settings.marketingEmails" type="checkbox" />
 
                   <span class="toggle-slider" />
                 </label>
@@ -838,11 +680,7 @@ onMounted(loadSettings)
                 >
                   <Save :size="16" />
 
-                  {{
-                    saving
-                      ? 'Saving...'
-                      : 'Save preferences'
-                  }}
+                  {{ saving ? 'Saving...' : 'Save preferences' }}
                 </button>
               </div>
             </div>
@@ -860,8 +698,7 @@ onMounted(loadSettings)
               <h3>We're here to help.</h3>
 
               <p>
-                If you need to change information that
-                cannot currently be edited here, contact
+                If you need to change information that cannot currently be edited here, contact
                 Buuchezo Bank support.
               </p>
             </div>
@@ -886,7 +723,7 @@ onMounted(loadSettings)
     Inter,
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
+    'Segoe UI',
     sans-serif;
 }
 
@@ -1112,30 +949,6 @@ onMounted(loadSettings)
   display: flex;
   align-items: center;
   gap: 22px;
-}
-
-.notification-button {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #e7ecf2;
-  border-radius: 50%;
-  background: #ffffff;
-  color: #64778d;
-  position: relative;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.notification-dot {
-  width: 7px;
-  height: 7px;
-  background: #ef5c5c;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  position: absolute;
-  right: 7px;
-  top: 6px;
 }
 
 .profile {
@@ -1670,7 +1483,7 @@ onMounted(loadSettings)
 }
 
 .toggle-slider::before {
-  content: "";
+  content: '';
   position: absolute;
   width: 17px;
   height: 17px;
@@ -1704,16 +1517,8 @@ onMounted(loadSettings)
 
 .help-card {
   background:
-    radial-gradient(
-      circle at 95% 10%,
-      rgba(54, 135, 211, 0.25),
-      transparent 25%
-    ),
-    linear-gradient(
-      130deg,
-      #063d74,
-      #07559b
-    );
+    radial-gradient(circle at 95% 10%, rgba(54, 135, 211, 0.25), transparent 25%),
+    linear-gradient(130deg, #063d74, #07559b);
   color: #ffffff;
   border-radius: 15px;
   padding: 22px 24px;

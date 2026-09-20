@@ -19,10 +19,7 @@
           <span>your control.</span>
         </h1>
 
-        <p>
-          Securely access your accounts and stay connected to everything
-          that matters.
-        </p>
+        <p>Securely access your accounts and stay connected to everything that matters.</p>
 
         <div class="auth-card-preview">
           <div class="preview-top">
@@ -32,9 +29,7 @@
 
           <div class="preview-chip"></div>
 
-          <div class="preview-number">
-            5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456
-          </div>
+          <div class="preview-number">5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456</div>
 
           <div class="preview-bottom">
             <span>JOHN DOE</span>
@@ -90,11 +85,7 @@
             <div class="label-row">
               <label for="password">Password</label>
 
-              <button
-                type="button"
-                class="forgot-password"
-                @click="handleForgotPassword"
-              >
+              <button type="button" class="forgot-password" @click="handleForgotPassword">
                 Forgot password?
               </button>
             </div>
@@ -109,11 +100,7 @@
                 required
               />
 
-              <button
-                type="button"
-                class="password-toggle"
-                @click="showPassword = !showPassword"
-              >
+              <button type="button" class="password-toggle" @click="showPassword = !showPassword">
                 {{ showPassword ? 'Hide' : 'Show' }}
               </button>
             </div>
@@ -134,11 +121,7 @@
           </div>
 
           <!-- Submit -->
-          <button
-            type="submit"
-            class="auth-submit"
-            :disabled="isLoading"
-          >
+          <button type="submit" class="auth-submit" :disabled="isLoading">
             <span>
               {{ isLoading ? 'Signing in...' : 'Sign in' }}
             </span>
@@ -189,6 +172,8 @@ const rememberMe = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
 const handleLogin = async () => {
   errorMessage.value = ''
 
@@ -200,29 +185,23 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    const response = await fetch(
-      'http://13.48.104.209:8084/api/auth/login',
-      {
-        method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
-        body: JSON.stringify({
-          email: email.value,
-          password: password.value,
-        }),
+      headers: {
+        'Content-Type': 'application/json',
       },
-    )
+
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+      }),
+    })
 
     const result = await response.json()
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'Login failed. Please check your credentials.',
-      )
+      throw new Error(result.message || 'Login failed. Please check your credentials.')
     }
 
     /*
@@ -262,9 +241,7 @@ const handleLogin = async () => {
      * sessionStorage
      */
 
-    const storage = rememberMe.value
-      ? localStorage
-      : sessionStorage
+    const storage = rememberMe.value ? localStorage : sessionStorage
 
     storage.setItem('accessToken', token)
     storage.setItem('user', JSON.stringify(user))
@@ -276,9 +253,7 @@ const handleLogin = async () => {
      * All other users go to the normal customer dashboard.
      */
 
-    const isAdmin = user.roles?.some(
-      (role: { name: string }) => role.name === 'ADMIN',
-    )
+    const isAdmin = user.roles?.some((role: { name: string }) => role.name === 'ADMIN')
 
     if (isAdmin) {
       await router.push('/admin/dashboard')
@@ -289,17 +264,14 @@ const handleLogin = async () => {
     console.error('Login error:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Something went wrong. Please try again.'
+      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
   } finally {
     isLoading.value = false
   }
 }
 
 const handleForgotPassword = () => {
-  errorMessage.value =
-    'Password recovery will be available soon.'
+  errorMessage.value = 'Password recovery will be available soon.'
 }
 </script>
 
@@ -329,13 +301,7 @@ const handleForgotPassword = () => {
 
   color: white;
 
-  background:
-    linear-gradient(
-      145deg,
-      #062f59 0%,
-      #07559b 55%,
-      #143fbd 100%
-    );
+  background: linear-gradient(145deg, #062f59 0%, #07559b 55%, #143fbd 100%);
 
   overflow: hidden;
 }
@@ -492,13 +458,7 @@ const handleForgotPassword = () => {
 
   padding: 23px;
 
-  background:
-    linear-gradient(
-      145deg,
-      #084b84,
-      #0862a8 55%,
-      #233fc0
-    );
+  background: linear-gradient(145deg, #084b84, #0862a8 55%, #233fc0);
 
   border: 1px solid rgba(255, 255, 255, 0.2);
 
@@ -506,10 +466,7 @@ const handleForgotPassword = () => {
 
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
 
-  transform:
-    perspective(1000px)
-    rotateY(-10deg)
-    rotateZ(-4deg);
+  transform: perspective(1000px) rotateY(-10deg) rotateZ(-4deg);
 }
 
 .preview-top {
@@ -713,8 +670,7 @@ const handleForgotPassword = () => {
 .form-group input:focus {
   border-color: #0b5da7;
 
-  box-shadow:
-    0 0 0 3px rgba(11, 93, 167, 0.08);
+  box-shadow: 0 0 0 3px rgba(11, 93, 167, 0.08);
 }
 
 .form-group input::placeholder {

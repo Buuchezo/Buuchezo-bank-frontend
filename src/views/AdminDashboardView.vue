@@ -22,7 +22,7 @@ import {
 
 const router = useRouter()
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 interface AdminStatistics {
   totalUsers: number
@@ -87,9 +87,7 @@ const activePercentage = computed(() => {
     return 0
   }
 
-  return Math.round(
-    (statistics.value.activeUsers / statistics.value.totalUsers) * 100,
-  )
+  return Math.round((statistics.value.activeUsers / statistics.value.totalUsers) * 100)
 })
 
 const inactivePercentage = computed(() => {
@@ -97,9 +95,7 @@ const inactivePercentage = computed(() => {
     return 0
   }
 
-  return Math.round(
-    (statistics.value.inactiveUsers / statistics.value.totalUsers) * 100,
-  )
+  return Math.round((statistics.value.inactiveUsers / statistics.value.totalUsers) * 100)
 })
 
 const customerPercentage = computed(() => {
@@ -107,16 +103,11 @@ const customerPercentage = computed(() => {
     return 0
   }
 
-  return Math.round(
-    (statistics.value.customersCount / statistics.value.totalUsers) * 100,
-  )
+  return Math.round((statistics.value.customersCount / statistics.value.totalUsers) * 100)
 })
 
 function getAccessToken(): string | null {
-  return (
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
-  )
+  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 }
 
 function logout() {
@@ -173,15 +164,12 @@ async function loadStatistics() {
     return
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/users/admin/stats`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const response = await fetch(`${API_BASE_URL}/api/users/admin/stats`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  )
+  })
 
   if (response.status === 401) {
     logout()
@@ -189,8 +177,7 @@ async function loadStatistics() {
   }
 
   if (response.status === 403) {
-    errorMessage.value =
-      'You do not have permission to access the administration area.'
+    errorMessage.value = 'You do not have permission to access the administration area.'
     return
   }
 
@@ -209,9 +196,7 @@ async function loadStatistics() {
     activeUsers: Number(result.data.activeUsers ?? 0),
     inactiveUsers: Number(result.data.inactiveUsers ?? 0),
     totalAccounts: Number(result.data.totalAccounts ?? 0),
-    averageAccountPerUser: Number(
-      result.data.averageAccountPerUser ?? 0,
-    ),
+    averageAccountPerUser: Number(result.data.averageAccountPerUser ?? 0),
     customersCount: Number(result.data.customersCount ?? 0),
     adminsCount: Number(result.data.adminsCount ?? 0),
   }
@@ -233,9 +218,7 @@ async function loadDashboard() {
     console.error('Failed to load admin dashboard:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Something went wrong while loading the dashboard.'
+      error instanceof Error ? error.message : 'Something went wrong while loading the dashboard.'
   } finally {
     loading.value = false
   }
@@ -257,17 +240,10 @@ onMounted(() => {
 <template>
   <div class="admin-layout">
     <!-- Mobile Overlay -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    ></div>
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
 
     <!-- Sidebar -->
-    <aside
-      class="admin-sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
+    <aside class="admin-sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
       <div class="sidebar-top">
         <!-- Logo -->
         <RouterLink to="/" class="admin-logo">
@@ -280,11 +256,7 @@ onMounted(() => {
         </RouterLink>
 
         <!-- Mobile Close -->
-        <button
-          class="mobile-close"
-          type="button"
-          @click="mobileMenuOpen = false"
-        >
+        <button class="mobile-close" type="button" @click="mobileMenuOpen = false">
           <X :size="22" />
         </button>
 
@@ -301,20 +273,12 @@ onMounted(() => {
             <span>Overview</span>
           </RouterLink>
 
-          <RouterLink
-            to="/admin/users"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
+          <RouterLink to="/admin/users" class="admin-nav-link" @click="mobileMenuOpen = false">
             <Users :size="19" />
             <span>Users</span>
           </RouterLink>
 
-          <RouterLink
-            to="/admin/accounts"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
+          <RouterLink to="/admin/accounts" class="admin-nav-link" @click="mobileMenuOpen = false">
             <WalletCards :size="19" />
             <span>Accounts</span>
           </RouterLink>
@@ -330,11 +294,7 @@ onMounted(() => {
 
           <p class="navigation-label second-label">SYSTEM</p>
 
-          <RouterLink
-            to="/settings"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
+          <RouterLink to="/settings" class="admin-nav-link" @click="mobileMenuOpen = false">
             <Settings :size="19" />
             <span>Settings</span>
           </RouterLink>
@@ -354,11 +314,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <button
-          type="button"
-          class="logout-button"
-          @click="logout"
-        >
+        <button type="button" class="logout-button" @click="logout">
           <LogOut :size="18" />
           <span>Logout</span>
         </button>
@@ -370,11 +326,7 @@ onMounted(() => {
       <!-- Header -->
       <header class="admin-header">
         <div class="header-left">
-          <button
-            type="button"
-            class="mobile-menu-button"
-            @click="mobileMenuOpen = true"
-          >
+          <button type="button" class="mobile-menu-button" @click="mobileMenuOpen = true">
             <Menu :size="23" />
           </button>
 
@@ -385,11 +337,7 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
-          <button
-            type="button"
-            class="header-icon-button"
-            title="Search"
-          >
+          <button type="button" class="header-icon-button" title="Search">
             <Search :size="19" />
           </button>
 
@@ -433,13 +381,7 @@ onMounted(() => {
           <h2>Unable to load dashboard</h2>
           <p>{{ errorMessage }}</p>
 
-          <button
-            type="button"
-            class="retry-button"
-            @click="loadDashboard"
-          >
-            Try again
-          </button>
+          <button type="button" class="retry-button" @click="loadDashboard">Try again</button>
         </div>
 
         <!-- Dashboard -->
@@ -451,10 +393,7 @@ onMounted(() => {
 
               <h2>Good morning, {{ currentUser?.firstName }}.</h2>
 
-              <p>
-                Monitor your banking platform, users and accounts
-                from one central workspace.
-              </p>
+              <p>Monitor your banking platform, users and accounts from one central workspace.</p>
             </div>
 
             <div class="system-status">
@@ -479,9 +418,7 @@ onMounted(() => {
               </div>
 
               <div class="stat-footer">
-                <span>
-                  Registered users
-                </span>
+                <span> Registered users </span>
 
                 <UserRound :size="15" />
               </div>
@@ -502,9 +439,7 @@ onMounted(() => {
 
               <div class="stat-footer">
                 <span>{{ activePercentage }}% of users</span>
-                <span class="positive-value">
-                  Active
-                </span>
+                <span class="positive-value"> Active </span>
               </div>
             </article>
 
@@ -637,9 +572,7 @@ onMounted(() => {
 
                   <div class="composition-details">
                     <strong>Customers</strong>
-                    <span>
-                      {{ customerPercentage }}% of all users
-                    </span>
+                    <span> {{ customerPercentage }}% of all users </span>
                   </div>
 
                   <strong class="composition-number">
@@ -656,9 +589,7 @@ onMounted(() => {
 
                   <div class="composition-details">
                     <strong>Administrators</strong>
-                    <span>
-                      Privileged platform users
-                    </span>
+                    <span> Privileged platform users </span>
                   </div>
 
                   <strong class="composition-number">
@@ -672,10 +603,7 @@ onMounted(() => {
 
                 <div>
                   <strong>Protected administration</strong>
-                  <span>
-                    Administrative actions require authorized
-                    access.
-                  </span>
+                  <span> Administrative actions require authorized access. </span>
                 </div>
               </div>
             </article>
@@ -691,55 +619,40 @@ onMounted(() => {
             </div>
 
             <div class="quick-actions">
-              <RouterLink
-                to="/admin/users"
-                class="quick-action"
-              >
+              <RouterLink to="/admin/users" class="quick-action">
                 <div class="quick-action-icon">
                   <Users :size="21" />
                 </div>
 
                 <div>
                   <strong>Manage users</strong>
-                  <span>
-                    Search and manage customer accounts
-                  </span>
+                  <span> Search and manage customer accounts </span>
                 </div>
 
                 <ChevronRight :size="19" />
               </RouterLink>
 
-              <RouterLink
-                to="/admin/accounts"
-                class="quick-action"
-              >
+              <RouterLink to="/admin/accounts" class="quick-action">
                 <div class="quick-action-icon">
                   <WalletCards :size="21" />
                 </div>
 
                 <div>
                   <strong>Manage accounts</strong>
-                  <span>
-                    Review banking accounts and statuses
-                  </span>
+                  <span> Review banking accounts and statuses </span>
                 </div>
 
                 <ChevronRight :size="19" />
               </RouterLink>
 
-              <RouterLink
-                to="/admin/transactions"
-                class="quick-action"
-              >
+              <RouterLink to="/admin/transactions" class="quick-action">
                 <div class="quick-action-icon">
                   <ArrowLeftRight :size="21" />
                 </div>
 
                 <div>
                   <strong>Transactions</strong>
-                  <span>
-                    Review account transaction activity
-                  </span>
+                  <span> Review account transaction activity </span>
                 </div>
 
                 <ChevronRight :size="19" />
@@ -766,7 +679,7 @@ onMounted(() => {
     Inter,
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
+    'Segoe UI',
     sans-serif;
 }
 
@@ -1303,15 +1216,12 @@ onMounted(() => {
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: conic-gradient(
-    #07559b 0% var(--active, 0%),
-    #e9eef4 var(--active, 0%) 100%
-  );
+  background: conic-gradient(#07559b 0% var(--active, 0%), #e9eef4 var(--active, 0%) 100%);
   position: relative;
 }
 
 .chart-ring::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 9px;
   background: #ffffff;

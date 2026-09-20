@@ -26,7 +26,7 @@ import {
   XCircle,
 } from 'lucide-vue-next'
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 interface Account {
   id: number

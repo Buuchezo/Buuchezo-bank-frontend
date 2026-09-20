@@ -4,70 +4,43 @@
          SIDEBAR
     ====================================================== -->
 
-    <aside
-      class="transfers-sidebar"
-      :class="{ open: mobileMenuOpen }"
-    >
+    <aside class="transfers-sidebar" :class="{ open: mobileMenuOpen }">
       <RouterLink to="/" class="dashboard-logo">
         <span>B</span>
         <strong>Buuchezo Bank</strong>
       </RouterLink>
 
       <nav class="dashboard-nav">
-        <span class="nav-section-title">
-          MAIN
-        </span>
+        <span class="nav-section-title"> MAIN </span>
 
-        <RouterLink
-          to="/dashboard"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/dashboard" class="dashboard-nav-link">
           <LayoutDashboard :size="18" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink
-          to="/accounts"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/accounts" class="dashboard-nav-link">
           <WalletCards :size="18" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink
-          to="/transactions"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/transactions" class="dashboard-nav-link">
           <ArrowLeftRight :size="18" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink
-          to="/cards"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/cards" class="dashboard-nav-link">
           <CreditCard :size="18" />
           <span>Cards</span>
         </RouterLink>
 
-        <span
-          class="nav-section-title second-nav-title"
-        >
-          SERVICES
-        </span>
+        <span class="nav-section-title second-nav-title"> SERVICES </span>
 
-        <RouterLink
-          to="/transfers"
-          class="dashboard-nav-link active"
-        >
+        <RouterLink to="/transfers" class="dashboard-nav-link active">
           <Send :size="18" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink
-          to="/settings"
-          class="dashboard-nav-link"
-        >
+        <RouterLink to="/settings" class="dashboard-nav-link">
           <Settings :size="18" />
           <span>Settings</span>
         </RouterLink>
@@ -85,11 +58,7 @@
           </div>
         </div>
 
-        <button
-          type="button"
-          class="logout-button"
-          @click="logout"
-        >
+        <button type="button" class="logout-button" @click="logout">
           <LogOut :size="17" />
           <span>Sign out</span>
         </button>
@@ -102,14 +71,7 @@
 
     <div class="transfers-main">
       <header class="transfers-header">
-        <button
-          type="button"
-          class="mobile-menu-button"
-          @click="
-            mobileMenuOpen =
-              !mobileMenuOpen
-          "
-        >
+        <button type="button" class="mobile-menu-button" @click="mobileMenuOpen = !mobileMenuOpen">
           <Menu :size="21" />
         </button>
 
@@ -120,15 +82,7 @@
         </div>
 
         <div class="header-actions">
-          <button
-            type="button"
-            class="header-icon"
-            aria-label="Notifications"
-          >
-            <Bell :size="19" />
-
-            <span class="notification-dot"></span>
-          </button>
+          <NotificationDropdown />
 
           <div class="header-profile">
             <div class="profile-avatar">
@@ -140,9 +94,7 @@
                 {{ fullName }}
               </strong>
 
-              <span>
-                Personal
-              </span>
+              <span> Personal </span>
             </div>
 
             <ChevronDown :size="15" />
@@ -155,83 +107,52 @@
       ====================================================== -->
 
       <div class="transfers-content">
-
         <!-- =================================================
              LOADING ACCOUNT
         ================================================== -->
 
-        <div
-          v-if="loadingAccount"
-          class="page-state"
-        >
-          <strong>
-            Loading your account...
-          </strong>
+        <div v-if="loadingAccount" class="page-state">
+          <strong> Loading your account... </strong>
 
-          <span>
-            Preparing your transfer securely.
-          </span>
+          <span> Preparing your transfer securely. </span>
         </div>
 
         <!-- =================================================
              ACCOUNT ERROR
         ================================================== -->
 
-        <div
-          v-else-if="accountError"
-          class="page-state page-state-error"
-        >
-          <strong>
-            Unable to load your account
-          </strong>
+        <div v-else-if="accountError" class="page-state page-state-error">
+          <strong> Unable to load your account </strong>
 
           <span>
             {{ accountError }}
           </span>
 
-          <button
-            type="button"
-            @click="loadAccount"
-          >
-            Try again
-          </button>
+          <button type="button" @click="loadAccount">Try again</button>
         </div>
 
         <template v-else>
-
           <!-- =================================================
                SUCCESS
           ================================================== -->
 
-          <section
-            v-if="transferSuccessful"
-            class="success-section"
-          >
+          <section v-if="transferSuccessful" class="success-section">
             <div class="success-icon">
               <Check :size="30" />
             </div>
 
-            <span class="success-label">
-              TRANSFER COMPLETE
-            </span>
+            <span class="success-label"> TRANSFER COMPLETE </span>
 
-            <h2>
-              Money sent successfully.
-            </h2>
+            <h2>Money sent successfully.</h2>
 
-            <p>
-              Your transfer has been submitted
-              successfully.
-            </p>
+            <p>Your transfer has been submitted successfully.</p>
 
             <div class="success-amount">
               {{ formatMoney(form.amount) }}
             </div>
 
             <div class="success-recipient">
-              <span>
-                Sent to
-              </span>
+              <span> Sent to </span>
 
               <strong>
                 {{ form.toAccountNumber }}
@@ -239,9 +160,7 @@
             </div>
 
             <div class="success-reference">
-              <span>
-                Reference
-              </span>
+              <span> Reference </span>
 
               <strong>
                 {{ transferReference || 'N/A' }}
@@ -249,20 +168,12 @@
             </div>
 
             <div class="success-actions">
-              <button
-                type="button"
-                class="primary-button"
-                @click="goToTransactions"
-              >
+              <button type="button" class="primary-button" @click="goToTransactions">
                 View transactions
                 <ArrowRight :size="16" />
               </button>
 
-              <button
-                type="button"
-                class="secondary-button"
-                @click="startAnotherTransfer"
-              >
+              <button type="button" class="secondary-button" @click="startAnotherTransfer">
                 Send another payment
               </button>
             </div>
@@ -273,37 +184,25 @@
           ================================================== -->
 
           <template v-else>
-
             <!-- PAGE INTRO -->
 
             <section class="page-intro">
               <div>
-                <span>
-                  MOVE MONEY
-                </span>
+                <span> MOVE MONEY </span>
 
-                <h2>
-                  Send money securely.
-                </h2>
+                <h2>Send money securely.</h2>
 
-                <p>
-                  Transfer money from your Buuchezo
-                  Bank account to another account.
-                </p>
+                <p>Transfer money from your Buuchezo Bank account to another account.</p>
               </div>
 
               <div class="available-balance">
-                <span>
-                  AVAILABLE BALANCE
-                </span>
+                <span> AVAILABLE BALANCE </span>
 
                 <strong>
                   {{ formatMoney(account.balance) }}
                 </strong>
 
-                <small>
-                  •••• {{ maskedAccountNumber }}
-                </small>
+                <small> •••• {{ maskedAccountNumber }} </small>
               </div>
             </section>
 
@@ -312,35 +211,26 @@
             ================================================== -->
 
             <div class="transfer-layout">
-
               <!-- =================================================
                    FORM CARD
               ================================================== -->
 
               <section class="transfer-form-card">
-
                 <div class="form-heading">
                   <div class="form-heading-icon">
                     <Send :size="19" />
                   </div>
 
                   <div>
-                    <span>
-                      NEW TRANSFER
-                    </span>
+                    <span> NEW TRANSFER </span>
 
-                    <h2>
-                      Transfer details
-                    </h2>
+                    <h2>Transfer details</h2>
                   </div>
                 </div>
 
                 <!-- SERVER ERROR -->
 
-                <div
-                  v-if="transferError"
-                  class="form-error"
-                >
+                <div v-if="transferError" class="form-error">
                   <AlertCircle :size="16" />
 
                   <span>
@@ -348,24 +238,15 @@
                   </span>
                 </div>
 
-                <form
-                  @submit.prevent="
-                    submitTransfer
-                  "
-                >
-
+                <form @submit.prevent="submitTransfer">
                   <!-- FROM ACCOUNT -->
 
                   <div class="form-group">
-                    <label>
-                      From account
-                    </label>
+                    <label> From account </label>
 
                     <div class="account-field">
                       <div class="field-icon">
-                        <WalletCards
-                          :size="17"
-                        />
+                        <WalletCards :size="17" />
                       </div>
 
                       <div>
@@ -373,22 +254,14 @@
                           {{ account.accountType || 'Account' }}
                         </strong>
 
-                        <span>
-                          •••• {{ maskedAccountNumber }}
-                        </span>
+                        <span> •••• {{ maskedAccountNumber }} </span>
                       </div>
 
                       <div class="account-balance">
-                        <span>
-                          Available
-                        </span>
+                        <span> Available </span>
 
                         <strong>
-                          {{
-                            formatMoney(
-                              account.balance
-                            )
-                          }}
+                          {{ formatMoney(account.balance) }}
                         </strong>
                       </div>
                     </div>
@@ -397,76 +270,46 @@
                   <!-- TO ACCOUNT -->
 
                   <div class="form-group">
-                    <label
-                      for="toAccountNumber"
-                    >
-                      Recipient account number
-                    </label>
+                    <label for="toAccountNumber"> Recipient account number </label>
 
                     <div
                       class="input-wrapper"
                       :class="{
-                        invalid:
-                          validationErrors
-                            .toAccountNumber
+                        invalid: validationErrors.toAccountNumber,
                       }"
                     >
                       <Landmark :size="16" />
 
                       <input
                         id="toAccountNumber"
-                        v-model="
-                          form.toAccountNumber
-                        "
+                        v-model="form.toAccountNumber"
                         type="text"
                         inputmode="numeric"
                         autocomplete="off"
                         placeholder="Enter account number"
-                        :disabled="
-                          submitting
-                        "
-                        @input="
-                          clearFieldError(
-                            'toAccountNumber'
-                          )
-                        "
+                        :disabled="submitting"
+                        @input="clearFieldError('toAccountNumber')"
                       />
                     </div>
 
-                    <small
-                      v-if="
-                        validationErrors
-                          .toAccountNumber
-                      "
-                      class="field-error"
-                    >
-                      {{
-                        validationErrors
-                          .toAccountNumber
-                      }}
+                    <small v-if="validationErrors.toAccountNumber" class="field-error">
+                      {{ validationErrors.toAccountNumber }}
                     </small>
 
-                    <small
-                      v-else
-                      class="field-help"
-                    >
-                      Enter the recipient's
-                      bank account number.
+                    <small v-else class="field-help">
+                      Enter the recipient's bank account number.
                     </small>
                   </div>
 
                   <!-- AMOUNT -->
 
                   <div class="form-group">
-                    <label for="amount">
-                      Amount
-                    </label>
+                    <label for="amount"> Amount </label>
 
                     <div
                       class="amount-input-wrapper"
                       :class="{
-                        invalid:
-                          validationErrors.amount
+                        invalid: validationErrors.amount,
                       }"
                     >
                       <span>
@@ -481,14 +324,8 @@
                         step="0.01"
                         inputmode="decimal"
                         placeholder="0.00"
-                        :disabled="
-                          submitting
-                        "
-                        @input="
-                          clearFieldError(
-                            'amount'
-                          )
-                        "
+                        :disabled="submitting"
+                        @input="clearFieldError('amount')"
                       />
 
                       <small>
@@ -496,91 +333,52 @@
                       </small>
                     </div>
 
-                    <small
-                      v-if="
-                        validationErrors.amount
-                      "
-                      class="field-error"
-                    >
-                      {{
-                        validationErrors.amount
-                      }}
+                    <small v-if="validationErrors.amount" class="field-error">
+                      {{ validationErrors.amount }}
                     </small>
 
-                    <small
-                      v-else
-                      class="field-help"
-                    >
-                      You can send up to your
-                      available balance.
+                    <small v-else class="field-help">
+                      You can send up to your available balance.
                     </small>
                   </div>
 
                   <!-- DESCRIPTION -->
 
                   <div class="form-group">
-                    <label
-                      for="description"
-                    >
+                    <label for="description">
                       Description
-                      <span>
-                        Optional
-                      </span>
+                      <span> Optional </span>
                     </label>
 
-                    <div
-                      class="input-wrapper textarea-wrapper"
-                    >
-                      <FileText
-                        :size="16"
-                      />
+                    <div class="input-wrapper textarea-wrapper">
+                      <FileText :size="16" />
 
                       <textarea
                         id="description"
-                        v-model="
-                          form.description
-                        "
+                        v-model="form.description"
                         rows="3"
                         maxlength="150"
                         placeholder="What is this transfer for?"
-                        :disabled="
-                          submitting
-                        "
+                        :disabled="submitting"
                       ></textarea>
                     </div>
 
                     <small class="field-help">
-                      Add a note to help you
-                      identify the transaction later.
+                      Add a note to help you identify the transaction later.
                     </small>
                   </div>
 
                   <!-- SUBMIT -->
 
-                  <button
-                    type="submit"
-                    class="primary-button submit-button"
-                    :disabled="submitting"
-                  >
-                    <span
-                      v-if="submitting"
-                      class="spinner"
-                    ></span>
+                  <button type="submit" class="primary-button submit-button" :disabled="submitting">
+                    <span v-if="submitting" class="spinner"></span>
 
                     <span>
-                      {{
-                        submitting
-                          ? 'Sending...'
-                          : 'Continue'
-                      }}
+                      {{ submitting ? 'Sending...' : 'Continue' }}
                     </span>
 
-                    <ArrowRight
-                      v-if="!submitting"
-                      :size="16"
-                    />
+                    <ArrowRight v-if="!submitting" :size="16" />
                   </button>
-
                 </form>
               </section>
 
@@ -589,80 +387,48 @@
               ================================================== -->
 
               <aside class="transfer-info">
-
                 <div class="info-card security-card">
                   <div class="info-icon">
-                    <ShieldCheck
-                      :size="20"
-                    />
+                    <ShieldCheck :size="20" />
                   </div>
 
-                  <span>
-                    SECURE TRANSFER
-                  </span>
+                  <span> SECURE TRANSFER </span>
 
-                  <h3>
-                    Your transfer is protected.
-                  </h3>
+                  <h3>Your transfer is protected.</h3>
 
-                  <p>
-                    Every transfer is authenticated
-                    using your secure account session.
-                  </p>
+                  <p>Every transfer is authenticated using your secure account session.</p>
                 </div>
 
                 <div class="info-card">
-
                   <div class="info-card-header">
                     <Info :size="16" />
 
-                    <strong>
-                      Before you send
-                    </strong>
+                    <strong> Before you send </strong>
                   </div>
 
                   <ul>
-                    <li>
-                      Check the recipient account
-                      number carefully.
-                    </li>
+                    <li>Check the recipient account number carefully.</li>
 
-                    <li>
-                      Make sure you have enough
-                      available balance.
-                    </li>
+                    <li>Make sure you have enough available balance.</li>
 
-                    <li>
-                      Transfers may be processed
-                      according to your bank's
-                      transaction rules.
-                    </li>
+                    <li>Transfers may be processed according to your bank's transaction rules.</li>
                   </ul>
-
                 </div>
 
                 <div class="info-card support-info">
                   <HelpCircle :size="18" />
 
                   <div>
-                    <strong>
-                      Need help?
-                    </strong>
+                    <strong> Need help? </strong>
 
                     <span>
-                      Contact Buuchezo Bank support
-                      if you have questions about a
-                      transfer.
+                      Contact Buuchezo Bank support if you have questions about a transfer.
                     </span>
                   </div>
                 </div>
-
               </aside>
-
             </div>
-
           </template>
-
         </template>
       </div>
     </div>
@@ -670,22 +436,15 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  reactive,
-  ref,
-} from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   AlertCircle,
-  ArrowDownLeft,
   ArrowLeftRight,
   ArrowRight,
-  ArrowUpRight,
-  Bell,
   Check,
   ChevronDown,
   CreditCard,
@@ -775,8 +534,7 @@ interface ValidationErrors {
    CONFIGURATION
 ========================================================= */
 
-const API_BASE_URL =
-  'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
@@ -784,152 +542,110 @@ const router = useRouter()
    STATE
 ========================================================= */
 
-const mobileMenuOpen =
-  ref(false)
+const mobileMenuOpen = ref(false)
 
-const loadingAccount =
-  ref(true)
+const loadingAccount = ref(true)
 
-const accountError =
-  ref('')
+const accountError = ref('')
 
-const submitting =
-  ref(false)
+const submitting = ref(false)
 
-const transferError =
-  ref('')
+const transferError = ref('')
 
-const transferSuccessful =
-  ref(false)
+const transferSuccessful = ref(false)
 
-const transferReference =
-  ref('')
+const transferReference = ref('')
 
-const user =
-  ref<User>({
-    id: 0,
-    email: '',
-    firstName: '',
-    lastName: '',
-    enabled: false,
-    roles: [],
-    createdAt: '',
-  })
+const user = ref<User>({
+  id: 0,
+  email: '',
+  firstName: '',
+  lastName: '',
+  enabled: false,
+  roles: [],
+  createdAt: '',
+})
 
-const account =
-  ref<Account>({
-    id: 0,
-    accountNumber: '',
-    balance: 0,
-    currency: 'EUR',
-    accountType: '',
-    accountStatus: '',
-    createdAt: '',
-  })
+const account = ref<Account>({
+  id: 0,
+  accountNumber: '',
+  balance: 0,
+  currency: 'EUR',
+  accountType: '',
+  accountStatus: '',
+  createdAt: '',
+})
 
-const form =
-  reactive<TransferForm>({
-    toAccountNumber: '',
-    amount: null,
-    description: '',
-  })
+const form = reactive<TransferForm>({
+  toAccountNumber: '',
+  amount: null,
+  description: '',
+})
 
-const validationErrors =
-  reactive<ValidationErrors>({
-    toAccountNumber: '',
-    amount: '',
-  })
+const validationErrors = reactive<ValidationErrors>({
+  toAccountNumber: '',
+  amount: '',
+})
 
 /* =========================================================
    USER INFORMATION
 ========================================================= */
 
-const fullName =
-  computed(() => {
-    return (
-      `${user.value.firstName} ${user.value.lastName}`
-        .trim() || 'User'
-    )
-  })
+const fullName = computed(() => {
+  return `${user.value.firstName} ${user.value.lastName}`.trim() || 'User'
+})
 
-const userInitials =
-  computed(() => {
-    const first =
-      user.value.firstName?.charAt(0) ||
-      ''
+const userInitials = computed(() => {
+  const first = user.value.firstName?.charAt(0) || ''
 
-    const last =
-      user.value.lastName?.charAt(0) ||
-      ''
+  const last = user.value.lastName?.charAt(0) || ''
 
-    return (
-      `${first}${last}`.toUpperCase() ||
-      'U'
-    )
-  })
+  return `${first}${last}`.toUpperCase() || 'U'
+})
 
 /* =========================================================
    ACCOUNT INFORMATION
 ========================================================= */
 
-const maskedAccountNumber =
-  computed(() => {
-    const number =
-      account.value.accountNumber ||
-      ''
+const maskedAccountNumber = computed(() => {
+  const number = account.value.accountNumber || ''
 
-    if (number.length <= 4) {
-      return number
-    }
+  if (number.length <= 4) {
+    return number
+  }
 
-    return number.slice(-4)
-  })
+  return number.slice(-4)
+})
 
-const currencySymbol =
-  computed(() => {
-    try {
-      return new Intl.NumberFormat(
-        'en-DE',
-        {
-          style: 'currency',
-          currency:
-            account.value.currency ||
-            'EUR',
-        }
-      )
+const currencySymbol = computed(() => {
+  try {
+    return (
+      new Intl.NumberFormat('en-DE', {
+        style: 'currency',
+        currency: account.value.currency || 'EUR',
+      })
         .formatToParts(0)
-        .find(
-          (part) =>
-            part.type === 'currency'
-        )?.value || '€'
-    } catch {
-      return '€'
-    }
-  })
+        .find((part) => part.type === 'currency')?.value || '€'
+    )
+  } catch {
+    return '€'
+  }
+})
 
 /* =========================================================
    MONEY
 ========================================================= */
 
-function formatMoney(
-  amount: number | null
-) {
-  return new Intl.NumberFormat(
-    'en-DE',
-    {
-      style: 'currency',
+function formatMoney(amount: number | null) {
+  return new Intl.NumberFormat('en-DE', {
+    style: 'currency',
 
-      currency:
-        account.value.currency ||
-        'EUR',
+    currency: account.value.currency || 'EUR',
 
-      minimumFractionDigits: 2,
+    minimumFractionDigits: 2,
 
-      maximumFractionDigits: 2,
-    }
-  ).format(
-    Number(amount || 0)
-  )
+    maximumFractionDigits: 2,
+  }).format(Number(amount || 0))
 }
 
 /* =========================================================
@@ -937,8 +653,7 @@ function formatMoney(
 ========================================================= */
 
 function validateForm() {
-  validationErrors.toAccountNumber =
-    ''
+  validationErrors.toAccountNumber = ''
 
   validationErrors.amount = ''
 
@@ -946,46 +661,30 @@ function validateForm() {
 
   let valid = true
 
-  const recipient =
-    form.toAccountNumber.trim()
+  const recipient = form.toAccountNumber.trim()
 
-  const amount =
-    Number(form.amount)
+  const amount = Number(form.amount)
 
   if (!recipient) {
-    validationErrors.toAccountNumber =
-      'Recipient account number is required.'
+    validationErrors.toAccountNumber = 'Recipient account number is required.'
 
     valid = false
   }
 
-  if (
-    recipient &&
-    recipient ===
-    account.value.accountNumber
-  ) {
-    validationErrors.toAccountNumber =
-      'You cannot transfer money to your own account.'
+  if (recipient && recipient === account.value.accountNumber) {
+    validationErrors.toAccountNumber = 'You cannot transfer money to your own account.'
 
     valid = false
   }
 
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
-    validationErrors.amount =
-      'Enter an amount greater than €0.00.'
+  if (!Number.isFinite(amount) || amount <= 0) {
+    validationErrors.amount = 'Enter an amount greater than €0.00.'
 
     valid = false
   }
 
-  if (
-    Number.isFinite(amount) &&
-    amount > account.value.balance
-  ) {
-    validationErrors.amount =
-      'The transfer amount exceeds your available balance.'
+  if (Number.isFinite(amount) && amount > account.value.balance) {
+    validationErrors.amount = 'The transfer amount exceeds your available balance.'
 
     valid = false
   }
@@ -997,11 +696,7 @@ function validateForm() {
    CLEAR FIELD ERROR
 ========================================================= */
 
-function clearFieldError(
-  field:
-    | 'toAccountNumber'
-    | 'amount'
-) {
+function clearFieldError(field: 'toAccountNumber' | 'amount') {
   validationErrors[field] = ''
 }
 
@@ -1014,13 +709,7 @@ async function loadAccount() {
 
   accountError.value = ''
 
-  const token =
-    localStorage.getItem(
-      'accessToken'
-    ) ||
-    sessionStorage.getItem(
-      'accessToken'
-    )
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -1028,53 +717,32 @@ async function loadAccount() {
   }
 
   try {
-    const response =
-      await fetch(
-        `${API_BASE_URL}/api/users/me`,
-        {
-          method: 'GET',
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
 
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      )
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
-    if (
-      response.status ===
-      401
-    ) {
+    if (response.status === 401) {
       logout()
       return
     }
 
-    const result:
-      ApiResponse<UserWithAccount> =
-      await response.json()
+    const result: ApiResponse<UserWithAccount> = await response.json()
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'Unable to load your account.'
-      )
+      throw new Error(result.message || 'Unable to load your account.')
     }
 
-    user.value =
-      result.data.user
+    user.value = result.data.user
 
-    account.value =
-      result.data.account
+    account.value = result.data.account
   } catch (error) {
-    console.error(
-      'Account loading failed:',
-      error
-    )
+    console.error('Account loading failed:', error)
 
-    accountError.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to load your account.'
+    accountError.value = error instanceof Error ? error.message : 'Unable to load your account.'
   } finally {
     loadingAccount.value = false
   }
@@ -1093,13 +761,7 @@ async function submitTransfer() {
     return
   }
 
-  const token =
-    localStorage.getItem(
-      'accessToken'
-    ) ||
-    sessionStorage.getItem(
-      'accessToken'
-    )
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -1112,76 +774,46 @@ async function submitTransfer() {
 
   try {
     const requestBody = {
-      fromAccountNumber:
-      account.value.accountNumber,
+      fromAccountNumber: account.value.accountNumber,
 
-      toAccountNumber:
-        form.toAccountNumber.trim(),
+      toAccountNumber: form.toAccountNumber.trim(),
 
-      amount:
-        Number(form.amount),
+      amount: Number(form.amount),
 
-      description:
-        form.description.trim() ||
-        undefined,
+      description: form.description.trim() || undefined,
     }
 
-    const response =
-      await fetch(
-        `${API_BASE_URL}/api/transactions/transfer`,
-        {
-          method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/transactions/transfer`, {
+      method: 'POST',
 
-          headers: {
-            'Content-Type':
-              'application/json',
+      headers: {
+        'Content-Type': 'application/json',
 
-            Authorization:
-              `Bearer ${token}`,
-          },
+        Authorization: `Bearer ${token}`,
+      },
 
-          body: JSON.stringify(
-            requestBody
-          ),
-        }
-      )
+      body: JSON.stringify(requestBody),
+    })
 
-    if (
-      response.status ===
-      401
-    ) {
+    if (response.status === 401) {
       logout()
       return
     }
 
-    const result:
-      ApiResponse<Transaction> =
-      await response.json()
+    const result: ApiResponse<Transaction> = await response.json()
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'The transfer could not be completed.'
-      )
+      throw new Error(result.message || 'The transfer could not be completed.')
     }
 
-    transferReference.value =
-      result.data?.reference ||
-      ''
+    transferReference.value = result.data?.reference || ''
 
-    transferSuccessful.value =
-      true
-
+    transferSuccessful.value = true
   } catch (error) {
-    console.error(
-      'Transfer failed:',
-      error
-    )
+    console.error('Transfer failed:', error)
 
     transferError.value =
-      error instanceof Error
-        ? error.message
-        : 'The transfer could not be completed.'
+      error instanceof Error ? error.message : 'The transfer could not be completed.'
   } finally {
     submitting.value = false
   }
@@ -1198,8 +830,7 @@ function startAnotherTransfer() {
 
   form.description = ''
 
-  validationErrors.toAccountNumber =
-    ''
+  validationErrors.toAccountNumber = ''
 
   validationErrors.amount = ''
 
@@ -1207,8 +838,7 @@ function startAnotherTransfer() {
 
   transferReference.value = ''
 
-  transferSuccessful.value =
-    false
+  transferSuccessful.value = false
 
   /*
    * Refresh account balance so the
@@ -1222,9 +852,7 @@ function startAnotherTransfer() {
 ========================================================= */
 
 function goToTransactions() {
-  router.push(
-    '/transactions'
-  )
+  router.push('/transactions')
 }
 
 /* =========================================================
@@ -1232,21 +860,13 @@ function goToTransactions() {
 ========================================================= */
 
 function logout() {
-  localStorage.removeItem(
-    'accessToken'
-  )
+  localStorage.removeItem('accessToken')
 
-  localStorage.removeItem(
-    'user'
-  )
+  localStorage.removeItem('user')
 
-  sessionStorage.removeItem(
-    'accessToken'
-  )
+  sessionStorage.removeItem('accessToken')
 
-  sessionStorage.removeItem(
-    'user'
-  )
+  sessionStorage.removeItem('user')
 
   router.push('/login')
 }
@@ -1255,9 +875,7 @@ function logout() {
    INITIAL LOAD
 ========================================================= */
 
-onMounted(
-  loadAccount
-)
+onMounted(loadAccount)
 </script>
 
 <style scoped>
@@ -1507,8 +1125,7 @@ onMounted(
 ========================================================= */
 
 .transfers-main {
-  width:
-    calc(100% - 245px);
+  width: calc(100% - 245px);
 
   margin-left: 245px;
 }
@@ -1852,8 +1469,7 @@ onMounted(
 
   margin-bottom: 23px;
 
-  border-bottom:
-    1px solid #edf1f4;
+  border-bottom: 1px solid #edf1f4;
 }
 
 .form-heading-icon {
@@ -2051,8 +1667,7 @@ onMounted(
 
   gap: 9px;
 
-  padding:
-    0 12px;
+  padding: 0 12px;
 
   color: #9aa8b2;
 
@@ -2070,9 +1685,7 @@ onMounted(
 .input-wrapper:focus-within {
   border-color: #82abc6;
 
-  box-shadow:
-    0 0 0 3px
-    rgba(11, 93, 167, 0.06);
+  box-shadow: 0 0 0 3px rgba(11, 93, 167, 0.06);
 }
 
 .input-wrapper.invalid,
@@ -2150,8 +1763,7 @@ onMounted(
 
   align-items: center;
 
-  padding:
-    0 15px;
+  padding: 0 15px;
 
   background: white;
 
@@ -2167,9 +1779,7 @@ onMounted(
 .amount-input-wrapper:focus-within {
   border-color: #82abc6;
 
-  box-shadow:
-    0 0 0 3px
-    rgba(11, 93, 167, 0.06);
+  box-shadow: 0 0 0 3px rgba(11, 93, 167, 0.06);
 }
 
 .amount-input-wrapper > span {
@@ -2258,8 +1868,7 @@ onMounted(
 
   gap: 8px;
 
-  padding:
-    0 18px;
+  padding: 0 18px;
 
   color: white;
 
@@ -2285,8 +1894,7 @@ onMounted(
 .primary-button:hover:not(:disabled) {
   background: #083c67;
 
-  transform:
-    translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .primary-button:disabled {
@@ -2304,8 +1912,7 @@ onMounted(
 .secondary-button {
   min-height: 43px;
 
-  padding:
-    0 18px;
+  padding: 0 18px;
 
   color: #0b4878;
 
@@ -2332,22 +1939,18 @@ onMounted(
   width: 13px;
   height: 13px;
 
-  border:
-    2px solid
-    rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
 
   border-top-color: white;
 
   border-radius: 50%;
 
-  animation:
-    spin 0.7s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
   to {
-    transform:
-      rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
@@ -2376,18 +1979,11 @@ onMounted(
 .security-card {
   color: white;
 
-  background:
-    linear-gradient(
-      135deg,
-      #063d74,
-      #07559b
-    );
+  background: linear-gradient(135deg, #063d74, #07559b);
 
   border: 0;
 
-  box-shadow:
-    0 15px 30px
-    rgba(8, 47, 86, 0.12);
+  box-shadow: 0 15px 30px rgba(8, 47, 86, 0.12);
 }
 
 .info-icon {
@@ -2403,8 +1999,7 @@ onMounted(
 
   color: white;
 
-  background:
-    rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.13);
 
   border-radius: 8px;
 }
@@ -2412,8 +2007,7 @@ onMounted(
 .security-card > span {
   display: block;
 
-  color:
-    rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.55);
 
   font-size: 7px;
 
@@ -2435,8 +2029,7 @@ onMounted(
 .security-card p {
   margin: 9px 0 0;
 
-  color:
-    rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.62);
 
   font-size: 8px;
 
@@ -2458,8 +2051,7 @@ onMounted(
 .info-card ul {
   padding: 0;
 
-  margin:
-    16px 0 0;
+  margin: 16px 0 0;
 
   list-style: none;
 }
@@ -2539,8 +2131,7 @@ onMounted(
 
   padding: 55px 40px;
 
-  margin:
-    35px auto;
+  margin: 35px auto;
 
   background: white;
 
@@ -2615,8 +2206,7 @@ onMounted(
 
 .success-recipient,
 .success-reference {
-  padding:
-    13px 0;
+  padding: 13px 0;
 
   display: flex;
 
@@ -2624,8 +2214,7 @@ onMounted(
 
   justify-content: space-between;
 
-  border-top:
-    1px solid #edf1f4;
+  border-top: 1px solid #edf1f4;
 
   text-align: left;
 }
@@ -2670,8 +2259,7 @@ onMounted(
   }
 
   .transfers-main {
-    width:
-      calc(100% - 215px);
+    width: calc(100% - 215px);
 
     margin-left: 215px;
   }
@@ -2687,15 +2275,13 @@ onMounted(
   }
 
   .transfer-layout {
-    grid-template-columns:
-      1fr;
+    grid-template-columns: 1fr;
   }
 
   .transfer-info {
     display: grid;
 
-    grid-template-columns:
-      repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -2705,20 +2291,15 @@ onMounted(
 
 @media (max-width: 850px) {
   .transfers-sidebar {
-    transform:
-      translateX(-100%);
+    transform: translateX(-100%);
 
-    transition:
-      transform 0.25s ease;
+    transition: transform 0.25s ease;
 
-    box-shadow:
-      10px 0 35px
-      rgba(8, 47, 86, 0.1);
+    box-shadow: 10px 0 35px rgba(8, 47, 86, 0.1);
   }
 
   .transfers-sidebar.open {
-    transform:
-      translateX(0);
+    transform: translateX(0);
   }
 
   .transfers-main {
@@ -2766,8 +2347,7 @@ onMounted(
   }
 
   .transfer-info {
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .security-card {
@@ -2805,8 +2385,7 @@ onMounted(
   }
 
   .transfers-content {
-    padding:
-      25px 16px 50px;
+    padding: 25px 16px 50px;
   }
 
   .page-intro {
@@ -2848,15 +2427,13 @@ onMounted(
 
     margin-top: 3px;
 
-    border-top:
-      1px solid #e5edf1;
+    border-top: 1px solid #e5edf1;
 
     text-align: left;
   }
 
   .success-section {
-    padding:
-      40px 20px;
+    padding: 40px 20px;
   }
 
   .success-actions {
