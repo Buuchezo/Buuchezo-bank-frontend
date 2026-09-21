@@ -4,8 +4,8 @@
          SIDEBAR
     ====================================================== -->
 
-    <aside class="transfers-sidebar" :class="{ open: mobileMenuOpen }">
-      <RouterLink to="/" class="dashboard-logo">
+    <aside :class="{ open: mobileMenuOpen }" class="transfers-sidebar">
+      <RouterLink class="dashboard-logo" to="/">
         <span>B</span>
         <strong>Buuchezo Bank</strong>
       </RouterLink>
@@ -13,34 +13,34 @@
       <nav class="dashboard-nav">
         <span class="nav-section-title"> MAIN </span>
 
-        <RouterLink to="/dashboard" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/dashboard">
           <LayoutDashboard :size="18" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink to="/accounts" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/accounts">
           <WalletCards :size="18" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink to="/transactions" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/transactions">
           <ArrowLeftRight :size="18" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink to="/cards" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/cards">
           <CreditCard :size="18" />
           <span>Cards</span>
         </RouterLink>
 
         <span class="nav-section-title second-nav-title"> SERVICES </span>
 
-        <RouterLink to="/transfers" class="dashboard-nav-link active">
+        <RouterLink class="dashboard-nav-link active" to="/transfers">
           <Send :size="18" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink to="/settings" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/settings">
           <Settings :size="18" />
           <span>Settings</span>
         </RouterLink>
@@ -58,7 +58,7 @@
           </div>
         </div>
 
-        <button type="button" class="logout-button" @click="logout">
+        <button class="logout-button" type="button" @click="logout">
           <LogOut :size="17" />
           <span>Sign out</span>
         </button>
@@ -71,7 +71,7 @@
 
     <div class="transfers-main">
       <header class="transfers-header">
-        <button type="button" class="mobile-menu-button" @click="mobileMenuOpen = !mobileMenuOpen">
+        <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = !mobileMenuOpen">
           <Menu :size="21" />
         </button>
 
@@ -168,12 +168,12 @@
             </div>
 
             <div class="success-actions">
-              <button type="button" class="primary-button" @click="goToTransactions">
+              <button class="primary-button" type="button" @click="goToTransactions">
                 View transactions
                 <ArrowRight :size="16" />
               </button>
 
-              <button type="button" class="secondary-button" @click="startAnotherTransfer">
+              <button class="secondary-button" type="button" @click="startAnotherTransfer">
                 Send another payment
               </button>
             </div>
@@ -273,21 +273,21 @@
                     <label for="toAccountNumber"> Recipient account number </label>
 
                     <div
-                      class="input-wrapper"
                       :class="{
                         invalid: validationErrors.toAccountNumber,
                       }"
+                      class="input-wrapper"
                     >
                       <Landmark :size="16" />
 
                       <input
                         id="toAccountNumber"
                         v-model="form.toAccountNumber"
-                        type="text"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        placeholder="Enter account number"
                         :disabled="submitting"
+                        autocomplete="off"
+                        inputmode="numeric"
+                        placeholder="Enter account number"
+                        type="text"
                         @input="clearFieldError('toAccountNumber')"
                       />
                     </div>
@@ -307,10 +307,10 @@
                     <label for="amount"> Amount </label>
 
                     <div
-                      class="amount-input-wrapper"
                       :class="{
                         invalid: validationErrors.amount,
                       }"
+                      class="amount-input-wrapper"
                     >
                       <span>
                         {{ currencySymbol }}
@@ -319,12 +319,12 @@
                       <input
                         id="amount"
                         v-model="form.amount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        inputmode="decimal"
-                        placeholder="0.00"
                         :disabled="submitting"
+                        inputmode="decimal"
+                        min="0.01"
+                        placeholder="0.00"
+                        step="0.01"
+                        type="number"
                         @input="clearFieldError('amount')"
                       />
 
@@ -356,10 +356,10 @@
                       <textarea
                         id="description"
                         v-model="form.description"
-                        rows="3"
+                        :disabled="submitting"
                         maxlength="150"
                         placeholder="What is this transfer for?"
-                        :disabled="submitting"
+                        rows="3"
                       ></textarea>
                     </div>
 
@@ -370,14 +370,18 @@
 
                   <!-- SUBMIT -->
 
-                  <button type="submit" class="primary-button submit-button" :disabled="submitting">
-                    <span v-if="submitting" class="spinner"></span>
+                  <button
+                    :disabled="submitting || tanCreating || tanSubmitting"
+                    class="primary-button submit-button"
+                    type="submit"
+                  >
+                    <span v-if="submitting || tanCreating || tanSubmitting" class="spinner"></span>
 
                     <span>
-                      {{ submitting ? 'Sending...' : 'Continue' }}
+                      {{ tanCreating ? 'Requesting TAN...' : 'Continue' }}
                     </span>
 
-                    <ArrowRight v-if="!submitting" :size="16" />
+                    <ArrowRight v-if="!tanCreating && !tanSubmitting" :size="16" />
                   </button>
                 </form>
               </section>
@@ -432,14 +436,106 @@
         </template>
       </div>
     </div>
+    <!-- =====================================================
+         TAN CONFIRMATION MODAL
+    ====================================================== -->
+
+    <div v-if="tanModalOpen" class="tan-modal-overlay" @click.self="closeTanModal">
+      <section aria-labelledby="tan-modal-title" aria-modal="true" class="tan-modal" role="dialog">
+        <div class="tan-modal-icon">
+          <ShieldCheck :size="24" />
+        </div>
+
+        <span class="tan-modal-eyebrow"> TRANSACTION SECURITY </span>
+
+        <h2 id="tan-modal-title">Confirm your transfer</h2>
+
+        <p class="tan-modal-description">
+          Enter the 6-digit TAN sent to your registered notification channels to authorize this
+          transfer.
+        </p>
+
+        <div class="tan-transfer-summary">
+          <div>
+            <span>Amount</span>
+            <strong>{{ formatMoney(form.amount) }}</strong>
+          </div>
+          <div>
+            <span>Recipient</span>
+            <strong>{{ form.toAccountNumber }}</strong>
+          </div>
+        </div>
+
+        <div v-if="tanDeliveryMessage" class="tan-delivery-message">
+          <ShieldCheck :size="16" />
+          <span>{{ tanDeliveryMessage }}</span>
+        </div>
+
+        <div class="tan-input-group">
+          <label for="tanCode">Transaction authorization number</label>
+          <input
+            id="tanCode"
+            v-model="tanCode"
+            :disabled="tanSubmitting"
+            autocomplete="one-time-code"
+            class="tan-code-input"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="000000"
+            type="text"
+            @input="tanCode = tanCode.replace(/\D/g, '').slice(0, 6)"
+            @keyup.enter="confirmTanTransfer"
+          />
+        </div>
+
+        <p v-if="tanExpiresInSeconds > 0" class="tan-expiry">
+          This TAN expires in {{ tanExpiresInSeconds }} seconds.
+        </p>
+
+        <div v-if="tanError" class="tan-error">
+          <AlertCircle :size="16" />
+          <span>{{ tanError }}</span>
+        </div>
+
+        <div class="tan-modal-actions">
+          <button
+            :disabled="tanSubmitting"
+            class="secondary-button"
+            type="button"
+            @click="closeTanModal"
+          >
+            Cancel
+          </button>
+
+          <button
+            :disabled="tanSubmitting || tanCode.length !== 6"
+            class="primary-button"
+            type="button"
+            @click="confirmTanTransfer"
+          >
+            <span v-if="tanSubmitting" class="spinner"></span>
+            <span>{{ tanSubmitting ? 'Authorizing...' : 'Confirm transfer' }}</span>
+          </button>
+        </div>
+
+        <button
+          :disabled="tanSubmitting || tanCreating"
+          class="tan-resend-button"
+          type="button"
+          @click="resetTanChallenge"
+        >
+          Request a new TAN
+        </button>
+      </section>
+    </div>
   </main>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
-import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
+import NotificationDropdown from '@/components/layout/NotificationDropdownView.vue'
 
 import {
   AlertCircle,
@@ -458,7 +554,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
-  WalletCards,
+  WalletCards
 } from 'lucide-vue-next'
 
 /* =========================================================
@@ -534,7 +630,7 @@ interface ValidationErrors {
    CONFIGURATION
 ========================================================= */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL = 'http://13.48.104.209:8084'
 
 const router = useRouter()
 
@@ -555,6 +651,19 @@ const transferError = ref('')
 const transferSuccessful = ref(false)
 
 const transferReference = ref('')
+
+/* =========================================================
+   TAN AUTHENTICATION
+========================================================= */
+
+const tanModalOpen = ref(false)
+const tanChallengeId = ref('')
+const tanCode = ref('')
+const tanExpiresInSeconds = ref(0)
+const tanDeliveryMessage = ref('')
+const tanError = ref('')
+const tanCreating = ref(false)
+const tanSubmitting = ref(false)
 
 const user = ref<User>({
   id: 0,
@@ -753,7 +862,7 @@ async function loadAccount() {
 ========================================================= */
 
 async function submitTransfer() {
-  if (submitting.value) {
+  if (tanCreating.value || tanSubmitting.value) {
     return
   }
 
@@ -768,30 +877,114 @@ async function submitTransfer() {
     return
   }
 
-  submitting.value = true
+  tanCreating.value = true
+  transferError.value = ''
+  tanError.value = ''
+  tanCode.value = ''
+  tanChallengeId.value = ''
+  tanDeliveryMessage.value = ''
+  tanExpiresInSeconds.value = 0
 
+  try {
+    const requestBody = {
+      operation: 'TRANSFER',
+      fromAccountNumber: account.value.accountNumber,
+      toAccountNumber: form.toAccountNumber.trim(),
+      amount: Number(form.amount),
+      description: form.description.trim() || undefined,
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/transactions/tan/challenge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    const result: ApiResponse<{
+      challengeId: string
+      operation: string
+      expiresInSeconds: number
+      deliveryMessage: string
+    }> = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Unable to create the TAN challenge.')
+    }
+
+    if (!result.data?.challengeId) {
+      throw new Error('The bank did not return a TAN challenge ID.')
+    }
+
+    tanChallengeId.value = result.data.challengeId
+    tanExpiresInSeconds.value = result.data.expiresInSeconds || 0
+    tanDeliveryMessage.value =
+      result.data.deliveryMessage || 'A TAN has been sent to your registered notification channels.'
+    tanModalOpen.value = true
+  } catch (error) {
+    console.error('TAN challenge creation failed:', error)
+    transferError.value =
+      error instanceof Error ? error.message : 'Unable to start TAN authentication.'
+  } finally {
+    tanCreating.value = false
+  }
+}
+
+/* =========================================================
+   CONFIRM TAN AND EXECUTE TRANSFER
+========================================================= */
+
+async function confirmTanTransfer() {
+  if (tanSubmitting.value) {
+    return
+  }
+
+  const tan = tanCode.value.trim()
+
+  if (!/^\d{6}$/.test(tan)) {
+    tanError.value = 'Enter the 6-digit TAN sent to you.'
+    return
+  }
+
+  if (!tanChallengeId.value) {
+    tanError.value = 'Your TAN session is missing. Please request a new TAN.'
+    return
+  }
+
+  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+
+  if (!token) {
+    await router.push('/login')
+    return
+  }
+
+  tanSubmitting.value = true
+  tanError.value = ''
   transferError.value = ''
 
   try {
     const requestBody = {
       fromAccountNumber: account.value.accountNumber,
-
       toAccountNumber: form.toAccountNumber.trim(),
-
       amount: Number(form.amount),
-
       description: form.description.trim() || undefined,
+      tanChallengeId: tanChallengeId.value,
+      tan,
     }
 
     const response = await fetch(`${API_BASE_URL}/api/transactions/transfer`, {
       method: 'POST',
-
       headers: {
         'Content-Type': 'application/json',
-
         Authorization: `Bearer ${token}`,
       },
-
       body: JSON.stringify(requestBody),
     })
 
@@ -803,20 +996,44 @@ async function submitTransfer() {
     const result: ApiResponse<Transaction> = await response.json()
 
     if (!response.ok) {
-      throw new Error(result.message || 'The transfer could not be completed.')
+      throw new Error(
+        result.message || 'The TAN could not be verified and the transfer was not completed.',
+      )
     }
 
     transferReference.value = result.data?.reference || ''
-
+    tanModalOpen.value = false
+    tanCode.value = ''
+    tanChallengeId.value = ''
+    tanError.value = ''
+    tanExpiresInSeconds.value = 0
     transferSuccessful.value = true
   } catch (error) {
-    console.error('Transfer failed:', error)
-
-    transferError.value =
-      error instanceof Error ? error.message : 'The transfer could not be completed.'
+    console.error('TAN transfer failed:', error)
+    tanError.value =
+      error instanceof Error
+        ? error.message
+        : 'The TAN could not be verified. The transfer was not completed.'
   } finally {
-    submitting.value = false
+    tanSubmitting.value = false
   }
+}
+
+function closeTanModal() {
+  if (tanSubmitting.value) return
+  tanModalOpen.value = false
+  tanCode.value = ''
+  tanError.value = ''
+}
+
+function resetTanChallenge() {
+  tanModalOpen.value = false
+  tanCode.value = ''
+  tanError.value = ''
+  tanChallengeId.value = ''
+  tanExpiresInSeconds.value = 0
+  tanDeliveryMessage.value = ''
+  submitTransfer()
 }
 
 /* =========================================================
@@ -837,6 +1054,13 @@ function startAnotherTransfer() {
   transferError.value = ''
 
   transferReference.value = ''
+
+  tanModalOpen.value = false
+  tanChallengeId.value = ''
+  tanCode.value = ''
+  tanExpiresInSeconds.value = 0
+  tanDeliveryMessage.value = ''
+  tanError.value = ''
 
   transferSuccessful.value = false
 
@@ -2462,6 +2686,206 @@ onMounted(loadAccount)
 
   .page-intro h2 {
     font-size: 20px;
+  }
+}
+/* =========================================================
+   TAN MODAL
+========================================================= */
+
+.tan-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(24, 43, 56, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.tan-modal {
+  width: min(100%, 500px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 32px;
+  border: 1px solid #dfe8ed;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(29, 55, 71, 0.24);
+}
+
+.tan-modal-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  color: #29465a;
+  background: #eef5f8;
+}
+
+.tan-modal-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #7890a0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.tan-modal h2 {
+  margin: 0;
+  color: #243f52;
+  font-size: 25px;
+  line-height: 1.25;
+}
+.tan-modal-description {
+  margin: 10px 0 22px;
+  color: #718695;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.tan-transfer-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.tan-transfer-summary > div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e3ebf0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.tan-transfer-summary span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8295a2;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tan-transfer-summary strong {
+  display: block;
+  overflow: hidden;
+  color: #29465a;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tan-delivery-message {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #4e6979;
+  background: #f0f7fa;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tan-input-group {
+  margin-bottom: 8px;
+}
+.tan-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #395568;
+  font-size: 13px;
+  font-weight: 700;
+}
+.tan-code-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15px 16px;
+  border: 1px solid #cfdae1;
+  border-radius: 11px;
+  outline: none;
+  color: #29465a;
+  background: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-align: center;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.tan-code-input:focus {
+  border-color: #718f9f;
+  box-shadow: 0 0 0 3px rgba(113, 143, 159, 0.12);
+}
+.tan-code-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.tan-expiry {
+  margin: 9px 0 0;
+  color: #8497a4;
+  font-size: 12px;
+  text-align: center;
+}
+.tan-error {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 13px;
+  padding: 11px 13px;
+  border: 1px solid #f1d4d4;
+  border-radius: 10px;
+  color: #a54848;
+  background: #fff6f6;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.tan-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 10px;
+  margin-top: 22px;
+}
+.tan-modal-actions .primary-button,
+.tan-modal-actions .secondary-button {
+  min-height: 46px;
+}
+.tan-resend-button {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  border: 0;
+  background: transparent;
+  color: #607b8b;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tan-resend-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.tan-resend-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 560px) {
+  .tan-modal-overlay {
+    padding: 14px;
+  }
+  .tan-modal {
+    padding: 24px 20px;
+    border-radius: 18px;
+  }
+  .tan-transfer-summary {
+    grid-template-columns: 1fr;
+  }
+  .tan-modal-actions {
+    grid-template-columns: 1fr;
   }
 }
 </style>

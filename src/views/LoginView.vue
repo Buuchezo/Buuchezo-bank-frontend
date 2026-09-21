@@ -1,3 +1,4 @@
+
 <template>
   <main class="auth-page">
     <!-- =====================================================
@@ -55,103 +56,172 @@
           <span>Buuchezo Bank</span>
         </div>
 
-        <!-- Heading -->
-        <div class="form-heading">
-          <span class="form-label">SIGN IN</span>
+        <!-- =================================================
+             NORMAL LOGIN
+        ================================================== -->
+        <template v-if="!requiresTwoFactor">
+          <div class="form-heading">
+            <span class="form-label">SIGN IN</span>
 
-          <h2>Welcome back.</h2>
+            <h2>Welcome back.</h2>
 
-          <p>Enter your details to access your account.</p>
-        </div>
-
-        <!-- Login form -->
-        <form class="auth-form" @submit.prevent="handleLogin">
-          <!-- Email -->
-          <div class="form-group">
-            <label for="email">Email address</label>
-
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              placeholder="you@example.com"
-              autocomplete="email"
-              required
-            />
+            <p>Enter your details to access your account.</p>
           </div>
 
-          <!-- Password -->
-          <div class="form-group">
-            <div class="label-row">
-              <label for="password">Password</label>
+          <form class="auth-form" @submit.prevent="handleLogin">
+            <!-- Email -->
+            <div class="form-group">
+              <label for="email">Email address</label>
 
-              <button type="button" class="forgot-password" @click="handleForgotPassword">
-                Forgot password?
-              </button>
+              <input
+                id="email"
+                v-model="email"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              />
             </div>
 
-            <div class="password-input">
+            <!-- Password -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="password">Password</label>
+
+                <button type="button" class="forgot-password" @click="handleForgotPassword">
+                  Forgot password?
+                </button>
+              </div>
+
+              <div class="password-input">
+                <input
+                  id="password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  placeholder="Enter your password"
+                  autocomplete="current-password"
+                  required
+                />
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showPassword = !showPassword"
+                >
+                  {{ showPassword ? 'Hide' : 'Show' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Remember me -->
+            <div class="remember-row">
+              <label class="remember-label">
+                <input v-model="rememberMe" type="checkbox" />
+
+                <span>Remember me</span>
+              </label>
+            </div>
+
+            <!-- Error -->
+            <div v-if="errorMessage" class="error-message">
+              {{ errorMessage }}
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="auth-submit" :disabled="isLoading">
+              <span>
+                {{ isLoading ? 'Signing in...' : 'Sign in' }}
+              </span>
+
+              <ArrowUpRight :size="17" />
+            </button>
+          </form>
+
+          <!-- Divider -->
+          <div class="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <!-- Register -->
+          <div class="register-prompt">
+            <span>Don't have an account?</span>
+
+            <RouterLink to="/register">
+              Create an account
+              <ArrowRight :size="14" />
+            </RouterLink>
+          </div>
+
+          <!-- Legal -->
+          <p class="auth-legal">
+            By continuing, you agree to our
+            <RouterLink to="/terms">Terms</RouterLink>
+            and
+            <RouterLink to="/privacy">Privacy Policy</RouterLink>.
+          </p>
+        </template>
+
+        <!-- =================================================
+             TWO-FACTOR AUTHENTICATION
+        ================================================== -->
+        <template v-else>
+          <div class="form-heading">
+            <span class="form-label">TWO-FACTOR AUTHENTICATION</span>
+
+            <h2>Verify your identity.</h2>
+
+            <p>
+              Open your authenticator app and enter the 6-digit verification code to continue.
+            </p>
+          </div>
+
+          <form class="auth-form" @submit.prevent="handleTwoFactorLogin">
+            <div class="form-group">
+              <label for="twoFactorCode">Authentication code</label>
+
               <input
-                id="password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter your password"
-                autocomplete="current-password"
+                id="twoFactorCode"
+                v-model="twoFactorCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="000000"
+                class="two-factor-input"
                 required
               />
 
-              <button type="button" class="password-toggle" @click="showPassword = !showPassword">
-                {{ showPassword ? 'Hide' : 'Show' }}
-              </button>
+              <small class="input-help">
+                Enter the current 6-digit code from your authenticator app.
+              </small>
             </div>
-          </div>
 
-          <!-- Remember me -->
-          <div class="remember-row">
-            <label class="remember-label">
-              <input v-model="rememberMe" type="checkbox" />
+            <div v-if="errorMessage" class="error-message">
+              {{ errorMessage }}
+            </div>
 
-              <span>Remember me</span>
-            </label>
-          </div>
+            <button
+              type="submit"
+              class="auth-submit"
+              :disabled="isTwoFactorLoading || twoFactorCode.length !== 6"
+            >
+              <span>
+                {{ isTwoFactorLoading ? 'Verifying...' : 'Verify code' }}
+              </span>
 
-          <!-- Error -->
-          <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-          </div>
+              <ArrowUpRight :size="17" />
+            </button>
+          </form>
 
-          <!-- Submit -->
-          <button type="submit" class="auth-submit" :disabled="isLoading">
-            <span>
-              {{ isLoading ? 'Signing in...' : 'Sign in' }}
-            </span>
-
-            <ArrowUpRight :size="17" />
+          <button type="button" class="back-to-login" @click="backToLogin">
+            <ArrowLeft :size="15" />
+            Use a different account
           </button>
-        </form>
 
-        <!-- Divider -->
-        <div class="auth-divider">
-          <span>OR</span>
-        </div>
-
-        <!-- Register -->
-        <div class="register-prompt">
-          <span>Don't have an account?</span>
-
-          <RouterLink to="/register">
-            Create an account
-            <ArrowRight :size="14" />
-          </RouterLink>
-        </div>
-
-        <!-- Legal -->
-        <p class="auth-legal">
-          By continuing, you agree to our
-          <RouterLink to="/terms">Terms</RouterLink>
-          and
-          <RouterLink to="/privacy">Privacy Policy</RouterLink>.
-        </p>
+          <p class="auth-legal two-factor-security-note">
+            Your verification code is provided by your authenticator app and changes regularly.
+          </p>
+        </template>
       </div>
     </div>
   </main>
@@ -160,7 +230,30 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, ArrowUpRight } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-vue-next'
+
+interface LoginUser {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  enabled: boolean
+  roles: Array<{
+    id?: number
+    name: string
+  }>
+}
+
+interface LoginResponse {
+  statusCode: number
+  message: string
+  data?: {
+    token?: string
+    challengeToken?: string
+    requiresTwoFactor?: boolean
+    user?: LoginUser
+  }
+}
 
 const router = useRouter()
 
@@ -170,9 +263,26 @@ const showPassword = ref(false)
 const rememberMe = ref(false)
 
 const isLoading = ref(false)
+const isTwoFactorLoading = ref(false)
 const errorMessage = ref('')
 
+/*
+ * ------------------------------------------------------------
+ * TWO-FACTOR LOGIN STATE
+ * ------------------------------------------------------------
+ */
+
+const requiresTwoFactor = ref(false)
+const challengeToken = ref('')
+const twoFactorCode = ref('')
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+/*
+ * ------------------------------------------------------------
+ * NORMAL LOGIN
+ * ------------------------------------------------------------
+ */
 
 const handleLogin = async () => {
   errorMessage.value = ''
@@ -198,68 +308,53 @@ const handleLogin = async () => {
       }),
     })
 
-    const result = await response.json()
+    const result: LoginResponse = await response.json()
 
     if (!response.ok) {
       throw new Error(result.message || 'Login failed. Please check your credentials.')
     }
 
     /*
-     * Backend response:
+     * --------------------------------------------------------
+     * TWO-FACTOR REQUIRED
+     * --------------------------------------------------------
+     *
+     * The backend returns:
      *
      * {
-     *   statusCode: 200,
-     *   message: "User logged in successfully",
-     *   data: {
-     *     token: "...",
-     *     user: {
-     *       id: 1,
-     *       email: "...",
-     *       firstName: "...",
-     *       lastName: "...",
-     *       enabled: true,
-     *       roles: [...]
-     *     }
-     *   }
+     *   requiresTwoFactor: true,
+     *   challengeToken: "..."
      * }
+     *
+     * No JWT should be stored at this point.
      */
 
-    const token = result?.data?.token
-    const user = result?.data?.user
+    if (result.data?.requiresTwoFactor === true) {
+      if (!result.data.challengeToken) {
+        throw new Error('Two-factor authentication was requested but no challenge was provided.')
+      }
+
+      requiresTwoFactor.value = true
+      challengeToken.value = result.data.challengeToken
+      twoFactorCode.value = ''
+
+      return
+    }
+
+    /*
+     * --------------------------------------------------------
+     * NORMAL LOGIN WITHOUT TWO-FACTOR
+     * --------------------------------------------------------
+     */
+
+    const token = result.data?.token
+    const user = result.data?.user
 
     if (!token || !user) {
       throw new Error('Invalid login response from server.')
     }
 
-    /*
-     * If "Remember me" is checked:
-     *
-     * localStorage
-     *
-     * Otherwise:
-     *
-     * sessionStorage
-     */
-
-    const storage = rememberMe.value ? localStorage : sessionStorage
-
-    storage.setItem('accessToken', token)
-    storage.setItem('user', JSON.stringify(user))
-
-    /*
-     * Check the user's backend role.
-     *
-     * ADMIN users go to the administration dashboard.
-     * All other users go to the normal customer dashboard.
-     */
-
-    const isAdmin = user.roles?.some((role: { name: string }) => role.name === 'ADMIN')
-
-    if (isAdmin) {
-      await router.push('/admin/dashboard')
-    } else {
-      await router.push('/dashboard')
-    }
+    completeLogin(token, user)
   } catch (error) {
     console.error('Login error:', error)
 
@@ -269,6 +364,122 @@ const handleLogin = async () => {
     isLoading.value = false
   }
 }
+
+/*
+ * ------------------------------------------------------------
+ * TWO-FACTOR LOGIN
+ * ------------------------------------------------------------
+ */
+
+const handleTwoFactorLogin = async () => {
+  errorMessage.value = ''
+
+  const code = twoFactorCode.value.trim()
+
+  if (!challengeToken.value) {
+    errorMessage.value = 'Your login session has expired. Please sign in again.'
+    backToLogin()
+    return
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    errorMessage.value = 'Please enter the 6-digit authentication code.'
+    return
+  }
+
+  isTwoFactorLoading.value = true
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/2fa/login`, {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+      body: JSON.stringify({
+        challengeToken: challengeToken.value,
+        code,
+      }),
+    })
+
+    const result: LoginResponse = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.message || 'Invalid authentication code.')
+    }
+
+    const token = result.data?.token
+    const user = result.data?.user
+
+    if (!token || !user) {
+      throw new Error('Invalid two-factor authentication response from server.')
+    }
+
+    completeLogin(token, user)
+  } catch (error) {
+    console.error('Two-factor login error:', error)
+
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to verify the authentication code. Please try again.'
+  } finally {
+    isTwoFactorLoading.value = false
+  }
+}
+
+/*
+ * ------------------------------------------------------------
+ * COMPLETE LOGIN
+ * ------------------------------------------------------------
+ *
+ * This is the ONLY place where the JWT is stored.
+ *
+ * That is important because when 2FA is enabled, the JWT must
+ * not be stored after the password step alone.
+ */
+
+const completeLogin = async (token: string, user: LoginUser) => {
+  const storage = rememberMe.value ? localStorage : sessionStorage
+
+  storage.setItem('accessToken', token)
+  storage.setItem('user', JSON.stringify(user))
+
+  /*
+   * Check the user's backend role.
+   *
+   * ADMIN users go to the administration dashboard.
+   * All other users go to the normal customer dashboard.
+   */
+
+  const isAdmin = user.roles?.some((role) => role.name === 'ADMIN')
+
+  if (isAdmin) {
+    await router.push('/admin/dashboard')
+  } else {
+    await router.push('/dashboard')
+  }
+}
+
+/*
+ * ------------------------------------------------------------
+ * BACK TO NORMAL LOGIN
+ * ------------------------------------------------------------
+ */
+
+const backToLogin = () => {
+  requiresTwoFactor.value = false
+  challengeToken.value = ''
+  twoFactorCode.value = ''
+  errorMessage.value = ''
+}
+
+/*
+ * ------------------------------------------------------------
+ * FORGOT PASSWORD
+ * ------------------------------------------------------------
+ */
 
 const handleForgotPassword = () => {
   errorMessage.value = 'Password recovery will be available soon.'
@@ -363,35 +574,36 @@ const handleForgotPassword = () => {
   z-index: 2;
 
   display: inline-flex;
-
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 
   width: fit-content;
 
   color: white;
 
-  font-size: 17px;
-  font-weight: 800;
-
   text-decoration: none;
+
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .auth-brand-mark {
-  width: 35px;
-  height: 35px;
+  width: 38px;
+  height: 38px;
 
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  color: #082f56;
-  background: white;
+  border-radius: 11px;
 
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
 
-  font-size: 17px;
-  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  font-size: 18px;
+  font-weight: 800;
 }
 
 /* =========================================================
@@ -402,49 +614,47 @@ const handleForgotPassword = () => {
   position: relative;
   z-index: 2;
 
-  max-width: 540px;
+  max-width: 570px;
 
   margin: auto 0;
 }
 
 .auth-eyebrow {
-  display: block;
+  display: inline-block;
 
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 
-  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 
-  font-size: 10px;
-  font-weight: 800;
-
-  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .auth-visual-content h1 {
   margin: 0;
 
-  font-size: clamp(48px, 5vw, 72px);
-
+  font-size: clamp(42px, 5vw, 72px);
   line-height: 0.98;
-
   letter-spacing: -0.055em;
+  font-weight: 800;
 }
 
 .auth-visual-content h1 span {
   display: block;
 
-  color: #8dd7ee;
+  color: #8be7ff;
 }
 
-.auth-visual-content > p {
-  max-width: 430px;
+.auth-visual-content p {
+  max-width: 470px;
 
-  margin: 25px 0 40px;
+  margin: 28px 0 0;
 
-  color: rgba(255, 255, 255, 0.66);
+  font-size: 17px;
+  line-height: 1.65;
 
-  font-size: 15px;
-  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 /* =========================================================
@@ -452,61 +662,72 @@ const handleForgotPassword = () => {
 ========================================================= */
 
 .auth-card-preview {
-  width: min(390px, 90%);
+  width: min(390px, 100%);
 
-  aspect-ratio: 410 / 247;
+  margin-top: 48px;
 
-  padding: 23px;
+  padding: 24px;
 
-  background: linear-gradient(145deg, #084b84, #0862a8 55%, #233fc0);
+  border-radius: 22px;
 
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.07)
+  );
 
-  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.18);
 
-  transform: perspective(1000px) rotateY(-10deg) rotateZ(-4deg);
+  backdrop-filter: blur(20px);
+}
+
+.preview-top,
+.preview-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .preview-top {
-  display: flex;
-  justify-content: space-between;
-
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .preview-chip {
-  width: 43px;
-  height: 31px;
+  width: 42px;
+  height: 32px;
 
-  margin-top: 38px;
+  margin-top: 36px;
 
-  background: #d2b16c;
+  border-radius: 7px;
 
-  border-radius: 5px;
+  background: linear-gradient(135deg, #f7d794, #d7a84e);
 }
 
 .preview-number {
-  margin-top: 23px;
+  margin-top: 26px;
 
-  font-size: 17px;
+  font-family: monospace;
 
-  letter-spacing: 0.12em;
+  font-size: 18px;
+  letter-spacing: 0.08em;
 }
 
 .preview-bottom {
-  display: flex;
-  justify-content: space-between;
+  margin-top: 28px;
 
-  margin-top: 25px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
 
-  color: rgba(255, 255, 255, 0.58);
-
-  font-size: 7px;
-  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.7);
 }
+
+/* =========================================================
+   VISUAL FOOTER
+========================================================= */
 
 .auth-visual-footer {
   position: relative;
@@ -516,18 +737,20 @@ const handleForgotPassword = () => {
   align-items: center;
   gap: 9px;
 
-  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
 
-  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .status-dot {
   width: 7px;
   height: 7px;
 
-  background: #5dd39e;
-
   border-radius: 50%;
+
+  background: #6ee7b7;
+
+  box-shadow: 0 0 0 5px rgba(110, 231, 183, 0.12);
 }
 
 /* =========================================================
@@ -539,15 +762,13 @@ const handleForgotPassword = () => {
 
   display: flex;
   align-items: center;
+  justify-content: center;
 
-  padding: 60px 8%;
+  padding: 48px 7%;
 }
 
 .auth-form-container {
-  width: 100%;
-  max-width: 450px;
-
-  margin: 0 auto;
+  width: min(460px, 100%);
 }
 
 /* =========================================================
@@ -556,43 +777,60 @@ const handleForgotPassword = () => {
 
 .mobile-brand {
   display: none;
+
+  align-items: center;
+  gap: 10px;
+
+  margin-bottom: 50px;
+
+  font-size: 17px;
+  font-weight: 700;
+  color: #062f59;
+}
+
+.mobile-brand .auth-brand-mark {
+  color: white;
+
+  background: #07559b;
 }
 
 /* =========================================================
-   HEADING
+   FORM HEADING
 ========================================================= */
 
+.form-heading {
+  margin-bottom: 36px;
+}
+
 .form-label {
-  display: block;
+  display: inline-block;
 
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 
-  color: #0b4878;
-
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
+  letter-spacing: 0.16em;
 
-  letter-spacing: 0.15em;
+  color: #07559b;
 }
 
 .form-heading h2 {
   margin: 0;
 
-  color: #082f56;
+  font-size: 42px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
 
-  font-size: 43px;
-
-  line-height: 1;
-
-  letter-spacing: -0.04em;
+  color: #071d33;
 }
 
 .form-heading p {
-  margin: 14px 0 35px;
+  margin: 14px 0 0;
 
-  color: #81909d;
+  font-size: 15px;
+  line-height: 1.6;
 
-  font-size: 14px;
+  color: #6b7c8f;
 }
 
 /* =========================================================
@@ -602,79 +840,61 @@ const handleForgotPassword = () => {
 .auth-form {
   display: flex;
   flex-direction: column;
-
-  gap: 23px;
+  gap: 22px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-
   gap: 9px;
 }
 
-.form-group label {
-  color: #304b5e;
-
-  font-size: 12px;
+.form-group label,
+.label-row label {
+  font-size: 13px;
   font-weight: 700;
+
+  color: #18324a;
 }
 
 .label-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-}
-
-.forgot-password {
-  padding: 0;
-
-  color: #0b5da7;
-
-  background: none;
-  border: 0;
-
-  font-family: inherit;
-
-  font-size: 10px;
-  font-weight: 700;
-
-  cursor: pointer;
 }
 
 .form-group input {
   width: 100%;
 
-  height: 50px;
+  box-sizing: border-box;
 
-  padding: 0 15px;
+  padding: 14px 15px;
 
-  color: #29465a;
+  border: 1px solid #d8e0e8;
 
-  background: #f8fafc;
+  border-radius: 11px;
 
-  border: 1px solid #dfe8ee;
+  background: #ffffff;
 
-  border-radius: 7px;
+  color: #071d33;
+
+  font-size: 14px;
 
   outline: none;
-
-  font-family: inherit;
-
-  font-size: 13px;
 
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.form-group input:focus {
-  border-color: #0b5da7;
-
-  box-shadow: 0 0 0 3px rgba(11, 93, 167, 0.08);
+.form-group input::placeholder {
+  color: #a2afbd;
 }
 
-.form-group input::placeholder {
-  color: #a8b3bc;
+.form-group input:focus {
+  border-color: #2878c8;
+
+  box-shadow: 0 0 0 4px rgba(40, 120, 200, 0.1);
 }
 
 .password-input {
@@ -682,102 +902,103 @@ const handleForgotPassword = () => {
 }
 
 .password-input input {
-  padding-right: 60px;
+  padding-right: 72px;
 }
 
 .password-toggle {
   position: absolute;
 
-  right: 14px;
+  right: 13px;
   top: 50%;
 
   transform: translateY(-50%);
 
-  padding: 0;
-
-  color: #0b5da7;
-
-  background: none;
   border: 0;
 
-  font-family: inherit;
+  background: transparent;
 
-  font-size: 10px;
+  color: #2878c8;
+
+  font-size: 12px;
   font-weight: 700;
 
   cursor: pointer;
 }
 
-/* =========================================================
-   REMEMBER
-========================================================= */
+.forgot-password {
+  border: 0;
+
+  padding: 0;
+
+  background: transparent;
+
+  color: #2878c8;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
 
 .remember-row {
-  margin-top: -5px;
+  margin-top: -2px;
 }
 
 .remember-label {
   display: inline-flex;
 
   align-items: center;
+  gap: 9px;
 
-  gap: 8px;
+  font-size: 13px;
 
-  color: #7e8e9a;
-
-  font-size: 11px;
+  color: #607287;
 
   cursor: pointer;
 }
 
 .remember-label input {
-  accent-color: #0b4878;
-}
+  width: 15px;
+  height: 15px;
 
-/* =========================================================
-   ERROR
-========================================================= */
+  accent-color: #07559b;
+}
 
 .error-message {
   padding: 12px 14px;
 
-  color: #b42318;
+  border: 1px solid #fecaca;
 
-  background: #fff4f2;
+  border-radius: 10px;
 
-  border: 1px solid #ffd8d2;
+  background: #fef2f2;
 
-  border-radius: 7px;
+  color: #b91c1c;
 
-  font-size: 11px;
-
+  font-size: 13px;
   line-height: 1.5;
 }
 
-/* =========================================================
-   SUBMIT
-========================================================= */
-
 .auth-submit {
-  height: 52px;
+  width: 100%;
+
+  min-height: 50px;
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 10px;
 
-  padding: 0 12px 0 20px;
+  border: 0;
+
+  border-radius: 11px;
+
+  background: #07559b;
 
   color: white;
 
-  background: #0b4878;
-
-  border: 0;
-  border-radius: 7px;
-
-  font-family: inherit;
-
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
 
   cursor: pointer;
 
@@ -788,26 +1009,69 @@ const handleForgotPassword = () => {
 }
 
 .auth-submit:hover:not(:disabled) {
-  background: #082f56;
+  background: #064781;
 
   transform: translateY(-1px);
 }
 
 .auth-submit:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
 
   cursor: not-allowed;
 }
 
-.auth-submit svg {
-  width: 32px;
-  height: 32px;
+/* =========================================================
+   TWO-FACTOR
+========================================================= */
 
-  padding: 7px;
+.two-factor-input {
+  text-align: center;
 
-  background: rgba(255, 255, 255, 0.13);
+  font-family: monospace;
 
-  border-radius: 5px;
+  font-size: 24px !important;
+  font-weight: 700;
+
+  letter-spacing: 0.35em;
+
+  padding-left: 24px !important;
+}
+
+.input-help {
+  font-size: 12px;
+  line-height: 1.5;
+
+  color: #7b8b9b;
+}
+
+.back-to-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  width: 100%;
+
+  margin-top: 22px;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #07559b;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.two-factor-security-note {
+  margin-top: 28px !important;
+
+  text-align: center;
 }
 
 /* =========================================================
@@ -817,26 +1081,29 @@ const handleForgotPassword = () => {
 .auth-divider {
   display: flex;
   align-items: center;
+  gap: 15px;
 
-  gap: 14px;
-
-  margin: 30px 0 22px;
-
-  color: #a6b1ba;
-
-  font-size: 8px;
-  font-weight: 700;
+  margin: 30px 0;
 }
 
 .auth-divider::before,
 .auth-divider::after {
   content: '';
 
-  height: 1px;
-
   flex: 1;
 
-  background: #e6edf1;
+  height: 1px;
+
+  background: #e4e9ef;
+}
+
+.auth-divider span {
+  font-size: 10px;
+  font-weight: 700;
+
+  color: #9aa7b4;
+
+  letter-spacing: 0.12em;
 }
 
 /* =========================================================
@@ -845,29 +1112,29 @@ const handleForgotPassword = () => {
 
 .register-prompt {
   display: flex;
-
   align-items: center;
   justify-content: center;
+  gap: 6px;
 
-  gap: 7px;
+  font-size: 13px;
 
-  color: #84939e;
-
-  font-size: 11px;
+  color: #7a8999;
 }
 
 .register-prompt a {
   display: inline-flex;
-
   align-items: center;
-
   gap: 4px;
 
-  color: #0b5da7;
+  color: #07559b;
 
-  font-weight: 800;
+  font-weight: 700;
 
   text-decoration: none;
+}
+
+.register-prompt a:hover {
+  text-decoration: underline;
 }
 
 /* =========================================================
@@ -875,32 +1142,29 @@ const handleForgotPassword = () => {
 ========================================================= */
 
 .auth-legal {
-  margin: 30px auto 0;
+  margin: 32px 0 0;
 
-  max-width: 360px;
-
-  color: #a0acb5;
-
-  font-size: 9px;
-
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.7;
 
   text-align: center;
+
+  color: #9aa7b4;
 }
 
 .auth-legal a {
-  color: #6d8190;
+  color: #6c7e91;
 
   text-decoration: underline;
 }
 
 /* =========================================================
-   MOBILE
+   RESPONSIVE
 ========================================================= */
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .auth-page {
-    display: block;
+    grid-template-columns: 1fr;
   }
 
   .auth-visual {
@@ -910,54 +1174,32 @@ const handleForgotPassword = () => {
   .auth-form-area {
     min-height: 100vh;
 
-    padding: 35px 20px;
+    padding: 36px 24px;
   }
 
   .mobile-brand {
-    display: inline-flex;
-
-    align-items: center;
-    gap: 9px;
-
-    margin-bottom: 65px;
-
-    color: #082f56;
-
-    font-size: 16px;
-    font-weight: 800;
-  }
-
-  .mobile-brand .auth-brand-mark {
-    width: 32px;
-    height: 32px;
-
-    color: white;
-
-    background: #0b4878;
-
-    font-size: 15px;
-  }
-
-  .form-heading h2 {
-    font-size: 40px;
-  }
-
-  .auth-form-container {
-    max-width: 500px;
+    display: flex;
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 500px) {
   .auth-form-area {
-    padding: 25px 16px;
-  }
-
-  .mobile-brand {
-    margin-bottom: 50px;
+    padding: 28px 20px;
   }
 
   .form-heading h2 {
-    font-size: 36px;
+    font-size: 34px;
+  }
+
+  .mobile-brand {
+    margin-bottom: 40px;
+  }
+
+  .two-factor-input {
+    font-size: 21px !important;
+
+    letter-spacing: 0.25em;
   }
 }
+
 </style>

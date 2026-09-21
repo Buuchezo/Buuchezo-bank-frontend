@@ -1,5 +1,7 @@
+```vue
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import QRCode from 'qrcode'
 import { useRouter } from 'vue-router'
 import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
@@ -35,6 +37,7 @@ interface User {
   enabled: boolean
   roles: Role[]
   createdAt: string
+  twoFactorEnabled?: boolean
 }
 
 interface Account {
@@ -68,6 +71,21 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+
+const twoFactorEnabled = ref(false)
+const twoFactorSetupOpen = ref(false)
+const twoFactorLoading = ref(false)
+const twoFactorVerifying = ref(false)
+const twoFactorDisabling = ref(false)
+
+const twoFactorDisableOpen = ref(false)
+const twoFactorDisableCode = ref('')
+const twoFactorDisableError = ref('')
+
+const twoFactorCode = ref('')
+const twoFactorSecret = ref('')
+const twoFactorOtpAuthUri = ref('')
+const twoFactorQrCode = ref('')
 
 const user = ref<User>({
   id: 0,
@@ -156,7 +174,9 @@ async function loadSettings() {
   loading.value = true
   errorMessage.value = ''
 
-  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+  const token =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
 
   if (!token) {
     await router.push('/login')
@@ -184,11 +204,17 @@ async function loadSettings() {
     const result: ApiResponse<UserWithAccount> = await response.json()
 
     if (!response.ok) {
-      throw new Error(result.message || 'Unable to load your account settings.')
+      throw new Error(
+        result.message || 'Unable to load your account settings.',
+      )
     }
 
     user.value = result.data.user
     account.value = result.data.account
+
+    twoFactorEnabled.value = Boolean(
+      result.data.user.twoFactorEnabled,
+    )
 
     profileForm.value = {
       firstName: result.data.user.firstName,
@@ -198,7 +224,9 @@ async function loadSettings() {
     console.error('Settings loading failed:', error)
 
     errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to load your account settings.'
+      error instanceof Error
+        ? error.message
+        : 'Unable to load your account settings.'
   } finally {
     loading.value = false
   }
@@ -220,7 +248,8 @@ function savePreferences() {
 
   window.setTimeout(() => {
     saving.value = false
-    successMessage.value = 'Your preferences have been saved on this device.'
+    successMessage.value =
+      'Your preferences have been saved on this device.'
 
     window.setTimeout(() => {
       successMessage.value = ''
@@ -238,6 +267,244 @@ function requestProfileChange() {
   window.setTimeout(() => {
     successMessage.value = ''
   }, 4000)
+}
+
+async function setupTwoFactor() {
+  twoFactorLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  const token =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+
+  if (!token) {
+    await router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/2fa/setup`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    const result: ApiResponse<{
+      secret: string
+      otpAuthUri: string
+    }> = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+        'Unable to start two-factor authentication setup.',
+      )
+    }
+
+    twoFactorSecret.value = result.data.secret
+    twoFactorOtpAuthUri.value = result.data.otpAuthUri
+
+    twoFactorQrCode.value = await QRCode.toDataURL(
+      result.data.otpAuthUri,
+      {
+        width: 220,
+        margin: 2,
+      },
+    )
+
+    twoFactorCode.value = ''
+    twoFactorSetupOpen.value = true
+  } catch (error) {
+    console.error('2FA setup failed:', error)
+
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to start two-factor authentication setup.'
+  } finally {
+    twoFactorLoading.value = false
+  }
+}
+
+async function verifyTwoFactor() {
+  if (!/^\d{6}$/.test(twoFactorCode.value)) {
+    errorMessage.value =
+      'Enter the 6-digit code from your authenticator app.'
+    return
+  }
+
+  twoFactorVerifying.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  const token =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+
+  if (!token) {
+    await router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/2fa/verify`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code: twoFactorCode.value,
+        }),
+      },
+    )
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    const result: ApiResponse<{
+      secret?: string
+      otpAuthUri?: string
+    }> = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+        'The authenticator code could not be verified.',
+      )
+    }
+
+    twoFactorEnabled.value = true
+    twoFactorSetupOpen.value = false
+    twoFactorCode.value = ''
+
+    successMessage.value =
+      'Two-factor authentication has been enabled successfully.'
+  } catch (error) {
+    console.error('2FA verification failed:', error)
+
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'The authenticator code could not be verified.'
+  } finally {
+    twoFactorVerifying.value = false
+  }
+}
+
+/* =========================================================
+   DISABLE 2FA MODAL
+========================================================= */
+
+function openDisableTwoFactor() {
+  twoFactorDisableCode.value = ''
+  twoFactorDisableError.value = ''
+  errorMessage.value = ''
+  twoFactorDisableOpen.value = true
+}
+
+function cancelDisableTwoFactor() {
+  if (twoFactorDisabling.value) {
+    return
+  }
+
+  twoFactorDisableOpen.value = false
+  twoFactorDisableCode.value = ''
+  twoFactorDisableError.value = ''
+}
+
+async function confirmDisableTwoFactor() {
+  const code = twoFactorDisableCode.value.trim()
+
+  if (!/^\d{6}$/.test(code)) {
+    twoFactorDisableError.value =
+      'Enter the 6-digit code from your authenticator app.'
+    return
+  }
+
+  twoFactorDisabling.value = true
+  twoFactorDisableError.value = ''
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  const token =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+
+  if (!token) {
+    twoFactorDisabling.value = false
+    await router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/2fa/disable`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code,
+        }),
+      },
+    )
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    const result: ApiResponse<null> = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+        'Unable to disable two-factor authentication.',
+      )
+    }
+
+    twoFactorEnabled.value = false
+    twoFactorDisableOpen.value = false
+    twoFactorDisableCode.value = ''
+    twoFactorDisableError.value = ''
+
+    successMessage.value =
+      'Two-factor authentication has been disabled successfully.'
+  } catch (error) {
+    console.error('2FA disable failed:', error)
+
+    twoFactorDisableError.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to disable two-factor authentication.'
+  } finally {
+    twoFactorDisabling.value = false
+  }
+}
+
+function cancelTwoFactorSetup() {
+  twoFactorSetupOpen.value = false
+  twoFactorCode.value = ''
+  twoFactorSecret.value = ''
+  twoFactorOtpAuthUri.value = ''
+  twoFactorQrCode.value = ''
 }
 
 function requestPasswordChange() {
@@ -273,12 +540,23 @@ onMounted(loadSettings)
 <template>
   <div class="settings-page">
     <!-- MOBILE OVERLAY -->
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
+    <div
+      v-if="mobileMenuOpen"
+      class="mobile-overlay"
+      @click="mobileMenuOpen = false"
+    />
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
+    <aside
+      class="sidebar"
+      :class="{ 'sidebar-open': mobileMenuOpen }"
+    >
       <div class="sidebar-top">
-        <RouterLink to="/" class="dashboard-logo" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/"
+          class="dashboard-logo"
+          @click="mobileMenuOpen = false"
+        >
           <span>B</span>
           <strong>Buuchezo Bank</strong>
         </RouterLink>
@@ -296,34 +574,58 @@ onMounted(loadSettings)
       <nav class="sidebar-nav">
         <p class="nav-section-title">MAIN</p>
 
-        <RouterLink to="/dashboard" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/dashboard"
+          class="nav-item"
+          @click="mobileMenuOpen = false"
+        >
           <LayoutDashboard :size="19" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink to="/accounts" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/accounts"
+          class="nav-item"
+          @click="mobileMenuOpen = false"
+        >
           <WalletCards :size="19" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink to="/transactions" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/transactions"
+          class="nav-item"
+          @click="mobileMenuOpen = false"
+        >
           <ArrowLeftRight :size="19" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink to="/cards" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/cards"
+          class="nav-item"
+          @click="mobileMenuOpen = false"
+        >
           <CreditCard :size="19" />
           <span>Cards</span>
         </RouterLink>
 
         <p class="nav-section-title second">SERVICES</p>
 
-        <RouterLink to="/transfers" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/transfers"
+          class="nav-item"
+          @click="mobileMenuOpen = false"
+        >
           <Send :size="19" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink to="/settings" class="nav-item active" @click="mobileMenuOpen = false">
+        <RouterLink
+          to="/settings"
+          class="nav-item active"
+          @click="mobileMenuOpen = false"
+        >
           <Settings :size="19" />
           <span>Settings</span>
         </RouterLink>
@@ -341,7 +643,11 @@ onMounted(loadSettings)
           </div>
         </div>
 
-        <button type="button" class="logout-button" @click="logout">
+        <button
+          type="button"
+          class="logout-button"
+          @click="logout"
+        >
           <LogOut :size="18" />
           <span>Log out</span>
         </button>
@@ -386,7 +692,10 @@ onMounted(loadSettings)
               </span>
             </div>
 
-            <ChevronDown :size="16" class="profile-chevron" />
+            <ChevronDown
+              :size="16"
+              class="profile-chevron"
+            />
           </div>
         </div>
       </header>
@@ -399,7 +708,10 @@ onMounted(loadSettings)
 
             <h2>Manage your account.</h2>
 
-            <p class="intro-text">Review your profile, security and notification preferences.</p>
+            <p class="intro-text">
+              Review your profile, security and notification
+              preferences.
+            </p>
           </div>
         </div>
 
@@ -409,11 +721,19 @@ onMounted(loadSettings)
 
           <span>{{ errorMessage }}</span>
 
-          <button type="button" @click="loadSettings">Try again</button>
+          <button
+            type="button"
+            @click="loadSettings"
+          >
+            Try again
+          </button>
         </div>
 
         <!-- SUCCESS -->
-        <div v-if="successMessage" class="success-box">
+        <div
+          v-if="successMessage"
+          class="success-box"
+        >
           <div class="success-icon">
             <Check :size="16" />
           </div>
@@ -422,7 +742,10 @@ onMounted(loadSettings)
         </div>
 
         <!-- LOADING -->
-        <div v-if="loading" class="loading-card">
+        <div
+          v-if="loading"
+          class="loading-card"
+        >
           <div class="spinner" />
 
           <p>Loading your settings...</p>
@@ -438,9 +761,12 @@ onMounted(loadSettings)
 
               <div>
                 <p class="eyebrow">PROFILE</p>
+
                 <h2>Personal information</h2>
 
-                <p>Your registered Buuchezo Bank profile.</p>
+                <p>
+                  Your registered Buuchezo Bank profile.
+                </p>
               </div>
             </div>
 
@@ -453,38 +779,68 @@ onMounted(loadSettings)
                 <div>
                   <h3>{{ fullName }}</h3>
 
-                  <span> Buuchezo Bank customer </span>
+                  <span>
+                    Buuchezo Bank customer
+                  </span>
                 </div>
               </div>
 
               <div class="form-grid">
                 <div class="form-group">
-                  <label for="firstName"> First name </label>
+                  <label for="firstName">
+                    First name
+                  </label>
 
-                  <input id="firstName" v-model="profileForm.firstName" type="text" disabled />
+                  <input
+                    id="firstName"
+                    v-model="profileForm.firstName"
+                    type="text"
+                    disabled
+                  />
                 </div>
 
                 <div class="form-group">
-                  <label for="lastName"> Last name </label>
+                  <label for="lastName">
+                    Last name
+                  </label>
 
-                  <input id="lastName" v-model="profileForm.lastName" type="text" disabled />
+                  <input
+                    id="lastName"
+                    v-model="profileForm.lastName"
+                    type="text"
+                    disabled
+                  />
                 </div>
 
                 <div class="form-group full">
-                  <label for="email"> Email address </label>
+                  <label for="email">
+                    Email address
+                  </label>
 
                   <div class="input-with-icon">
                     <Mail :size="16" />
 
-                    <input id="email" :value="user.email" type="email" disabled />
+                    <input
+                      id="email"
+                      :value="user.email"
+                      type="email"
+                      disabled
+                    />
                   </div>
                 </div>
               </div>
 
               <div class="settings-card-footer">
-                <span> Profile information is managed by your bank account. </span>
+                <span>
+                  Profile information is managed by your bank
+                  account.
+                </span>
 
-                <button type="button" class="secondary-button" @click="requestProfileChange">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  @click="requestProfileChange"
+                >
                   Request a change
                 </button>
               </div>
@@ -503,7 +859,9 @@ onMounted(loadSettings)
 
                 <h2>Account information</h2>
 
-                <p>Information associated with your bank account.</p>
+                <p>
+                  Information associated with your bank account.
+                </p>
               </div>
             </div>
 
@@ -532,7 +890,8 @@ onMounted(loadSettings)
                     <span
                       class="status-dot"
                       :class="{
-                        active: account.accountStatus === 'ACTIVE',
+                        active:
+                          account.accountStatus === 'ACTIVE',
                       }"
                     />
 
@@ -563,11 +922,14 @@ onMounted(loadSettings)
 
                 <h2>Security settings</h2>
 
-                <p>Keep your account protected.</p>
+                <p>
+                  Keep your account protected.
+                </p>
               </div>
             </div>
 
             <div class="settings-card">
+              <!-- PASSWORD -->
               <div class="security-row">
                 <div class="security-row-icon">
                   <Lock :size="19" />
@@ -576,23 +938,190 @@ onMounted(loadSettings)
                 <div class="security-row-content">
                   <strong>Password</strong>
 
-                  <span> Your password is securely stored by the backend. </span>
+                  <span>
+                    Your password is securely stored by the
+                    backend.
+                  </span>
                 </div>
 
-                <button type="button" class="secondary-button" @click="requestPasswordChange">
+                <button
+                  type="button"
+                  class="secondary-button"
+                  @click="requestPasswordChange"
+                >
                   Change password
                 </button>
               </div>
 
               <div class="security-divider" />
 
+              <!-- 2FA -->
+              <div class="security-row two-factor-row">
+                <div class="security-row-icon">
+                  <ShieldCheck :size="19" />
+                </div>
+
+                <div class="security-row-content">
+                  <strong>
+                    Two-factor authentication
+                  </strong>
+
+                  <span v-if="twoFactorEnabled">
+                    Your account requires an authenticator
+                    code when you sign in.
+                  </span>
+
+                  <span v-else>
+                    Add an extra layer of security with an
+                    authenticator app.
+                  </span>
+                </div>
+
+                <span
+                  v-if="twoFactorEnabled"
+                  class="verified-badge"
+                >
+                  <Check :size="13" />
+                  Enabled
+                </span>
+
+                <button
+                  v-else
+                  type="button"
+                  class="secondary-button"
+                  :disabled="twoFactorLoading"
+                  @click="setupTwoFactor"
+                >
+                  {{
+                    twoFactorLoading
+                      ? 'Preparing...'
+                      : 'Enable 2FA'
+                  }}
+                </button>
+
+                <button
+                  v-if="twoFactorEnabled"
+                  type="button"
+                  class="danger-button"
+                  @click="openDisableTwoFactor"
+                >
+                  Disable
+                </button>
+              </div>
+
+              <!-- 2FA SETUP -->
+              <div
+                v-if="twoFactorSetupOpen"
+                class="two-factor-setup"
+              >
+                <div class="two-factor-setup-header">
+                  <div>
+                    <strong>
+                      Set up your authenticator app
+                    </strong>
+
+                    <span>
+                      Scan the QR code with Google Authenticator,
+                      Microsoft Authenticator, Authy or another
+                      TOTP app.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="setup-close"
+                    @click="cancelTwoFactorSetup"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div class="two-factor-setup-body">
+                  <div class="qr-wrapper">
+                    <img
+                      v-if="twoFactorQrCode"
+                      :src="twoFactorQrCode"
+                      alt="Two-factor authentication QR code"
+                    />
+                  </div>
+
+                  <div class="two-factor-instructions">
+                    <p>
+                      After scanning, enter the 6-digit code
+                      currently shown in your authenticator app.
+                    </p>
+
+                    <label for="two-factor-code">
+                      Authenticator code
+                    </label>
+
+                    <input
+                      id="two-factor-code"
+                      v-model="twoFactorCode"
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="one-time-code"
+                      maxlength="6"
+                      placeholder="000000"
+                      @input="
+                        twoFactorCode =
+                          twoFactorCode
+                            .replace(/\D/g, '')
+                            .slice(0, 6)
+                      "
+                    />
+
+                    <div class="manual-secret">
+                      <span>
+                        Can't scan the QR code?
+                      </span>
+
+                      <code>
+                        {{ twoFactorSecret }}
+                      </code>
+                    </div>
+
+                    <div class="two-factor-actions">
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        @click="cancelTwoFactorSetup"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="button"
+                        class="primary-button"
+                        :disabled="
+                          twoFactorVerifying ||
+                          twoFactorCode.length !== 6
+                        "
+                        @click="verifyTwoFactor"
+                      >
+                        {{
+                          twoFactorVerifying
+                            ? 'Verifying...'
+                            : 'Verify & enable'
+                        }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="security-divider" />
+
+              <!-- EMAIL -->
               <div class="security-row">
                 <div class="security-row-icon">
                   <Mail :size="19" />
                 </div>
 
                 <div class="security-row-content">
-                  <strong>Email verification</strong>
+                  <strong>
+                    Email verification
+                  </strong>
 
                   <span>
                     Your account is associated with
@@ -620,20 +1149,30 @@ onMounted(loadSettings)
 
                 <h2>Notification preferences</h2>
 
-                <p>Choose which notifications you want to receive.</p>
+                <p>
+                  Choose which notifications you want to receive.
+                </p>
               </div>
             </div>
 
             <div class="settings-card">
               <div class="preference-row">
                 <div>
-                  <strong> Transaction notifications </strong>
+                  <strong>
+                    Transaction notifications
+                  </strong>
 
-                  <span> Receive notifications when money moves in or out of your account. </span>
+                  <span>
+                    Receive notifications when money moves in or
+                    out of your account.
+                  </span>
                 </div>
 
                 <label class="toggle">
-                  <input v-model="settings.transactionNotifications" type="checkbox" />
+                  <input
+                    v-model="settings.transactionNotifications"
+                    type="checkbox"
+                  />
 
                   <span class="toggle-slider" />
                 </label>
@@ -643,13 +1182,20 @@ onMounted(loadSettings)
 
               <div class="preference-row">
                 <div>
-                  <strong> Security notifications </strong>
+                  <strong>
+                    Security notifications
+                  </strong>
 
-                  <span> Receive important account security alerts. </span>
+                  <span>
+                    Receive important account security alerts.
+                  </span>
                 </div>
 
                 <label class="toggle">
-                  <input v-model="settings.securityNotifications" type="checkbox" />
+                  <input
+                    v-model="settings.securityNotifications"
+                    type="checkbox"
+                  />
 
                   <span class="toggle-slider" />
                 </label>
@@ -659,13 +1205,21 @@ onMounted(loadSettings)
 
               <div class="preference-row">
                 <div>
-                  <strong> Product and marketing emails </strong>
+                  <strong>
+                    Product and marketing emails
+                  </strong>
 
-                  <span> Receive optional product updates and information. </span>
+                  <span>
+                    Receive optional product updates and
+                    information.
+                  </span>
                 </div>
 
                 <label class="toggle">
-                  <input v-model="settings.marketingEmails" type="checkbox" />
+                  <input
+                    v-model="settings.marketingEmails"
+                    type="checkbox"
+                  />
 
                   <span class="toggle-slider" />
                 </label>
@@ -680,7 +1234,11 @@ onMounted(loadSettings)
                 >
                   <Save :size="16" />
 
-                  {{ saving ? 'Saving...' : 'Save preferences' }}
+                  {{
+                    saving
+                      ? 'Saving...'
+                      : 'Save preferences'
+                  }}
                 </button>
               </div>
             </div>
@@ -693,19 +1251,119 @@ onMounted(loadSettings)
             </div>
 
             <div>
-              <p class="eyebrow">NEED ASSISTANCE?</p>
+              <p class="eyebrow">
+                NEED ASSISTANCE?
+              </p>
 
               <h3>We're here to help.</h3>
 
               <p>
-                If you need to change information that cannot currently be edited here, contact
-                Buuchezo Bank support.
+                If you need to change information that cannot
+                currently be edited here, contact Buuchezo Bank
+                support.
               </p>
             </div>
           </section>
         </template>
       </section>
     </main>
+
+    <!-- DISABLE 2FA MODAL -->
+    <div
+      v-if="twoFactorDisableOpen"
+      class="modal-overlay"
+      @click.self="cancelDisableTwoFactor"
+    >
+      <div
+        class="disable-2fa-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="disable-2fa-title"
+      >
+        <div class="modal-icon">
+          <ShieldCheck :size="23" />
+        </div>
+
+        <div class="modal-content">
+          <h3 id="disable-2fa-title">
+            Disable two-factor authentication?
+          </h3>
+
+          <p>
+            This will remove the additional authentication step
+            from your account. You will only need your email and
+            password to sign in again.
+          </p>
+
+          <div class="modal-warning">
+            <ShieldCheck :size="16" />
+
+            <span>
+              For your security, enter the current code from your
+              authenticator app to continue.
+            </span>
+          </div>
+
+          <div class="modal-form-group">
+            <label for="disable-2fa-code">
+              Authenticator code
+            </label>
+
+            <input
+              id="disable-2fa-code"
+              v-model="twoFactorDisableCode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="000000"
+              :disabled="twoFactorDisabling"
+              @input="
+                twoFactorDisableCode =
+                  twoFactorDisableCode
+                    .replace(/\D/g, '')
+                    .slice(0, 6)
+              "
+              @keyup.enter="confirmDisableTwoFactor"
+            />
+
+            <span
+              v-if="twoFactorDisableError"
+              class="modal-error"
+            >
+              {{ twoFactorDisableError }}
+            </span>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="modal-cancel-button"
+              :disabled="twoFactorDisabling"
+              @click="cancelDisableTwoFactor"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              class="modal-confirm-button"
+              :disabled="
+                twoFactorDisabling ||
+                twoFactorDisableCode.length !== 6
+              "
+              @click="confirmDisableTwoFactor"
+            >
+              {{
+                twoFactorDisabling
+                  ? 'Disabling...'
+                  : 'Disable 2FA'
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1429,6 +2087,356 @@ onMounted(loadSettings)
   font-weight: 700;
 }
 
+.two-factor-row {
+  flex-wrap: wrap;
+}
+
+.danger-button {
+  height: 39px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid #f0d1d1;
+  background: #fff6f6;
+  color: #ad4b4b;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.danger-button:hover {
+  background: #fff0f0;
+}
+
+.two-factor-setup {
+  margin: 4px 0 8px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f8fbfe;
+  border: 1px solid #e1eaf2;
+}
+
+.two-factor-setup-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.two-factor-setup-header strong,
+.two-factor-setup-header span {
+  display: block;
+}
+
+.two-factor-setup-header strong {
+  color: #304860;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.two-factor-setup-header span {
+  color: #8c9baa;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.setup-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #dce5ee;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #718397;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.two-factor-setup-body {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.qr-wrapper {
+  width: 230px;
+  height: 230px;
+  background: #ffffff;
+  border: 1px solid #e1e8ef;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.qr-wrapper img {
+  width: 210px;
+  height: 210px;
+}
+
+.two-factor-instructions p {
+  margin: 0 0 16px;
+  color: #687b8e;
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.two-factor-instructions label {
+  display: block;
+  color: #697c90;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.two-factor-instructions input {
+  width: 100%;
+  max-width: 230px;
+  height: 43px;
+  padding: 0 13px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #304860;
+  outline: none;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 5px;
+}
+
+.two-factor-instructions input:focus {
+  border-color: #07559b;
+  box-shadow: 0 0 0 3px rgba(7, 85, 155, 0.08);
+}
+
+.manual-secret {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-secret span {
+  color: #8c9baa;
+  font-size: 9px;
+}
+
+.manual-secret code {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #eef3f7;
+  color: #526b82;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.two-factor-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+/* =========================
+   DISABLE 2FA MODAL
+========================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10, 28, 48, 0.48);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalOverlayIn 0.18s ease-out;
+}
+
+.disable-2fa-modal {
+  width: 100%;
+  max-width: 455px;
+  background: #ffffff;
+  border: 1px solid #e4ebf2;
+  border-radius: 17px;
+  padding: 26px;
+  box-shadow: 0 24px 70px rgba(20, 45, 70, 0.2);
+  animation: modalIn 0.2s ease-out;
+}
+
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: #fff2f2;
+  color: #ad4b4b;
+  display: grid;
+  place-items: center;
+  margin-bottom: 17px;
+}
+
+.modal-content h3 {
+  margin: 0 0 9px;
+  color: #203952;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+
+.modal-content > p {
+  margin: 0;
+  color: #7f90a0;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.modal-warning {
+  margin-top: 18px;
+  padding: 12px 13px;
+  border-radius: 9px;
+  background: #f8fafc;
+  border: 1px solid #e7edf3;
+  color: #687c90;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.modal-warning svg {
+  flex-shrink: 0;
+  color: #07559b;
+  margin-top: 1px;
+}
+
+.modal-form-group {
+  margin-top: 19px;
+}
+
+.modal-form-group label {
+  display: block;
+  margin-bottom: 7px;
+  color: #60758a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.modal-form-group input {
+  width: 100%;
+  height: 47px;
+  padding: 0 14px;
+  border: 1px solid #dce5ee;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #203952;
+  outline: none;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.modal-form-group input::placeholder {
+  color: #c2ccd6;
+  letter-spacing: 5px;
+}
+
+.modal-form-group input:focus {
+  border-color: #07559b;
+  box-shadow: 0 0 0 3px rgba(7, 85, 155, 0.08);
+}
+
+.modal-form-group input:disabled {
+  background: #f5f7f9;
+  cursor: not-allowed;
+}
+
+.modal-error {
+  display: block;
+  margin-top: 7px;
+  color: #b14d4d;
+  font-size: 9px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 22px;
+}
+
+.modal-cancel-button,
+.modal-confirm-button {
+  height: 40px;
+  padding: 0 15px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.modal-cancel-button {
+  border: 1px solid #dce5ee;
+  background: #ffffff;
+  color: #60758a;
+}
+
+.modal-cancel-button:hover:not(:disabled) {
+  background: #f6f9fc;
+}
+
+.modal-confirm-button {
+  border: 0;
+  background: #ad4b4b;
+  color: #ffffff;
+}
+
+.modal-confirm-button:hover:not(:disabled) {
+  background: #963f3f;
+}
+
+.modal-confirm-button:disabled,
+.modal-cancel-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@keyframes modalOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* =========================
    PREFERENCES
 ========================= */
@@ -1517,7 +2525,11 @@ onMounted(loadSettings)
 
 .help-card {
   background:
-    radial-gradient(circle at 95% 10%, rgba(54, 135, 211, 0.25), transparent 25%),
+    radial-gradient(
+      circle at 95% 10%,
+      rgba(54, 135, 211, 0.25),
+      transparent 25%
+    ),
     linear-gradient(130deg, #063d74, #07559b);
   color: #ffffff;
   border-radius: 15px;
@@ -1538,7 +2550,7 @@ onMounted(loadSettings)
 }
 
 .help-card .eyebrow {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .help-card h3 {
@@ -1548,10 +2560,10 @@ onMounted(loadSettings)
 
 .help-card p:last-child {
   margin: 0;
-  color: rgba(255, 255, 255, 0.67);
+  max-width: 600px;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 10px;
   line-height: 1.6;
-  max-width: 650px;
 }
 
 /* =========================
@@ -1563,26 +2575,10 @@ onMounted(loadSettings)
 }
 
 @media (max-width: 900px) {
-  .account-information-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .account-information {
-    padding: 0;
-    border-right: 0;
-  }
-
-  .cards-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 850px) {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 15px 0 40px rgba(20, 45, 72, 0.12);
+    box-shadow: 12px 0 30px rgba(25, 50, 75, 0.08);
   }
 
   .sidebar.sidebar-open {
@@ -1590,11 +2586,11 @@ onMounted(loadSettings)
   }
 
   .mobile-overlay {
-    display: block;
     position: fixed;
     inset: 0;
-    background: rgba(11, 31, 52, 0.35);
-    z-index: 40;
+    z-index: 45;
+    display: block;
+    background: rgba(20, 40, 60, 0.35);
   }
 
   .mobile-close {
@@ -1606,25 +2602,36 @@ onMounted(loadSettings)
   }
 
   .mobile-menu-button {
-    display: flex;
+    display: inline-flex;
   }
 
   .dashboard-header {
-    padding: 0 22px;
+    padding: 0 24px;
   }
 
   .content {
-    padding: 28px 22px 50px;
+    padding: 28px 24px 50px;
+  }
+
+  .account-information-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .account-information {
+    border-right: 0;
+    padding: 4px 0;
   }
 }
 
 @media (max-width: 650px) {
   .dashboard-header {
-    height: 75px;
+    height: 76px;
+    padding: 0 17px;
   }
 
-  .header-left h1 {
-    font-size: 19px;
+  .header-right {
+    gap: 10px;
   }
 
   .profile-info,
@@ -1632,16 +2639,12 @@ onMounted(loadSettings)
     display: none;
   }
 
-  .header-right {
-    gap: 10px;
+  .content {
+    padding: 24px 16px 40px;
   }
 
   .page-intro h2 {
     font-size: 23px;
-  }
-
-  .settings-card {
-    padding: 18px;
   }
 
   .form-grid {
@@ -1652,57 +2655,79 @@ onMounted(loadSettings)
     grid-column: auto;
   }
 
+  .settings-card {
+    padding: 17px;
+  }
+
   .settings-card-footer {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .account-information-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
+    grid-template-columns: 1fr 1fr;
   }
 
   .security-row {
     align-items: flex-start;
     flex-wrap: wrap;
-    padding: 12px 0;
   }
 
   .security-row-content {
-    min-width: calc(100% - 60px);
+    min-width: calc(100% - 51px);
   }
 
-  .security-row .secondary-button,
-  .security-row .verified-badge {
+  .security-row > .secondary-button,
+  .security-row > .danger-button,
+  .security-row > .verified-badge {
     margin-left: 51px;
   }
 
+  .two-factor-setup-body {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-wrapper {
+    width: 230px;
+    height: 230px;
+    margin: 0 auto;
+  }
+
+  .two-factor-instructions input {
+    max-width: none;
+  }
+
+  .two-factor-actions {
+    justify-content: stretch;
+  }
+
+  .two-factor-actions button {
+    flex: 1;
+  }
+
   .preference-row {
-    padding: 12px 0;
     align-items: flex-start;
+    padding: 17px 0;
   }
 
   .help-card {
-    flex-direction: column;
+    padding: 19px;
   }
 }
 
-@media (max-width: 430px) {
-  .content {
-    padding-left: 16px;
-    padding-right: 16px;
+@media (max-width: 520px) {
+  .disable-2fa-modal {
+    padding: 21px;
   }
 
-  .dashboard-header {
-    padding: 0 16px;
+  .modal-actions {
+    flex-direction: column-reverse;
   }
 
-  .profile {
-    display: none;
-  }
-
-  .section-heading h2 {
-    font-size: 16px;
+  .modal-cancel-button,
+  .modal-confirm-button {
+    width: 100%;
   }
 }
 </style>
+```
