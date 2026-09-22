@@ -167,15 +167,15 @@ const uniqueTransactionTypes = computed(() => {
 
 function getToken(): string | null {
   return (
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken')
   )
 }
 
 function getStoredUser(): CurrentUser | null {
   const storedUser =
-    localStorage.getItem('user') ||
-    sessionStorage.getItem('user')
+    localStorage.getItem('adminUser') ||
+    sessionStorage.getItem('adminUser')
 
   if (!storedUser) {
     return null
@@ -336,7 +336,7 @@ async function loadCurrentUser() {
   const token = getToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -351,7 +351,7 @@ async function loadCurrentUser() {
 
   if (!response.ok) {
     if (response.status === 401) {
-      await router.push('/login')
+      await router.push('/admin/login')
       return
     }
 
@@ -363,14 +363,6 @@ async function loadCurrentUser() {
   const result = await response.json()
 
   currentUser.value = result?.data?.user ?? null
-
-  const isAdmin = currentUser.value?.roles?.some(
-    (role) => role.name === 'ADMIN',
-  )
-
-  if (!isAdmin) {
-    await router.push('/dashboard')
-  }
 }
 
 async function loadTransactions(
@@ -379,7 +371,7 @@ async function loadTransactions(
   const token = getToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -413,7 +405,7 @@ async function loadTransactions(
 
     if (!response.ok) {
       if (response.status === 401) {
-        await router.push('/login')
+        await router.push('/admin/login')
         return
       }
 
@@ -504,7 +496,7 @@ async function makeDeposit() {
   const token = getToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -553,7 +545,7 @@ async function makeDeposit() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        await router.push('/login')
+        await router.push('/admin/login')
         return
       }
 
@@ -597,13 +589,13 @@ async function makeDeposit() {
 }
 
 function logout() {
-  localStorage.removeItem('accessToken')
+  localStorage.removeItem('adminAccessToken')
   localStorage.removeItem('user')
 
-  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('adminAccessToken')
   sessionStorage.removeItem('user')
 
-  router.push('/login')
+  router.push('/admin/login')
 }
 
 onMounted(async () => {
@@ -3450,3 +3442,6 @@ onMounted(async () => {
   }
 }
 </style>cd
+
+
+

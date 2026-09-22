@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import AdminLoginView from '../views/AdminLoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import AccountsView from '../views/AccountsView.vue'
 import TransactionsView from '../views/TransactionsView.vue'
@@ -27,6 +28,12 @@ const router = createRouter({
       component: HomeView,
     },
 
+    /*
+     * ------------------------------------------------------------
+     * CUSTOMER AUTHENTICATION
+     * ------------------------------------------------------------
+     */
+
     {
       path: '/login',
       name: 'login',
@@ -44,6 +51,24 @@ const router = createRouter({
         guestOnly: true,
       },
     },
+
+    /*
+     * ------------------------------------------------------------
+     * ADMIN AUTHENTICATION
+     * ------------------------------------------------------------
+     */
+
+    {
+      path: '/admin/login',
+      name: 'admin-login',
+      component: AdminLoginView,
+    },
+
+    /*
+     * ------------------------------------------------------------
+     * CUSTOMER ROUTES
+     * ------------------------------------------------------------
+     */
 
     {
       path: '/dashboard',
@@ -89,10 +114,20 @@ const router = createRouter({
         requiresAuth: true,
       },
     },
+
     {
       path: '/investments',
       name: 'investments',
       component: InvestmentsView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+
+    {
+      path: '/market',
+      name: 'market',
+      component: MarketDataView,
       meta: {
         requiresAuth: true,
       },
@@ -107,54 +142,65 @@ const router = createRouter({
       },
     },
 
+    /*
+     * ------------------------------------------------------------
+     * ADMIN ROUTES
+     * ------------------------------------------------------------
+     *
+     * These routes use the ADMIN authentication session.
+     *
+     * They do NOT use:
+     *
+     *   accessToken
+     *   user.roles
+     *
+     * They require:
+     *
+     *   adminAccessToken
+     *
+     */
+
     {
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: AdminDashboardView,
       meta: {
-        requiresAuth: true,
         requiresAdmin: true,
       },
     },
-    {
-      path: '/market',
-      name: 'market',
-      component: MarketDataView,
-      meta: { requiresAuth: true },
-    },
+
     {
       path: '/admin/users',
       name: 'admin-users',
       component: AdminUsersView,
       meta: {
-        requiresAuth: true,
         requiresAdmin: true,
       },
     },
+
     {
       path: '/admin/accounts',
       name: 'admin-accounts',
       component: AdminAccountsView,
       meta: {
-        requiresAuth: true,
         requiresAdmin: true,
       },
     },
+
     {
       path: '/admin/transactions',
       name: 'admin-transactions',
       component: AdminTransactionsView,
       meta: {
-        requiresAuth: true,
         requiresAdmin: true,
       },
     },
+
     {
       path: '/admin/card-applications',
       name: 'admin-card-applications',
       component: AdminCardApplicationsView,
       meta: {
-        requiresAuth: true,
         requiresAdmin: true,
       },
     },
@@ -166,33 +212,76 @@ const router = createRouter({
 | Authentication / Authorization Guard
 |--------------------------------------------------------------------------
 |
-| This runs before every route navigation.
+| CUSTOMER SESSION
+| ----------------
+| accessToken
+| user
 |
-| requiresAuth:
-|   The user must have an access token.
+| ADMIN SESSION
+| --------------
+| adminAccessToken
+| adminUser
 |
-| guestOnly:
-|   Logged-in users should not visit login/register.
-|
-| requiresAdmin:
-|   The logged-in user must have the ADMIN role.
+| The two sessions are intentionally independent.
 |
 */
 
 router.beforeEach((to) => {
-  const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
-
-  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
-
-  const isAuthenticated = Boolean(accessToken)
-
   /*
    * ------------------------------------------------------------
-   * 1. Protect authenticated routes
+   * CUSTOMER SESSION
    * ------------------------------------------------------------
    */
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
+  const customerAccessToken =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+
+  const customerAuthenticated = Boolean(customerAccessToken)
+
+  /*
+   * ------------------------------------------------------------
+   * ADMIN SESSION
+   * ------------------------------------------------------------
+   */
+
+  const adminAccessToken =
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken')
+
+  const adminAuthenticated = Boolean(adminAccessToken)
+
+  /*
+   * ------------------------------------------------------------
+   * 1. ADMIN ROUTES
+   * ------------------------------------------------------------
+   *
+   * Admin routes are protected ONLY by the admin token.
+   *
+   * A customer JWT is not sufficient.
+   *
+   */
+
+  if (to.meta.requiresAdmin) {
+    if (!adminAuthenticated) {
+      return {
+        name: 'admin-login',
+        query: {
+          redirect: to.fullPath,
+        },
+      }
+    }
+
+    return true
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * 2. CUSTOMER ROUTES
+   * ------------------------------------------------------------
+   */
+
+  if (to.meta.requiresAuth && !customerAuthenticated) {
     return {
       name: 'login',
       query: {
@@ -203,12 +292,16 @@ router.beforeEach((to) => {
 
   /*
    * ------------------------------------------------------------
-   * 2. Prevent authenticated users from going back to
-   *    login/register
+   * 3. CUSTOMER GUEST ROUTES
    * ------------------------------------------------------------
+   *
+   * A customer session should prevent the customer from
+   * unnecessarily returning to the customer login/register page.
+   *
+   * An ADMIN session alone does NOT count as a customer session.
    */
 
-  if (to.meta.guestOnly && isAuthenticated) {
+  if (to.meta.guestOnly && customerAuthenticated) {
     return {
       name: 'dashboard',
     }
@@ -216,35 +309,22 @@ router.beforeEach((to) => {
 
   /*
    * ------------------------------------------------------------
-   * 3. Protect administrator routes
+   * 4. ADMIN LOGIN
    * ------------------------------------------------------------
+   *
+   * An existing customer session does NOT prevent an admin
+   * from visiting /admin/login.
+   *
+   * This is intentional because the same person may have:
+   *
+   *   customer session + admin session
+   *
+   * simultaneously.
    */
 
-  if (to.meta.requiresAdmin) {
-    if (!storedUser) {
-      return {
-        name: 'dashboard',
-      }
-    }
-
-    try {
-      const user = JSON.parse(storedUser)
-
-      const isAdmin =
-        Array.isArray(user.roles) &&
-        user.roles.some((role: { name?: string }) => role?.name === 'ADMIN')
-
-      if (!isAdmin) {
-        return {
-          name: 'dashboard',
-        }
-      }
-    } catch (error) {
-      console.error('Could not read stored user information:', error)
-
-      return {
-        name: 'dashboard',
-      }
+  if (to.name === 'admin-login' && adminAuthenticated) {
+    return {
+      name: 'admin-dashboard',
     }
   }
 

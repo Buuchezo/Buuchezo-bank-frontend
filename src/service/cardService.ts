@@ -12,13 +12,25 @@ export interface Card {
   updatedAt: string
 }
 
-function getToken(): string | null {
-  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+function getCustomerToken(): string | null {
+  return (
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+  )
 }
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken()
+function getAdminToken(): string | null {
+  return (
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken')
+  )
+}
 
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  token: string | null = getCustomerToken(),
+): Promise<T> {
   if (!token) {
     throw new Error('No authentication token found')
   }
@@ -51,8 +63,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return response.json()
 }
 
+// ============================================================
+// CUSTOMER
+// ============================================================
+
 export async function getCardsByAccount(accountNumber: string): Promise<Card[]> {
-  return request<Card[]>(`/api/cards/account/${encodeURIComponent(accountNumber)}`)
+  return request<Card[]>(
+    `/api/cards/account/${encodeURIComponent(accountNumber)}`,
+  )
 }
 
 export async function getCardById(id: number): Promise<Card> {
@@ -60,7 +78,9 @@ export async function getCardById(id: number): Promise<Card> {
 }
 
 export async function getCardByNumber(cardNumber: string): Promise<Card> {
-  return request<Card>(`/api/cards/number/${encodeURIComponent(cardNumber)}`)
+  return request<Card>(
+    `/api/cards/number/${encodeURIComponent(cardNumber)}`,
+  )
 }
 
 export async function getCardsByAccountAndStatus(
@@ -72,23 +92,45 @@ export async function getCardsByAccountAndStatus(
   )
 }
 
+// ============================================================
+// ADMIN
+// ============================================================
+
 export async function activateCard(id: number): Promise<Card> {
-  return request<Card>(`/api/cards/${id}/activate`, {
-    method: 'PATCH',
-  })
+  return request<Card>(
+    `/api/cards/${id}/activate`,
+    {
+      method: 'PATCH',
+    },
+    getAdminToken(),
+  )
 }
 
 export async function blockCard(id: number): Promise<Card> {
-  return request<Card>(`/api/cards/${id}/block`, {
-    method: 'PATCH',
-  })
+  return request<Card>(
+    `/api/cards/${id}/block`,
+    {
+      method: 'PATCH',
+    },
+    getAdminToken(),
+  )
 }
 
 export async function cancelCard(id: number): Promise<Card> {
-  return request<Card>(`/api/cards/${id}/cancel`, {
-    method: 'PATCH',
-  })
+  return request<Card>(
+    `/api/cards/${id}/cancel`,
+    {
+      method: 'PATCH',
+    },
+    getAdminToken(),
+  )
 }
+
 export async function getAllCards(): Promise<Card[]> {
-  return request<Card[]>('/api/cards/admin/all')
+  return request<Card[]>(
+    '/api/cards/admin/all',
+    {},
+    getAdminToken(),
+  )
 }
+

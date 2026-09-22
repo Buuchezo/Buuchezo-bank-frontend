@@ -24,13 +24,25 @@ export interface CreateCardApplicationRequest {
   holderName: string
 }
 
-function getToken(): string | null {
-  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+function getCustomerToken(): string | null {
+  return (
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+  )
 }
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken()
+function getAdminToken(): string | null {
+  return (
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken')
+  )
+}
 
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  token: string | null = getCustomerToken(),
+): Promise<T> {
   if (!token) {
     throw new Error('No authentication token found')
   }
@@ -70,18 +82,32 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export async function createCardApplication(
   requestData: CreateCardApplicationRequest,
 ): Promise<CardApplication> {
-  return request<CardApplication>('/api/cards/applications', {
-    method: 'POST',
-    body: JSON.stringify(requestData),
-  })
+  return request<CardApplication>(
+    '/api/cards/applications',
+    {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+    },
+    getCustomerToken(),
+  )
 }
 
 export async function getMyCardApplications(): Promise<CardApplication[]> {
-  return request<CardApplication[]>('/api/cards/applications')
+  return request<CardApplication[]>(
+    '/api/cards/applications',
+    {},
+    getCustomerToken(),
+  )
 }
 
-export async function getMyCardApplication(id: number): Promise<CardApplication> {
-  return request<CardApplication>(`/api/cards/applications/${id}`)
+export async function getMyCardApplication(
+  id: number,
+): Promise<CardApplication> {
+  return request<CardApplication>(
+    `/api/cards/applications/${id}`,
+    {},
+    getCustomerToken(),
+  )
 }
 
 // ============================================================
@@ -89,27 +115,45 @@ export async function getMyCardApplication(id: number): Promise<CardApplication>
 // ============================================================
 
 export async function getPendingCardApplications(): Promise<CardApplication[]> {
-  return request<CardApplication[]>('/api/cards/applications/pending')
+  return request<CardApplication[]>(
+    '/api/cards/applications/pending',
+    {},
+    getAdminToken(),
+  )
 }
 
 export async function getAllCardApplications(): Promise<CardApplication[]> {
-  return request<CardApplication[]>('/api/cards/applications/all')
+  return request<CardApplication[]>(
+    '/api/cards/applications/all',
+    {},
+    getAdminToken(),
+  )
 }
 
-export async function approveCardApplication(id: number): Promise<CardApplication> {
-  return request<CardApplication>(`/api/cards/applications/${id}/approve`, {
-    method: 'PATCH',
-  })
+export async function approveCardApplication(
+  id: number,
+): Promise<CardApplication> {
+  return request<CardApplication>(
+    `/api/cards/applications/${id}/approve`,
+    {
+      method: 'PATCH',
+    },
+    getAdminToken(),
+  )
 }
 
 export async function rejectCardApplication(
   id: number,
   rejectionReason: string,
 ): Promise<CardApplication> {
-  return request<CardApplication>(`/api/cards/applications/${id}/reject`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      rejectionReason,
-    }),
-  })
+  return request<CardApplication>(
+    `/api/cards/applications/${id}/reject`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        rejectionReason,
+      }),
+    },
+    getAdminToken(),
+  )
 }

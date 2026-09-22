@@ -54,21 +54,21 @@ const searchQuery = ref('')
 const statusFilter = ref<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL')
 
 function getAccessToken(): string | null {
-  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+  return localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
 }
 
 function logout() {
-  localStorage.removeItem('accessToken')
+  localStorage.removeItem('adminAccessToken')
   localStorage.removeItem('user')
 
-  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('adminAccessToken')
   sessionStorage.removeItem('user')
 
-  router.push('/login')
+  router.push('/admin/login')
 }
 
 const currentUser = computed(() => {
-  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+  const storedUser = localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser')
 
   if (!storedUser) {
     return null
@@ -146,7 +146,7 @@ async function loadApplications() {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/login')
+    router.push('/admin/login')
     return
   }
 
@@ -2431,3 +2431,5 @@ onMounted(() => {
   }
 }
 </style>
+
+

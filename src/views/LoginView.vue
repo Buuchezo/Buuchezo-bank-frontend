@@ -443,23 +443,36 @@ const handleTwoFactorLogin = async () => {
 const completeLogin = async (token: string, user: LoginUser) => {
   const storage = rememberMe.value ? localStorage : sessionStorage
 
+  /*
+   * ------------------------------------------------------------
+   * CUSTOMER SESSION
+   * ------------------------------------------------------------
+   *
+   * This login page is ONLY for customer authentication.
+   *
+   * Even if the same email also has a separate administrator
+   * identity, customer login always creates a customer session.
+   *
+   * Administrator authentication happens exclusively through:
+   *
+   *   /admin/login
+   *
+   * and uses:
+   *
+   *   adminAccessToken
+   */
+
   storage.setItem('accessToken', token)
   storage.setItem('user', JSON.stringify(user))
 
   /*
-   * Check the user's backend role.
+   * Never inspect the customer's roles to decide whether the
+   * user should enter the administrator portal.
    *
-   * ADMIN users go to the administration dashboard.
-   * All other users go to the normal customer dashboard.
+   * The customer and administrator identities are separate.
    */
 
-  const isAdmin = user.roles?.some((role) => role.name === 'ADMIN')
-
-  if (isAdmin) {
-    await router.push('/admin/dashboard')
-  } else {
-    await router.push('/dashboard')
-  }
+  await router.push('/dashboard')
 }
 
 /*
@@ -1203,3 +1216,4 @@ const handleForgotPassword = () => {
 }
 
 </style>
+

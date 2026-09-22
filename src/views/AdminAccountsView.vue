@@ -129,24 +129,24 @@ const customerPercentage = computed(() => {
 })
 
 function getAccessToken(): string | null {
-  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+  return localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
 }
 
 function logout() {
-  localStorage.removeItem('accessToken')
+  localStorage.removeItem('adminAccessToken')
   localStorage.removeItem('user')
 
-  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('adminAccessToken')
   sessionStorage.removeItem('user')
 
-  router.push('/login')
+  router.push('/admin/login')
 }
 
 async function loadCurrentUser() {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/login')
+    router.push('/admin/login')
     return false
   }
 
@@ -182,7 +182,7 @@ async function loadStatistics() {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/login')
+    router.push('/admin/login')
     return
   }
 
@@ -2324,3 +2324,5 @@ onMounted(() => {
   }
 }
 </style>
+
+

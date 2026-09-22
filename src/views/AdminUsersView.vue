@@ -131,19 +131,19 @@ const inactiveUsersOnPage = computed(() => {
 
 function getAccessToken(): string | null {
   return (
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken')
   )
 }
 
 function logout() {
-  localStorage.removeItem('accessToken')
+  localStorage.removeItem('adminAccessToken')
   localStorage.removeItem('user')
 
-  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('adminAccessToken')
   sessionStorage.removeItem('user')
 
-  router.push('/login')
+  router.push('/admin/login')
 }
 
 /*
@@ -156,7 +156,7 @@ async function loadCurrentUser(): Promise<boolean> {
   const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return false
   }
 
@@ -209,7 +209,7 @@ async function loadUsers() {
   const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -320,7 +320,7 @@ async function searchUsers() {
   const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -523,7 +523,7 @@ async function toggleUserStatus(user: User) {
   const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push('/admin/login')
     return
   }
 
@@ -637,9 +637,10 @@ function getUserRole(user: User): string {
   return user.roles[0]?.name || 'CUSTOMER'
 }
 
-function isAdmin(user: User): boolean {
+function isAdminUser(user: User): boolean {
   return user.roles?.some((role) => role.name === 'ADMIN') ?? false
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -657,15 +658,9 @@ onMounted(async () => {
     }
 
     /*
-     * The router guard already protects this route.
-     *
-     * This additional check keeps the page safe if the stored
-     * user information changes while the application is open.
+     * The router guard and backend ADMIN authority protect this route.
+     * The separate admin session is already authenticated at this point.
      */
-    if (!currentUser.value || !isAdmin(currentUser.value)) {
-      await router.replace('/dashboard')
-      return
-    }
 
     await loadUsers()
   } catch (error) {
@@ -1067,11 +1062,11 @@ onMounted(async () => {
                     <span
                       class="role-badge"
                       :class="{
-                        'admin-role': isAdmin(user),
+                        'admin-role': isAdminUser(user),
                       }"
                     >
                       <ShieldCheck
-                        v-if="isAdmin(user)"
+                        v-if="isAdminUser(user)"
                         :size="13"
                       />
 
@@ -2435,3 +2430,8 @@ onMounted(async () => {
   }
 }
 </style>
+
+
+
+
+
