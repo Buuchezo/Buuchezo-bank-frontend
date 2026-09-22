@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   LayoutDashboard,
   Users,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -71,7 +72,11 @@ const errorMessage = ref('')
 
 const mobileMenuOpen = ref(false)
 
-const searchQuery = ref('')
+const searchQuery = ref(
+  typeof route.query.search === 'string'
+    ? route.query.search
+    : '',
+)
 const roleFilter = ref('')
 
 const currentPage = ref(0)
@@ -2430,6 +2435,7 @@ onMounted(async () => {
   }
 }
 </style>
+
 
 
 

@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 import {
   Activity,
   ArrowLeftRight,
-  Bell,
+
   ChevronRight,
   CreditCard,
   LayoutDashboard,
@@ -68,6 +69,10 @@ const currentUser = ref<User | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
 const mobileMenuOpen = ref(false)
+
+const searchOpen = ref(false)
+const searchQuery = ref('')
+
 const pendingCardApplications = ref(0)
 const loadingCardApplications = ref(false)
 const adminCards = ref<Card[]>([])
@@ -120,6 +125,46 @@ const customerPercentage = computed(() => {
 
 function getAccessToken(): string | null {
   return localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
+}
+
+function openSearch() {
+  searchOpen.value = true
+
+  requestAnimationFrame(() => {
+    const input = document.querySelector<HTMLInputElement>(
+      '.admin-header-search input',
+    )
+
+    input?.focus()
+  })
+}
+
+function closeSearch() {
+  searchOpen.value = false
+  searchQuery.value = ''
+}
+
+function executeSearch() {
+  const query = searchQuery.value.trim()
+
+  if (!query) {
+    return
+  }
+
+  router.push({
+    path: '/admin/users',
+    query: {
+      search: query,
+    },
+  })
+
+  closeSearch()
+}
+
+function handleSearchKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    closeSearch()
+  }
 }
 
 function logout() {
@@ -435,18 +480,39 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
-          <button class="header-icon-button" title="Search" type="button">
+          <div v-if="searchOpen" class="admin-header-search">
+            <Search :size="17" />
+
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search users, email or account..."
+              autocomplete="off"
+              @keydown="handleSearchKeydown"
+              @keyup.enter="executeSearch"
+            />
+
+            <button
+              class="search-close-button"
+              title="Close search"
+              type="button"
+              @click="closeSearch"
+            >
+              
+            </button>
+          </div>
+
+          <button
+            v-else
+            class="header-icon-button"
+            title="Search"
+            type="button"
+            @click="openSearch"
+          >
             <Search :size="19" />
           </button>
 
-          <button
-            class="header-icon-button notification-button"
-            title="Notifications"
-            type="button"
-          >
-            <Bell :size="19" />
-            <span class="notification-dot"></span>
-          </button>
+          <NotificationDropdown />
 
           <div class="header-profile">
             <div class="profile-avatar">
@@ -1211,6 +1277,57 @@ onMounted(() => {
   right: 8px;
 }
 
+.admin-header-search {
+  height: 38px;
+  min-width: 280px;
+  padding: 0 8px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dce4ec;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 5px 18px rgba(15, 35, 55, 0.08);
+}
+
+.admin-header-search svg {
+  flex-shrink: 0;
+  color: #7c8b9b;
+}
+
+.admin-header-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #17324d;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.admin-header-search input::placeholder {
+  color: #9aa7b4;
+}
+
+.search-close-button {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7c8b9b;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.search-close-button:hover {
+  background: #f1f5f8;
+  color: #17324d;
+}
+
 .header-profile {
   display: flex;
   align-items: center;
@@ -1925,7 +2042,58 @@ onMounted(() => {
     gap: 6px;
   }
 
-  .header-profile {
+  .admin-header-search {
+  height: 38px;
+  min-width: 280px;
+  padding: 0 8px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dce4ec;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 5px 18px rgba(15, 35, 55, 0.08);
+}
+
+.admin-header-search svg {
+  flex-shrink: 0;
+  color: #7c8b9b;
+}
+
+.admin-header-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #17324d;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.admin-header-search input::placeholder {
+  color: #9aa7b4;
+}
+
+.search-close-button {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7c8b9b;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.search-close-button:hover {
+  background: #f1f5f8;
+  color: #17324d;
+}
+
+.header-profile {
     margin-left: 2px;
   }
 
@@ -2250,6 +2418,10 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
+  .admin-header-search {
+    min-width: 220px;
+  }
+
   .admin-card-row {
     align-items: flex-start;
     flex-direction: column;
@@ -2287,5 +2459,7 @@ onMounted(() => {
   }
 }
 </style>
+
+
 
 

@@ -2,11 +2,35 @@ import type { Notification } from '@/types/notification'
 
 const API_BASE_URL = 'http://13.48.104.209:8084'
 
+/*
+ * ------------------------------------------------------------
+ * AUTHENTICATION
+ * ------------------------------------------------------------
+ *
+ * Customer pages use:
+ *   accessToken
+ *
+ * Admin pages use:
+ *   adminAccessToken
+ *
+ * The notification component is shared by both sides, so the
+ * service automatically prefers the admin token when an
+ * admin session exists.
+ */
+
 function getToken(): string | null {
-  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+  return (
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+  )
 }
 
-async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(
+  url: string,
+  options: RequestInit = {},
+): Promise<T> {
   const token = getToken()
 
   if (!token) {
@@ -23,14 +47,33 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     },
   })
 
-  const result = await response.json()
+  let result: T | null = null
 
-  if (!response.ok) {
-    throw new Error(result?.message || 'Notification request failed.')
+  try {
+    result = await response.json()
+  } catch {
+    result = null
   }
 
-  return result
+  if (!response.ok) {
+    const errorResult = result as
+      | { message?: string }
+      | null
+
+    throw new Error(
+      errorResult?.message ||
+        'Notification request failed.',
+    )
+  }
+
+  return result as T
 }
+
+/*
+ * ------------------------------------------------------------
+ * GET ALL NOTIFICATIONS
+ * ------------------------------------------------------------
+ */
 
 export async function getNotifications(): Promise<Notification[]> {
   const result = await request<{
@@ -42,6 +85,12 @@ export async function getNotifications(): Promise<Notification[]> {
   return result.data || []
 }
 
+/*
+ * ------------------------------------------------------------
+ * GET UNREAD NOTIFICATIONS
+ * ------------------------------------------------------------
+ */
+
 export async function getUnreadNotifications(): Promise<Notification[]> {
   const result = await request<{
     statusCode: number
@@ -52,26 +101,46 @@ export async function getUnreadNotifications(): Promise<Notification[]> {
   return result.data || []
 }
 
-export async function markNotificationAsRead(notificationId: number): Promise<Notification> {
+/*
+ * ------------------------------------------------------------
+ * MARK ONE NOTIFICATION AS READ
+ * ------------------------------------------------------------
+ */
+
+export async function markNotificationAsRead(
+  notificationId: number,
+): Promise<Notification> {
   const result = await request<{
     statusCode: number
     message: string
     data: Notification
-  }>(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
-    method: 'PATCH',
-  })
+  }>(
+    `${API_BASE_URL}/api/notifications/${notificationId}/read`,
+    {
+      method: 'PATCH',
+    },
+  )
 
   return result.data
 }
+
+/*
+ * ------------------------------------------------------------
+ * MARK ALL NOTIFICATIONS AS READ
+ * ------------------------------------------------------------
+ */
 
 export async function markAllNotificationsAsRead(): Promise<number> {
   const result = await request<{
     statusCode: number
     message: string
     data: number
-  }>(`${API_BASE_URL}/api/notifications/read-all`, {
-    method: 'PATCH',
-  })
+  }>(
+    `${API_BASE_URL}/api/notifications/read-all`,
+    {
+      method: 'PATCH',
+    },
+  )
 
   return result.data || 0
 }
