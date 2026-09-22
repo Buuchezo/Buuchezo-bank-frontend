@@ -1,1414 +1,962 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
-  ArrowLeft,
-  Building2,
-  CheckCircle2,
-  ChevronLeft,
+  Activity,
+  ArrowLeftRight,
+  Bell,
   ChevronRight,
-  CircleDollarSign,
-  Clock3,
   CreditCard,
-  FileText,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
-  Snowflake,
+  Unlock,
+  UserCheck,
   UserRound,
   Users,
   WalletCards,
   X,
   XCircle,
 } from 'lucide-vue-next'
+import {
+  type CardApplication,
+  getAllCardApplications,
+  getPendingCardApplications,
+} from '../service/cardApplicationService'
+import {
+  activateCard,
+  blockCard,
+  cancelCard,
+  type Card,
+  getCardsByAccount,
+} from '../service/cardService'
+
+const router = useRouter()
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-interface Account {
-  id: number
-  accountNumber: string
-  balance: number
-  currency: string
-  accountType: string
-  accountStatus: string
-  ownerEmail?: string
-  createdAt: string
+interface AdminStatistics {
+  totalUsers: number
+  activeUsers: number
+  inactiveUsers: number
+  totalAccounts: number
+  averageAccountPerUser: number
+  customersCount: number
+  adminsCount: number
 }
 
-interface PaginatedAccounts {
-  content: Account[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-  first: boolean
-  last: boolean
-}
-
-interface Role {
-  id: number
-  name: string
-}
-
-interface CurrentUser {
+interface User {
   id: number
   email: string
   firstName: string
   lastName: string
   enabled: boolean
-  roles: Role[]
+  roles?: Array<{
+    id: number
+    name: string
+  }>
+  createdAt: string
 }
 
-const router = useRouter()
-
-const accounts = ref<Account[]>([])
-const currentUser = ref<CurrentUser | null>(null)
-
-const loading = ref(true)
-const refreshing = ref(false)
-const changingStatusId = ref<number | null>(null)
-
-const error = ref('')
-const mobileMenuOpen = ref(false)
-
-const searchQuery = ref('')
-const statusFilter = ref('ALL')
-
-const currentPage = ref(0)
-const pageSize = ref(20)
-
-const totalElements = ref(0)
-const totalPages = ref(0)
-
-const selectedAccount = ref<Account | null>(null)
-const showStatusModal = ref(false)
-
-const statusOptions = [
-  'ALL',
-  'ACTIVE',
-  'INACTIVE',
-  'FROZEN',
-]
-
-const sidebarItems = [
-  {
-    label: 'Overview',
-    to: '/admin/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Users',
-    to: '/admin/users',
-    icon: Users,
-  },
-  {
-    label: 'Accounts',
-    to: '/admin/accounts',
-    icon: WalletCards,
-  },
-  {
-    label: 'Transactions',
-    to: '/admin/transactions',
-    icon: FileText,
-  },
-]
-
-const serviceItems = [
-  {
-    label: 'Settings',
-    to: '/settings',
-    icon: Settings,
-  },
-]
-
-const filteredAccounts = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-
-  if (!query) {
-    return accounts.value
-  }
-
-  return accounts.value.filter((account) => {
-    return (
-      account.accountNumber?.toLowerCase().includes(query) ||
-      account.ownerEmail?.toLowerCase().includes(query) ||
-      account.accountType?.toLowerCase().includes(query)
-    )
-  })
+const statistics = ref<AdminStatistics>({
+  totalUsers: 0,
+  activeUsers: 0,
+  inactiveUsers: 0,
+  totalAccounts: 0,
+  averageAccountPerUser: 0,
+  customersCount: 0,
+  adminsCount: 0,
 })
 
-const pageStart = computed(() => {
-  if (totalElements.value === 0) {
+const currentUser = ref<User | null>(null)
+
+const loading = ref(true)
+const errorMessage = ref('')
+const mobileMenuOpen = ref(false)
+const pendingCardApplications = ref(0)
+const loadingCardApplications = ref(false)
+const adminCards = ref<Card[]>([])
+const loadingCards = ref(false)
+const cardActionLoadingId = ref<number | null>(null)
+const cardActionError = ref('')
+
+const fullName = computed(() => {
+  if (!currentUser.value) {
+    return 'Administrator'
+  }
+
+  return `${currentUser.value.firstName} ${currentUser.value.lastName}`
+})
+
+const initials = computed(() => {
+  if (!currentUser.value) {
+    return 'A'
+  }
+
+  const first = currentUser.value.firstName?.charAt(0) || ''
+  const last = currentUser.value.lastName?.charAt(0) || ''
+
+  return `${first}${last}`.toUpperCase()
+})
+
+const activePercentage = computed(() => {
+  if (statistics.value.totalUsers === 0) {
     return 0
   }
 
-  return currentPage.value * pageSize.value + 1
+  return Math.round((statistics.value.activeUsers / statistics.value.totalUsers) * 100)
 })
 
-const pageEnd = computed(() => {
-  return Math.min(
-    (currentPage.value + 1) * pageSize.value,
-    totalElements.value,
-  )
+const inactivePercentage = computed(() => {
+  if (statistics.value.totalUsers === 0) {
+    return 0
+  }
+
+  return Math.round((statistics.value.inactiveUsers / statistics.value.totalUsers) * 100)
 })
 
-const activeAccounts = computed(() => {
-  return accounts.value.filter(
-    (account) => account.accountStatus === 'ACTIVE',
-  ).length
+const customerPercentage = computed(() => {
+  if (statistics.value.totalUsers === 0) {
+    return 0
+  }
+
+  return Math.round((statistics.value.customersCount / statistics.value.totalUsers) * 100)
 })
 
-const frozenAccounts = computed(() => {
-  return accounts.value.filter(
-    (account) => account.accountStatus === 'FROZEN',
-  ).length
-})
-
-const inactiveAccounts = computed(() => {
-  return accounts.value.filter(
-    (account) => account.accountStatus === 'INACTIVE',
-  ).length
-})
-
-const visibleBalance = computed(() => {
-  return accounts.value.reduce((total, account) => {
-    return total + Number(account.balance || 0)
-  }, 0)
-})
-
-function getToken(): string | null {
-  return (
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
-  )
-}
-
-function getStoredUser(): CurrentUser | null {
-  const storedUser =
-    localStorage.getItem('user') ||
-    sessionStorage.getItem('user')
-
-  if (!storedUser) {
-    return null
-  }
-
-  try {
-    return JSON.parse(storedUser)
-  } catch {
-    return null
-  }
-}
-
-function formatCurrency(
-  amount: number,
-  currency: string,
-): string {
-  try {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: currency || 'EUR',
-    }).format(amount)
-  } catch {
-    return `${amount.toFixed(2)} ${currency || ''}`
-  }
-}
-
-function formatDate(date: string): string {
-  if (!date) {
-    return '—'
-  }
-
-  const parsedDate = new Date(date)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return date
-  }
-
-  return new Intl.DateTimeFormat('de-DE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(parsedDate)
-}
-
-function formatAccountType(accountType: string): string {
-  if (!accountType) {
-    return '—'
-  }
-
-  return accountType
-    .toLowerCase()
-    .split('_')
-    .map(
-      (word) =>
-        word.charAt(0).toUpperCase() + word.slice(1),
-    )
-    .join(' ')
-}
-
-function getStatusClass(status: string): string {
-  switch (status) {
-    case 'ACTIVE':
-      return 'status-active'
-
-    case 'FROZEN':
-      return 'status-frozen'
-
-    case 'INACTIVE':
-      return 'status-inactive'
-
-    case 'CLOSED':
-      return 'status-closed'
-
-    default:
-      return 'status-default'
-  }
-}
-
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'ACTIVE':
-      return 'Active'
-
-    case 'FROZEN':
-      return 'Frozen'
-
-    case 'INACTIVE':
-      return 'Inactive'
-
-    case 'CLOSED':
-      return 'Closed'
-
-    default:
-      return status || 'Unknown'
-  }
-}
-
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'ACTIVE':
-      return CheckCircle2
-
-    case 'FROZEN':
-      return Snowflake
-
-    case 'INACTIVE':
-      return XCircle
-
-    case 'CLOSED':
-      return XCircle
-
-    default:
-      return Clock3
-  }
-}
-
-async function loadCurrentUser() {
-  const token = getToken()
-
-  if (!token) {
-    await router.push('/login')
-    return
-  }
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/users/me`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error('Unable to load your profile.')
-  }
-
-  const result = await response.json()
-
-  currentUser.value = result?.data?.user ?? null
-
-  const isAdmin = currentUser.value?.roles?.some(
-    (role) => role.name === 'ADMIN',
-  )
-
-  if (!isAdmin) {
-    await router.push('/dashboard')
-  }
-}
-
-async function loadAccounts() {
-  const token = getToken()
-
-  if (!token) {
-    await router.push('/login')
-    return
-  }
-
-  const params = new URLSearchParams()
-
-  params.set('page', String(currentPage.value))
-  params.set('size', String(pageSize.value))
-  params.set('sort', 'createdAt,desc')
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/accounts/admin/all?${params.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    },
-  )
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      await router.push('/login')
-      return
-    }
-
-    if (response.status === 403) {
-      throw new Error(
-        'You do not have permission to view admin accounts.',
-      )
-    }
-
-    throw new Error(
-      `Failed to load accounts. Server returned ${response.status}.`,
-    )
-  }
-
-  const result = await response.json()
-
-  const data: PaginatedAccounts = result?.data
-
-  accounts.value = data?.content ?? []
-  totalElements.value = data?.totalElements ?? 0
-  totalPages.value = data?.totalPages ?? 0
-}
-
-async function loadPage() {
-  loading.value = true
-  error.value = ''
-
-  try {
-    await loadCurrentUser()
-
-    if (!currentUser.value) {
-      return
-    }
-
-    await loadAccounts()
-  } catch (err) {
-    error.value =
-      err instanceof Error
-        ? err.message
-        : 'Something went wrong while loading accounts.'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function refreshAccounts() {
-  if (refreshing.value) {
-    return
-  }
-
-  refreshing.value = true
-  error.value = ''
-
-  try {
-    await loadAccounts()
-  } catch (err) {
-    error.value =
-      err instanceof Error
-        ? err.message
-        : 'Unable to refresh accounts.'
-  } finally {
-    refreshing.value = false
-  }
-}
-
-async function goToPage(page: number) {
-  if (
-    page < 0 ||
-    page >= totalPages.value ||
-    page === currentPage.value
-  ) {
-    return
-  }
-
-  currentPage.value = page
-
-  loading.value = true
-  error.value = ''
-
-  try {
-    await loadAccounts()
-  } catch (err) {
-    error.value =
-      err instanceof Error
-        ? err.message
-        : 'Unable to load this page.'
-  } finally {
-    loading.value = false
-  }
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
-
-function openStatusModal(account: Account) {
-  selectedAccount.value = account
-  showStatusModal.value = true
-}
-
-function closeStatusModal() {
-  if (changingStatusId.value !== null) {
-    return
-  }
-
-  showStatusModal.value = false
-  selectedAccount.value = null
-}
-
-async function changeAccountStatus(status: string) {
-  const account = selectedAccount.value
-
-  if (!account) {
-    return
-  }
-
-  if (account.accountStatus === status) {
-    closeStatusModal()
-    return
-  }
-
-  const token = getToken()
-
-  if (!token) {
-    await router.push('/login')
-    return
-  }
-
-  changingStatusId.value = account.id
-  error.value = ''
-
-  try {
-    const params = new URLSearchParams()
-
-    params.set('accountNumber', account.accountNumber)
-    params.set('status', status)
-
-    const response = await fetch(
-      `${API_BASE_URL}/api/accounts/admin/status?${params.toString()}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      },
-    )
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        await router.push('/login')
-        return
-      }
-
-      if (response.status === 403) {
-        throw new Error(
-          'You do not have permission to change account status.',
-        )
-      }
-
-      const result = await response.json().catch(() => null)
-
-      throw new Error(
-        result?.message ||
-        `Failed to change account status. Server returned ${response.status}.`,
-      )
-    }
-
-    const result = await response.json()
-
-    const updatedAccount: Account | undefined =
-      result?.data
-
-    if (updatedAccount) {
-      const index = accounts.value.findIndex(
-        (item) => item.id === updatedAccount.id,
-      )
-
-      if (index !== -1) {
-        accounts.value[index] = updatedAccount
-      }
-    } else {
-      account.accountStatus = status
-    }
-
-    closeStatusModal()
-  } catch (err) {
-    error.value =
-      err instanceof Error
-        ? err.message
-        : 'Unable to change account status.'
-  } finally {
-    changingStatusId.value = null
-  }
-}
-
-function clearSearch() {
-  searchQuery.value = ''
+function getAccessToken(): string | null {
+  return localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 }
 
 function logout() {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('user')
+
   sessionStorage.removeItem('accessToken')
   sessionStorage.removeItem('user')
 
   router.push('/login')
 }
 
+async function loadCurrentUser() {
+  const token = getAccessToken()
+
+  if (!token) {
+    router.push('/login')
+    return false
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.status === 401 || response.status === 403) {
+      logout()
+      return false
+    }
+
+    if (!response.ok) {
+      throw new Error('Could not load your profile.')
+    }
+
+    const result = await response.json()
+
+    currentUser.value = result.data.user
+
+    return true
+  } catch (error) {
+    console.error('Failed to load current user:', error)
+    throw error
+  }
+}
+
+async function loadStatistics() {
+  const token = getAccessToken()
+
+  if (!token) {
+    router.push('/login')
+    return
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/users/admin/stats`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (response.status === 401) {
+    logout()
+    return
+  }
+
+  if (response.status === 403) {
+    errorMessage.value = 'You do not have permission to access the administration area.'
+    return
+  }
+
+  if (!response.ok) {
+    throw new Error('Could not load administration statistics.')
+  }
+
+  const result = await response.json()
+
+  if (!result.data) {
+    throw new Error('The server returned no statistics.')
+  }
+
+  statistics.value = {
+    totalUsers: Number(result.data.totalUsers ?? 0),
+    activeUsers: Number(result.data.activeUsers ?? 0),
+    inactiveUsers: Number(result.data.inactiveUsers ?? 0),
+    totalAccounts: Number(result.data.totalAccounts ?? 0),
+    averageAccountPerUser: Number(result.data.averageAccountPerUser ?? 0),
+    customersCount: Number(result.data.customersCount ?? 0),
+    adminsCount: Number(result.data.adminsCount ?? 0),
+  }
+}
+
+async function loadPendingCardApplications() {
+  loadingCardApplications.value = true
+
+  try {
+    const applications = await getPendingCardApplications()
+    pendingCardApplications.value = applications.length
+  } catch (error) {
+    console.error('Failed to load pending card applications:', error)
+    pendingCardApplications.value = 0
+  } finally {
+    loadingCardApplications.value = false
+  }
+}
+
+async function loadAdminCards() {
+  loadingCards.value = true
+  cardActionError.value = ''
+
+  try {
+    const applications: CardApplication[] = await getAllCardApplications()
+
+    const approvedApplications = applications.filter(
+      (application) => application.applicationStatus === 'APPROVED' && application.cardId !== null,
+    )
+
+    const accountNumbers = [
+      ...new Set(approvedApplications.map((application) => application.accountNumber)),
+    ]
+
+    const accountCardResults = await Promise.all(
+      accountNumbers.map(async (accountNumber) => {
+        try {
+          return await getCardsByAccount(accountNumber)
+        } catch (error) {
+          console.error(`Failed to load cards for account ${accountNumber}:`, error)
+          return []
+        }
+      }),
+    )
+
+    const approvedCardIds = new Set(
+      approvedApplications
+        .map((application) => application.cardId)
+        .filter((id): id is number => id !== null),
+    )
+
+    adminCards.value = accountCardResults.flat().filter((card) => approvedCardIds.has(card.id))
+  } catch (error) {
+    console.error('Failed to load admin cards:', error)
+    cardActionError.value =
+      error instanceof Error ? error.message : 'Could not load customer cards.'
+  } finally {
+    loadingCards.value = false
+  }
+}
+
+async function handleCardAction(card: Card, action: 'BLOCK' | 'ACTIVATE' | 'CANCEL') {
+  if (cardActionLoadingId.value !== null) {
+    return
+  }
+
+  const actionText = action === 'BLOCK' ? 'freeze' : action === 'ACTIVATE' ? 'unfreeze' : 'cancel'
+
+  const confirmation = window.confirm(
+    action === 'CANCEL'
+      ? `Cancel card ${card.maskedCardNumber}? This action is permanent and the card cannot be activated again.`
+      : `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} card ${card.maskedCardNumber}?`,
+  )
+
+  if (!confirmation) {
+    return
+  }
+
+  cardActionLoadingId.value = card.id
+  cardActionError.value = ''
+
+  try {
+    let updatedCard: Card
+
+    if (action === 'BLOCK') {
+      updatedCard = await blockCard(card.id)
+    } else if (action === 'ACTIVATE') {
+      updatedCard = await activateCard(card.id)
+    } else {
+      updatedCard = await cancelCard(card.id)
+    }
+
+    const index = adminCards.value.findIndex((item) => item.id === updatedCard.id)
+
+    if (index !== -1) {
+      adminCards.value[index] = updatedCard
+    }
+  } catch (error) {
+    console.error(`Failed to ${actionText} card:`, error)
+    cardActionError.value =
+      error instanceof Error ? error.message : 'Could not update the card status.'
+  } finally {
+    cardActionLoadingId.value = null
+  }
+}
+
+async function loadDashboard() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const authenticated = await loadCurrentUser()
+
+    if (!authenticated) {
+      return
+    }
+
+    await Promise.all([loadStatistics(), loadPendingCardApplications(), loadAdminCards()])
+  } catch (error) {
+    console.error('Failed to load admin dashboard:', error)
+
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Something went wrong while loading the dashboard.'
+  } finally {
+    loading.value = false
+  }
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-US').format(value)
+}
+
+function formatDecimal(value: number): string {
+  return value.toFixed(2)
+}
+
 onMounted(() => {
-  loadPage()
+  loadDashboard()
 })
 </script>
 
 <template>
-  <div class="admin-page">
-
-    <!-- Mobile overlay -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    ></div>
+  <div class="admin-layout">
+    <!-- Mobile Overlay -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
 
     <!-- Sidebar -->
-    <aside
-      class="sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
+    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="admin-sidebar">
       <div class="sidebar-top">
+        <!-- Logo -->
+        <RouterLink class="admin-logo" to="/">
+          <span class="logo-mark">B</span>
 
-        <RouterLink
-          to="/"
-          class="brand"
-          @click="mobileMenuOpen = false"
-        >
-          <span class="brand-mark">B</span>
-
-          <span class="brand-text">
+          <div class="logo-text">
             <strong>Buuchezo</strong>
-            <small>Bank</small>
-          </span>
+            <span>Bank</span>
+          </div>
         </RouterLink>
 
-        <button
-          class="mobile-close"
-          type="button"
-          aria-label="Close navigation"
-          @click="mobileMenuOpen = false"
-        >
+        <!-- Mobile Close -->
+        <button class="mobile-close" type="button" @click="mobileMenuOpen = false">
           <X :size="22" />
         </button>
 
-        <div class="admin-label">
-          <ShieldCheck :size="15" />
-          <span>ADMINISTRATION</span>
-        </div>
-
-        <nav class="navigation">
+        <!-- Navigation -->
+        <nav class="admin-navigation">
+          <p class="navigation-label">ADMINISTRATION</p>
 
           <RouterLink
-            v-for="item in sidebarItems"
-            :key="item.to"
-            :to="item.to"
-            class="nav-item"
-            :class="{ active: item.to === '/admin/accounts' }"
+            class="admin-nav-link active"
+            to="/admin/dashboard"
             @click="mobileMenuOpen = false"
           >
-            <component
-              :is="item.icon"
-              :size="19"
-            />
-
-            <span>{{ item.label }}</span>
+            <LayoutDashboard :size="19" />
+            <span>Overview</span>
           </RouterLink>
 
-        </nav>
+          <RouterLink class="admin-nav-link" to="/admin/users" @click="mobileMenuOpen = false">
+            <Users :size="19" />
+            <span>Users</span>
+          </RouterLink>
 
-        <div class="nav-divider"></div>
-
-        <div class="nav-section-title">
-          SERVICES
-        </div>
-
-        <nav class="navigation">
+          <RouterLink class="admin-nav-link" to="/admin/accounts" @click="mobileMenuOpen = false">
+            <WalletCards :size="19" />
+            <span>Accounts</span>
+          </RouterLink>
 
           <RouterLink
-            v-for="item in serviceItems"
-            :key="item.to"
-            :to="item.to"
-            class="nav-item"
+            class="admin-nav-link"
+            to="/admin/transactions"
             @click="mobileMenuOpen = false"
           >
-            <component
-              :is="item.icon"
-              :size="19"
-            />
-
-            <span>{{ item.label }}</span>
+            <ArrowLeftRight :size="19" />
+            <span>Transactions</span>
           </RouterLink>
 
+          <RouterLink
+            class="admin-nav-link"
+            to="/admin/card-applications"
+            @click="mobileMenuOpen = false"
+          >
+            <CreditCard :size="19" />
+            <span>Card Applications</span>
+            <span v-if="pendingCardApplications > 0" class="nav-count-badge">
+              {{ pendingCardApplications }}
+            </span>
+          </RouterLink>
+
+          <p class="navigation-label second-label">SYSTEM</p>
+
+          <RouterLink class="admin-nav-link" to="/settings" @click="mobileMenuOpen = false">
+            <Settings :size="19" />
+            <span>Settings</span>
+          </RouterLink>
         </nav>
       </div>
 
+      <!-- Sidebar Bottom -->
       <div class="sidebar-bottom">
-
-        <div class="admin-profile">
-
-          <div class="profile-avatar">
-            {{ currentUser?.firstName?.charAt(0) || 'A' }}
+        <div class="admin-support">
+          <div class="support-icon">
+            <ShieldCheck :size="18" />
           </div>
 
-          <div class="profile-details">
-            <strong>
-              {{
-                currentUser
-                  ? `${currentUser.firstName} ${currentUser.lastName}`
-                  : 'Administrator'
-              }}
-            </strong>
-
-            <span>
-              Administrator
-            </span>
+          <div>
+            <strong>Admin Area</strong>
+            <span>Secure access</span>
           </div>
-
         </div>
 
-        <button
-          class="logout-button"
-          type="button"
-          @click="logout"
-        >
+        <button class="logout-button" type="button" @click="logout">
           <LogOut :size="18" />
-          <span>Sign out</span>
+          <span>Logout</span>
         </button>
-
       </div>
     </aside>
 
     <!-- Main -->
-    <main class="main-content">
-
+    <main class="admin-main">
       <!-- Header -->
-      <header class="topbar">
-
-        <div class="topbar-left">
-
-          <button
-            class="mobile-menu-button"
-            type="button"
-            aria-label="Open navigation"
-            @click="mobileMenuOpen = true"
-          >
-            <Menu :size="22" />
+      <header class="admin-header">
+        <div class="header-left">
+          <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = true">
+            <Menu :size="23" />
           </button>
 
           <div>
-            <span class="eyebrow">
-              ADMINISTRATION
-            </span>
-
-            <h1>
-              Accounts
-            </h1>
+            <span class="page-overline">ADMINISTRATION</span>
+            <h1>Overview</h1>
           </div>
-
         </div>
 
-        <div class="topbar-right">
+        <div class="header-right">
+          <button class="header-icon-button" title="Search" type="button">
+            <Search :size="19" />
+          </button>
 
-          <div class="admin-status">
-            <span class="status-dot"></span>
-            <span>System operational</span>
+          <button
+            class="header-icon-button notification-button"
+            title="Notifications"
+            type="button"
+          >
+            <Bell :size="19" />
+            <span class="notification-dot"></span>
+          </button>
+
+          <div class="header-profile">
+            <div class="profile-avatar">
+              {{ initials }}
+            </div>
+
+            <div class="profile-info">
+              <strong>{{ fullName }}</strong>
+              <span>Administrator</span>
+            </div>
           </div>
-
-          <div class="header-avatar">
-            {{
-              currentUser?.firstName?.charAt(0) || 'A'
-            }}
-          </div>
-
         </div>
-
       </header>
 
       <!-- Content -->
-      <section class="content">
-
-        <!-- Intro -->
-        <div class="page-heading">
-
-          <div>
-            <div class="heading-icon">
-              <WalletCards :size="24" />
-            </div>
-
-            <div>
-              <h2>
-                Account management
-              </h2>
-
-              <p>
-                Review customer accounts and manage their current status.
-              </p>
-            </div>
-          </div>
-
-          <button
-            class="refresh-button"
-            type="button"
-            :disabled="refreshing"
-            @click="refreshAccounts"
-          >
-            <RefreshCw
-              :size="17"
-              :class="{ spinning: refreshing }"
-            />
-
-            <span>
-              {{ refreshing ? 'Refreshing...' : 'Refresh' }}
-            </span>
-          </button>
-
+      <section class="admin-content">
+        <!-- Loading -->
+        <div v-if="loading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <h2>Loading administration dashboard</h2>
+          <p>Retrieving the latest bank statistics...</p>
         </div>
 
         <!-- Error -->
-        <div
-          v-if="error"
-          class="error-banner"
-        >
+        <div v-else-if="errorMessage" class="error-state">
           <div class="error-icon">
-            <XCircle :size="20" />
+            <ShieldCheck :size="25" />
           </div>
 
-          <div class="error-content">
-            <strong>
-              Something went wrong
-            </strong>
+          <h2>Unable to load dashboard</h2>
+          <p>{{ errorMessage }}</p>
 
-            <span>
-              {{ error }}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            @click="loadPage"
-          >
-            Try again
-          </button>
+          <button class="retry-button" type="button" @click="loadDashboard">Try again</button>
         </div>
 
-        <!-- Statistics -->
-        <div class="stats-grid">
-
-          <article class="stat-card">
-
-            <div class="stat-top">
-              <span class="stat-label">
-                Total accounts
-              </span>
-
-              <div class="stat-icon blue">
-                <WalletCards :size="19" />
-              </div>
-            </div>
-
-            <strong class="stat-value">
-              {{ totalElements }}
-            </strong>
-
-            <span class="stat-description">
-              Registered bank accounts
-            </span>
-
-          </article>
-
-          <article class="stat-card">
-
-            <div class="stat-top">
-              <span class="stat-label">
-                Active
-              </span>
-
-              <div class="stat-icon green">
-                <CheckCircle2 :size="19" />
-              </div>
-            </div>
-
-            <strong class="stat-value">
-              {{ activeAccounts }}
-            </strong>
-
-            <span class="stat-description">
-              Accounts currently active
-            </span>
-
-          </article>
-
-          <article class="stat-card">
-
-            <div class="stat-top">
-              <span class="stat-label">
-                Frozen
-              </span>
-
-              <div class="stat-icon orange">
-                <Snowflake :size="19" />
-              </div>
-            </div>
-
-            <strong class="stat-value">
-              {{ frozenAccounts }}
-            </strong>
-
-            <span class="stat-description">
-              Accounts requiring attention
-            </span>
-
-          </article>
-
-          <article class="stat-card">
-
-            <div class="stat-top">
-              <span class="stat-label">
-                Page balance
-              </span>
-
-              <div class="stat-icon purple">
-                <CircleDollarSign :size="19" />
-              </div>
-            </div>
-
-            <strong class="stat-value stat-balance">
-              €{{ visibleBalance.toLocaleString('de-DE', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }) }}
-            </strong>
-
-            <span class="stat-description">
-              Combined balance on this page
-            </span>
-
-          </article>
-
-        </div>
-
-        <!-- Accounts panel -->
-        <section class="accounts-panel">
-
-          <!-- Toolbar -->
-          <div class="panel-toolbar">
-
-            <div class="toolbar-heading">
-
-              <div class="toolbar-icon">
-                <CreditCard :size="19" />
-              </div>
-
-              <div>
-                <h3>
-                  All accounts
-                </h3>
-
-                <span>
-                  {{ totalElements }} accounts in the system
-                </span>
-              </div>
-
-            </div>
-
-            <div class="toolbar-controls">
-
-              <!-- Search -->
-              <div class="search-box">
-
-                <Search :size="17" />
-
-                <input
-                  v-model="searchQuery"
-                  type="search"
-                  placeholder="Search account or owner..."
-                />
-
-                <button
-                  v-if="searchQuery"
-                  type="button"
-                  aria-label="Clear search"
-                  @click="clearSearch"
-                >
-                  <X :size="15" />
-                </button>
-
-              </div>
-
-              <!-- Status filter -->
-              <select
-                v-model="statusFilter"
-                class="status-filter"
-              >
-                <option
-                  v-for="status in statusOptions"
-                  :key="status"
-                  :value="status"
-                >
-                  {{
-                    status === 'ALL'
-                      ? 'All statuses'
-                      : getStatusLabel(status)
-                  }}
-                </option>
-              </select>
-
-            </div>
-
-          </div>
-
-          <!-- Loading -->
-          <div
-            v-if="loading"
-            class="loading-state"
-          >
-            <RefreshCw
-              :size="28"
-              class="spinning"
-            />
-
-            <strong>
-              Loading accounts...
-            </strong>
-
-            <span>
-              Retrieving account information from the bank system.
-            </span>
-          </div>
-
-          <!-- Empty -->
-          <div
-            v-else-if="filteredAccounts.length === 0"
-            class="empty-state"
-          >
-            <div class="empty-icon">
-              <WalletCards :size="28" />
-            </div>
-
-            <h3>
-              No accounts found
-            </h3>
-
-            <p>
-              {{
-                searchQuery || statusFilter !== 'ALL'
-                  ? 'Try changing your search or filter.'
-                  : 'There are currently no accounts to display.'
-              }}
-            </p>
-
-            <button
-              v-if="searchQuery || statusFilter !== 'ALL'"
-              type="button"
-              class="clear-filters-button"
-              @click="
-                searchQuery = '';
-                statusFilter = 'ALL'
-              "
-            >
-              Clear filters
-            </button>
-          </div>
-
-          <!-- Desktop table -->
-          <div
-            v-else
-            class="table-wrapper"
-          >
-
-            <table class="accounts-table">
-
-              <thead>
-              <tr>
-                <th>
-                  Account
-                </th>
-
-                <th>
-                  Owner
-                </th>
-
-                <th>
-                  Type
-                </th>
-
-                <th>
-                  Balance
-                </th>
-
-                <th>
-                  Status
-                </th>
-
-                <th>
-                  Created
-                </th>
-
-                <th class="action-column">
-                  Action
-                </th>
-              </tr>
-              </thead>
-
-              <tbody>
-
-              <tr
-                v-for="account in filteredAccounts.filter(
-                    (item) =>
-                      statusFilter === 'ALL' ||
-                      item.accountStatus === statusFilter
-                  )"
-                :key="account.id"
-              >
-
-                <td>
-                  <div class="account-cell">
-
-                    <div class="account-icon">
-                      <Building2 :size="18" />
-                    </div>
-
-                    <div>
-                      <strong>
-                        {{ account.accountNumber }}
-                      </strong>
-
-                      <span>
-                          ID #{{ account.id }}
-                        </span>
-                    </div>
-
-                  </div>
-                </td>
-
-                <td>
-                  <div class="owner-cell">
-
-                    <div class="owner-avatar">
-                      <UserRound :size="15" />
-                    </div>
-
-                    <span>
-                        {{ account.ownerEmail || '—' }}
-                      </span>
-
-                  </div>
-                </td>
-
-                <td>
-                    <span class="type-badge">
-                      {{ formatAccountType(account.accountType) }}
-                    </span>
-                </td>
-
-                <td>
-                  <strong class="balance-value">
-                    {{
-                      formatCurrency(
-                        Number(account.balance || 0),
-                        account.currency,
-                      )
-                    }}
-                  </strong>
-                </td>
-
-                <td>
-
-                    <span
-                      class="status-badge"
-                      :class="getStatusClass(account.accountStatus)"
-                    >
-                      <component
-                        :is="getStatusIcon(account.accountStatus)"
-                        :size="14"
-                      />
-
-                      {{
-                        getStatusLabel(
-                          account.accountStatus,
-                        )
-                      }}
-                    </span>
-
-                </td>
-
-                <td>
-                    <span class="date-cell">
-                      <Clock3 :size="14" />
-                      {{ formatDate(account.createdAt) }}
-                    </span>
-                </td>
-
-                <td class="action-column">
-
-                  <button
-                    class="manage-button"
-                    type="button"
-                    @click="openStatusModal(account)"
-                  >
-                    Manage
-                  </button>
-
-                </td>
-
-              </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-          <!-- Pagination -->
-          <div
-            v-if="!loading && totalElements > 0"
-            class="pagination"
-          >
-
-            <div class="pagination-info">
-              Showing
-              <strong>{{ pageStart }}</strong>
-              –
-              <strong>{{ pageEnd }}</strong>
-              of
-              <strong>{{ totalElements }}</strong>
-              accounts
-            </div>
-
-            <div class="pagination-controls">
-
-              <button
-                type="button"
-                :disabled="currentPage === 0"
-                @click="goToPage(currentPage - 1)"
-              >
-                <ChevronLeft :size="17" />
-                <span>Previous</span>
-              </button>
-
-              <span class="page-number">
-                Page {{ currentPage + 1 }}
-                of
-                {{ Math.max(totalPages, 1) }}
-              </span>
-
-              <button
-                type="button"
-                :disabled="
-                  currentPage >= totalPages - 1 ||
-                  totalPages === 0
-                "
-                @click="goToPage(currentPage + 1)"
-              >
-                <span>Next</span>
-                <ChevronRight :size="17" />
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        <!-- Back -->
-        <RouterLink
-          to="/admin/dashboard"
-          class="back-link"
-        >
-          <ArrowLeft :size="17" />
-          Back to Admin Dashboard
-        </RouterLink>
-
-      </section>
-
-    </main>
-
-    <!-- Status modal -->
-    <div
-      v-if="showStatusModal && selectedAccount"
-      class="modal-backdrop"
-      @click.self="closeStatusModal"
-    >
-
-      <div class="status-modal">
-
-        <div class="modal-header">
-
-          <div class="modal-title-group">
-
-            <div class="modal-icon">
-              <ShieldCheck :size="21" />
-            </div>
-
+        <!-- Dashboard -->
+        <template v-else>
+          <!-- Welcome -->
+          <section class="welcome-section">
             <div>
-              <h3>
-                Manage account
-              </h3>
+              <span class="section-kicker">BANK OPERATIONS</span>
 
-              <span>
-                {{ selectedAccount.accountNumber }}
-              </span>
+              <h2>Good morning, {{ currentUser?.firstName }}.</h2>
+
+              <p>Monitor your banking platform, users and accounts from one central workspace.</p>
             </div>
 
-          </div>
+            <div class="system-status">
+              <span class="status-pulse"></span>
+              <span>System operational</span>
+            </div>
+          </section>
 
-          <button
-            type="button"
-            class="modal-close"
-            :disabled="changingStatusId !== null"
-            @click="closeStatusModal"
-          >
-            <X :size="19" />
-          </button>
+          <!-- Main Statistics -->
+          <section class="statistics-grid">
+            <article class="stat-card primary-stat">
+              <div class="stat-card-top">
+                <div class="stat-icon">
+                  <Users :size="21" />
+                </div>
 
-        </div>
+                <span class="stat-label">TOTAL USERS</span>
+              </div>
 
-        <div class="modal-body">
+              <div class="stat-value">
+                {{ formatNumber(statistics.totalUsers) }}
+              </div>
 
-          <div class="current-status">
+              <div class="stat-footer">
+                <span> Registered users </span>
 
-            <span>
-              Current status
-            </span>
+                <UserRound :size="15" />
+              </div>
+            </article>
 
-            <span
-              class="status-badge"
-              :class="
-                getStatusClass(
-                  selectedAccount.accountStatus,
-                )
-              "
-            >
-              <component
-                :is="
-                  getStatusIcon(
-                    selectedAccount.accountStatus,
-                  )
-                "
-                :size="14"
-              />
+            <article class="stat-card">
+              <div class="stat-card-top">
+                <div class="stat-icon green-icon">
+                  <UserCheck :size="21" />
+                </div>
 
-              {{
-                getStatusLabel(
-                  selectedAccount.accountStatus,
-                )
-              }}
-            </span>
+                <span class="stat-label">ACTIVE USERS</span>
+              </div>
 
-          </div>
+              <div class="stat-value">
+                {{ formatNumber(statistics.activeUsers) }}
+              </div>
 
-          <p class="modal-description">
-            Select the new status for this account.
-            Changing the status affects how the account
-            can be used by the customer.
-          </p>
+              <div class="stat-footer">
+                <span>{{ activePercentage }}% of users</span>
+                <span class="positive-value"> Active </span>
+              </div>
+            </article>
 
-          <div class="status-options">
+            <article class="stat-card">
+              <div class="stat-card-top">
+                <div class="stat-icon orange-icon">
+                  <CreditCard :size="21" />
+                </div>
 
-            <button
-              v-for="status in statusOptions.slice(1)"
-              :key="status"
-              type="button"
-              class="status-option"
-              :class="{
-                selected:
-                  selectedAccount.accountStatus === status,
-              }"
-              :disabled="changingStatusId !== null"
-              @click="changeAccountStatus(status)"
-            >
+                <span class="stat-label">TOTAL ACCOUNTS</span>
+              </div>
 
-              <div
-                class="status-option-icon"
-                :class="getStatusClass(status)"
+              <div class="stat-value">
+                {{ formatNumber(statistics.totalAccounts) }}
+              </div>
+
+              <div class="stat-footer">
+                <span>Customer accounts</span>
+                <WalletCards :size="15" />
+              </div>
+            </article>
+
+            <article class="stat-card">
+              <div class="stat-card-top">
+                <div class="stat-icon purple-icon">
+                  <Activity :size="21" />
+                </div>
+
+                <span class="stat-label">AVG. ACCOUNTS / USER</span>
+              </div>
+
+              <div class="stat-value">
+                {{ formatDecimal(statistics.averageAccountPerUser) }}
+              </div>
+
+              <div class="stat-footer">
+                <span>Platform average</span>
+                <Activity :size="15" />
+              </div>
+            </article>
+          </section>
+
+          <!-- Secondary Statistics -->
+          <section class="dashboard-columns">
+            <!-- User Status -->
+            <article class="dashboard-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">USER STATUS</span>
+                  <h3>Account activity</h3>
+                </div>
+
+                <Users :size="20" />
+              </div>
+
+              <div class="activity-summary">
+                <div class="activity-total">
+                  <strong>
+                    {{ formatNumber(statistics.totalUsers) }}
+                  </strong>
+
+                  <span>Total users</span>
+                </div>
+
+                <div class="activity-chart">
+                  <div class="chart-ring">
+                    <div class="ring-content">
+                      <strong>{{ activePercentage }}%</strong>
+                      <span>active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="status-list">
+                <div class="status-row">
+                  <div class="status-row-label">
+                    <span class="status-indicator active"></span>
+                    <span>Active users</span>
+                  </div>
+
+                  <strong>
+                    {{ formatNumber(statistics.activeUsers) }}
+                  </strong>
+                </div>
+
+                <div class="status-progress">
+                  <div
+                    :style="{ width: `${activePercentage}%` }"
+                    class="progress-fill active-fill"
+                  ></div>
+                </div>
+
+                <div class="status-row">
+                  <div class="status-row-label">
+                    <span class="status-indicator inactive"></span>
+                    <span>Inactive users</span>
+                  </div>
+
+                  <strong>
+                    {{ formatNumber(statistics.inactiveUsers) }}
+                  </strong>
+                </div>
+
+                <div class="status-progress">
+                  <div
+                    :style="{ width: `${inactivePercentage}%` }"
+                    class="progress-fill inactive-fill"
+                  ></div>
+                </div>
+              </div>
+            </article>
+
+            <!-- User Composition -->
+            <article class="dashboard-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">USER COMPOSITION</span>
+                  <h3>Platform users</h3>
+                </div>
+
+                <ShieldCheck :size="20" />
+              </div>
+
+              <div class="composition-list">
+                <div class="composition-item">
+                  <div class="composition-icon customer">
+                    <UserCheck :size="20" />
+                  </div>
+
+                  <div class="composition-details">
+                    <strong>Customers</strong>
+                    <span> {{ customerPercentage }}% of all users </span>
+                  </div>
+
+                  <strong class="composition-number">
+                    {{ formatNumber(statistics.customersCount) }}
+                  </strong>
+                </div>
+
+                <div class="composition-divider"></div>
+
+                <div class="composition-item">
+                  <div class="composition-icon admin">
+                    <ShieldCheck :size="20" />
+                  </div>
+
+                  <div class="composition-details">
+                    <strong>Administrators</strong>
+                    <span> Privileged platform users </span>
+                  </div>
+
+                  <strong class="composition-number">
+                    {{ formatNumber(statistics.adminsCount) }}
+                  </strong>
+                </div>
+              </div>
+
+              <div class="admin-notice">
+                <ShieldCheck :size="17" />
+
+                <div>
+                  <strong>Protected administration</strong>
+                  <span> Administrative actions require authorized access. </span>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <!-- Quick Actions -->
+          <section class="quick-section">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-kicker">MANAGEMENT</span>
+                <h3>Quick actions</h3>
+              </div>
+            </div>
+
+            <div class="quick-actions">
+              <RouterLink class="quick-action" to="/admin/users">
+                <div class="quick-action-icon">
+                  <Users :size="21" />
+                </div>
+
+                <div>
+                  <strong>Manage users</strong>
+                  <span> Search and manage customer accounts </span>
+                </div>
+
+                <ChevronRight :size="19" />
+              </RouterLink>
+
+              <RouterLink class="quick-action" to="/admin/accounts">
+                <div class="quick-action-icon">
+                  <WalletCards :size="21" />
+                </div>
+
+                <div>
+                  <strong>Manage accounts</strong>
+                  <span> Review banking accounts and statuses </span>
+                </div>
+
+                <ChevronRight :size="19" />
+              </RouterLink>
+
+              <RouterLink class="quick-action" to="/admin/transactions">
+                <div class="quick-action-icon">
+                  <ArrowLeftRight :size="21" />
+                </div>
+
+                <div>
+                  <strong>Transactions</strong>
+                  <span> Review account transaction activity </span>
+                </div>
+
+                <ChevronRight :size="19" />
+              </RouterLink>
+
+              <RouterLink
+                class="quick-action card-application-action"
+                to="/admin/card-applications"
               >
-                <component
-                  :is="getStatusIcon(status)"
-                  :size="18"
-                />
+                <div class="quick-action-icon">
+                  <CreditCard :size="21" />
+                </div>
+
+                <div>
+                  <strong>Card applications</strong>
+                  <span>
+                    {{
+                      pendingCardApplications > 0
+                        ? `${pendingCardApplications} pending application${pendingCardApplications === 1 ? '' : 's'} to review`
+                        : 'Review customer card applications'
+                    }}
+                  </span>
+                </div>
+
+                <span v-if="pendingCardApplications > 0" class="quick-action-count">
+                  {{ pendingCardApplications }}
+                </span>
+
+                <ChevronRight :size="19" />
+              </RouterLink>
+            </div>
+          </section>
+
+          <!-- CARD MANAGEMENT -->
+          <section class="card-management-section">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-kicker">CARD MANAGEMENT</span>
+                <h3>Customer cards</h3>
+                <p class="section-description">
+                  Freeze, unfreeze or permanently cancel customer cards.
+                </p>
               </div>
 
-              <div class="status-option-text">
-                <strong>
-                  {{ getStatusLabel(status) }}
-                </strong>
+              <button
+                :disabled="loadingCards"
+                class="refresh-cards-button"
+                type="button"
+                @click="loadAdminCards"
+              >
+                <RefreshCw :class="{ spinning: loadingCards }" :size="16" />
+                <span>Refresh</span>
+              </button>
+            </div>
 
-                <span v-if="status === 'ACTIVE'">
-                  Account can be used normally.
-                </span>
+            <div v-if="cardActionError" class="card-action-error">
+              <XCircle :size="17" />
+              <span>{{ cardActionError }}</span>
+              <button type="button" @click="cardActionError = ''">×</button>
+            </div>
 
-                <span v-else-if="status === 'FROZEN'">
-                  Account is temporarily restricted.
-                </span>
+            <div v-if="loadingCards" class="cards-management-loading">
+              <div class="loading-spinner small"></div>
+              <span>Loading customer cards...</span>
+            </div>
 
-                <span v-else>
-                  Account is not active.
-                </span>
+            <div v-else-if="adminCards.length === 0" class="cards-management-empty">
+              <div class="empty-card-icon">
+                <CreditCard :size="22" />
               </div>
+              <div>
+                <strong>No customer cards found</strong>
+                <span>Approved customer cards will appear here.</span>
+              </div>
+            </div>
 
-              <CheckCircle2
-                v-if="
-                  selectedAccount.accountStatus === status
-                "
-                :size="19"
-                class="selected-check"
-              />
+            <div v-else class="admin-card-list">
+              <article v-for="card in adminCards" :key="card.id" class="admin-card-row">
+                <div class="admin-card-main">
+                  <div class="admin-card-icon">
+                    <CreditCard :size="20" />
+                  </div>
 
-            </button>
+                  <div class="admin-card-details">
+                    <div class="admin-card-title-row">
+                      <strong>{{ card.maskedCardNumber }}</strong>
 
-          </div>
+                      <span :class="card.cardStatus.toLowerCase()" class="admin-card-status">
+                        <span class="status-dot"></span>
+                        {{ card.cardStatus }}
+                      </span>
+                    </div>
 
-        </div>
+                    <div class="admin-card-meta">
+                      <span>{{ card.holderName }}</span>
+                      <span>{{ card.cardType }}</span>
+                      <span>Account {{ card.accountNumber }}</span>
+                      <span>Card #{{ card.id }}</span>
+                    </div>
+                  </div>
+                </div>
 
-        <div class="modal-footer">
+                <div class="admin-card-actions">
+                  <template v-if="card.cardStatus === 'ACTIVE'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button freeze"
+                      type="button"
+                      @click="handleCardAction(card, 'BLOCK')"
+                    >
+                      <Lock :size="15" />
+                      <span>{{ cardActionLoadingId === card.id ? 'Freezing...' : 'Freeze' }}</span>
+                    </button>
 
-          <button
-            type="button"
-            class="cancel-button"
-            :disabled="changingStatusId !== null"
-            @click="closeStatusModal"
-          >
-            Cancel
-          </button>
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
 
-        </div>
+                  <template v-else-if="card.cardStatus === 'BLOCKED'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button activate"
+                      type="button"
+                      @click="handleCardAction(card, 'ACTIVATE')"
+                    >
+                      <Unlock :size="15" />
+                      <span>{{
+                        cardActionLoadingId === card.id ? 'Unfreezing...' : 'Unfreeze'
+                      }}</span>
+                    </button>
 
-      </div>
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
 
-    </div>
+                  <template v-else-if="card.cardStatus === 'EXPIRED'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
 
+                  <span v-else class="card-no-actions">No actions available</span>
+                </div>
+              </article>
+            </div>
+          </section>
+        </template>
+      </section>
+    </main>
   </div>
 </template>
 
@@ -1417,33 +965,33 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-.admin-page {
+.admin-layout {
   min-height: 100vh;
-  background: #f4f7fb;
-  color: #10233f;
+  background: #f5f8fc;
+  color: #10243e;
   display: flex;
   font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
+    'Segoe UI',
     sans-serif;
 }
 
-/* =========================
+/* ============================================
    SIDEBAR
-========================= */
+============================================ */
 
-.sidebar {
+.admin-sidebar {
   width: 258px;
   min-width: 258px;
   min-height: 100vh;
   background: #ffffff;
-  border-right: 1px solid #e4eaf2;
+  border-right: 1px solid #e6edf5;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 25px 16px 18px;
+  padding: 26px 18px 20px;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -1451,1133 +999,827 @@ onMounted(() => {
 }
 
 .sidebar-top {
-  min-width: 0;
+  width: 100%;
 }
 
-.brand {
+.admin-logo {
   display: flex;
   align-items: center;
   gap: 11px;
   text-decoration: none;
-  color: #082c55;
-  padding: 4px 10px 26px;
+  color: #0b2848;
+  margin-bottom: 43px;
+  padding: 0 7px;
 }
 
-.brand-mark {
-  width: 40px;
-  height: 40px;
+.logo-mark {
+  width: 39px;
+  height: 39px;
   border-radius: 11px;
-  background: linear-gradient(
-    145deg,
-    #07559b,
-    #063d74
-  );
+  background: #07559b;
   color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   font-weight: 800;
-  box-shadow: 0 8px 20px rgba(6, 61, 116, 0.2);
 }
 
-.brand-text {
+.logo-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.05;
+  line-height: 1;
 }
 
-.brand-text strong {
-  font-size: 16px;
+.logo-text strong {
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
 }
 
-.brand-text small {
-  color: #71819a;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
+.logo-text span {
+  color: #73859a;
+  font-size: 11px;
   margin-top: 4px;
 }
 
-.admin-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #8190a6;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  padding: 0 12px 10px;
+.mobile-close {
+  display: none;
 }
 
-.navigation {
+.navigation-label {
+  padding: 0 12px;
+  margin: 0 0 11px;
+  color: #9aa9ba;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.second-label {
+  margin-top: 31px;
+}
+
+.admin-navigation {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
-.nav-item {
-  min-height: 44px;
+.admin-nav-link {
+  min-height: 47px;
+  padding: 0 13px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 13px;
-  border-radius: 10px;
-  color: #68788f;
+  gap: 13px;
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
+  color: #6c7e91;
+  font-size: 13px;
+  font-weight: 650;
   transition:
     background 0.2s ease,
     color 0.2s ease;
 }
 
-.nav-item:hover {
-  background: #f2f6fb;
+.admin-nav-link:hover {
+  background: #f2f7fc;
   color: #07559b;
 }
 
-.nav-item.active {
+.admin-nav-link.active {
   background: #eaf3fb;
   color: #07559b;
-  font-weight: 700;
+  font-weight: 750;
 }
 
-.nav-divider {
-  height: 1px;
-  background: #edf1f6;
-  margin: 21px 12px 17px;
-}
-
-.nav-section-title {
-  color: #a0acbc;
+.nav-count-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 10px;
+  background: #07559b;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 1.4px;
-  padding: 0 13px 8px;
 }
 
 .sidebar-bottom {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
-.admin-profile {
+.admin-support {
+  border: 1px solid #e5edf5;
+  border-radius: 13px;
+  padding: 13px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 9px;
-  border-radius: 12px;
-  background: #f7f9fc;
+  background: #fbfdff;
 }
 
-.profile-avatar,
-.header-avatar {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #dcecf9;
+.support-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 9px;
+  background: #eaf3fb;
   color: #07559b;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.profile-avatar {
-  width: 36px;
-  height: 36px;
-  font-size: 13px;
-}
-
-.profile-details {
-  min-width: 0;
+.admin-support div:last-child {
   display: flex;
   flex-direction: column;
 }
 
-.profile-details strong {
-  font-size: 12px;
-  color: #17304f;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.admin-support strong {
+  font-size: 11px;
+  color: #1d3652;
 }
 
-.profile-details span {
-  color: #8492a6;
-  font-size: 10px;
+.admin-support span {
   margin-top: 3px;
+  color: #91a0b0;
+  font-size: 9px;
 }
 
 .logout-button {
   border: 0;
   background: transparent;
-  color: #7b899c;
-  min-height: 40px;
+  min-height: 42px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 11px;
-  border-radius: 9px;
+  gap: 12px;
+  color: #7d8d9e;
+  font-size: 12px;
+  font-weight: 650;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 10px;
   text-align: left;
 }
 
 .logout-button:hover {
-  background: #f8eaea;
-  color: #b53b3b;
+  background: #f6f8fb;
+  color: #d14e4e;
 }
 
-.mobile-close,
-.mobile-menu-button {
-  display: none;
-}
-
-/* =========================
+/* ============================================
    MAIN
-========================= */
+============================================ */
 
-.main-content {
+.admin-main {
   flex: 1;
   min-width: 0;
 }
 
-.topbar {
-  height: 82px;
+.admin-header {
+  height: 84px;
   background: #ffffff;
-  border-bottom: 1px solid #e6ebf2;
+  border-bottom: 1px solid #e7edf4;
+  padding: 0 39px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 38px;
 }
 
-.topbar-left,
-.topbar-right {
-  display: flex;
-  align-items: center;
-}
-
-.topbar-left {
-  gap: 16px;
-}
-
-.eyebrow {
-  display: block;
-  color: #7d8da3;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.6px;
-  margin-bottom: 4px;
-}
-
-.topbar h1 {
-  margin: 0;
-  color: #102d50;
-  font-size: 24px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-}
-
-.topbar-right {
-  gap: 18px;
-}
-
-.admin-status {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #718097;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #27a56a;
-  box-shadow: 0 0 0 4px #e7f6ee;
-}
-
-.header-avatar {
-  width: 38px;
-  height: 38px;
-  font-size: 13px;
-}
-
-/* =========================
-   CONTENT
-========================= */
-
-.content {
-  width: 100%;
-  max-width: 1520px;
-  margin: 0 auto;
-  padding: 31px 38px 48px;
-}
-
-.page-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 25px;
-}
-
-.page-heading > div:first-child {
+.header-left {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
-.heading-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
-  background: #e6f2fb;
-  color: #07559b;
-  display: grid;
-  place-items: center;
-}
-
-.page-heading h2 {
-  margin: 0 0 5px;
-  color: #122f51;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-}
-
-.page-heading p {
-  margin: 0;
-  color: #7a899d;
-  font-size: 12px;
-}
-
-.refresh-button {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid #dce5ef;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #31506f;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.refresh-button:hover:not(:disabled) {
-  border-color: #b7cee2;
-  color: #07559b;
-  background: #f8fbfe;
-}
-
-.refresh-button:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-/* =========================
-   ERROR
-========================= */
-
-.error-banner {
-  background: #fff7f7;
-  border: 1px solid #f2d2d2;
-  border-radius: 12px;
-  min-height: 66px;
-  padding: 11px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-.error-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #fbe8e8;
-  color: #bd4a4a;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.error-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.error-content strong {
-  color: #8e3030;
-  font-size: 12px;
-}
-
-.error-content span {
-  color: #a26767;
-  font-size: 11px;
-}
-
-.error-banner > button {
-  border: 0;
-  background: transparent;
-  color: #9c3e3e;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-/* =========================
-   STATS
-========================= */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 15px;
-  margin-bottom: 22px;
-}
-
-.stat-card {
-  background: #ffffff;
-  border: 1px solid #e4eaf1;
-  border-radius: 13px;
-  padding: 17px 18px;
-  box-shadow: 0 4px 16px rgba(26, 59, 94, 0.025);
-}
-
-.stat-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.stat-label {
-  color: #75859b;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.stat-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-}
-
-.stat-icon.blue {
-  background: #e9f3fb;
-  color: #07559b;
-}
-
-.stat-icon.green {
-  background: #e8f7ef;
-  color: #23855a;
-}
-
-.stat-icon.orange {
-  background: #fff1df;
-  color: #bc7622;
-}
-
-.stat-icon.purple {
-  background: #eeeafd;
-  color: #6650ae;
-}
-
-.stat-value {
-  display: block;
-  color: #102f53;
-  font-size: 25px;
-  line-height: 1;
-  margin-top: 17px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-}
-
-.stat-balance {
-  font-size: 20px;
-  letter-spacing: -0.5px;
-}
-
-.stat-description {
-  display: block;
-  color: #98a4b4;
-  font-size: 10px;
-  margin-top: 7px;
-}
-
-/* =========================
-   ACCOUNTS PANEL
-========================= */
-
-.accounts-panel {
-  background: #ffffff;
-  border: 1px solid #e4eaf1;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(26, 59, 94, 0.025);
-}
-
-.panel-toolbar {
-  min-height: 76px;
-  padding: 15px 18px;
-  border-bottom: 1px solid #edf1f5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.toolbar-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.toolbar-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: #eef5fa;
-  color: #07559b;
-  display: grid;
-  place-items: center;
-}
-
-.toolbar-heading h3 {
-  margin: 0 0 3px;
-  color: #183653;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.toolbar-heading span {
-  color: #9aa6b5;
-  font-size: 10px;
-}
-
-.toolbar-controls {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.search-box {
-  width: 260px;
-  height: 38px;
-  border: 1px solid #dce5ee;
-  border-radius: 8px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  color: #8493a5;
-}
-
-.search-box:focus-within {
-  border-color: #9bbbd5;
-  box-shadow: 0 0 0 3px rgba(7, 85, 155, 0.07);
-}
-
-.search-box input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #294662;
-  font-size: 11px;
-}
-
-.search-box input::placeholder {
-  color: #a2adba;
-}
-
-.search-box button {
-  border: 0;
-  background: transparent;
-  color: #8c99aa;
-  display: grid;
-  place-items: center;
-  padding: 3px;
-  cursor: pointer;
-}
-
-.status-filter {
-  height: 38px;
-  min-width: 132px;
-  border: 1px solid #dce5ee;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #49617a;
-  padding: 0 10px;
-  outline: 0;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.status-filter:focus {
-  border-color: #9bbbd5;
-}
-
-/* =========================
-   TABLE
-========================= */
-
-.table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.accounts-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1000px;
-}
-
-.accounts-table th {
-  height: 45px;
-  background: #fafbfd;
-  border-bottom: 1px solid #edf1f5;
-  color: #8a98a9;
-  text-align: left;
-  padding: 0 15px;
+.page-overline {
+  color: #8b9bac;
   font-size: 9px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  white-space: nowrap;
+  letter-spacing: 1.5px;
 }
 
-.accounts-table td {
-  height: 68px;
-  border-bottom: 1px solid #f0f3f6;
-  padding: 0 15px;
-  color: #53667d;
-  font-size: 11px;
-  vertical-align: middle;
+.header-left h1 {
+  margin: 4px 0 0;
+  color: #12304f;
+  font-size: 25px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
 }
 
-.accounts-table tbody tr:last-child td {
-  border-bottom: 0;
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 11px;
 }
 
-.accounts-table tbody tr:hover {
-  background: #fbfdff;
+.header-icon-button {
+  width: 39px;
+  height: 39px;
+  border: 1px solid #e4ebf3;
+  background: #ffffff;
+  color: #60748a;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
 }
 
-.account-cell {
+.header-icon-button:hover {
+  color: #07559b;
+  background: #f7faff;
+}
+
+.notification-dot {
+  width: 6px;
+  height: 6px;
+  background: #e15757;
+  border: 1.5px solid #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.header-profile {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: 8px;
 }
 
-.account-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #edf5fb;
-  color: #07559b;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
+.profile-avatar {
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  background: #07559b;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.account-cell > div:last-child {
+.profile-info {
   display: flex;
   flex-direction: column;
-  min-width: 0;
 }
 
-.account-cell strong {
-  color: #24425f;
+.profile-info strong {
+  color: #213a55;
   font-size: 11px;
-  letter-spacing: 0.2px;
+  font-weight: 750;
 }
 
-.account-cell span {
-  color: #a0aab8;
+.profile-info span {
+  color: #8a9bad;
   font-size: 9px;
   margin-top: 3px;
 }
 
-.owner-cell {
+.mobile-menu-button {
+  display: none;
+}
+
+/* ============================================
+   CONTENT
+============================================ */
+
+.admin-content {
+  padding: 34px 39px 55px;
+  max-width: 1500px;
+}
+
+.welcome-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 30px;
+  margin-bottom: 29px;
+}
+
+.section-kicker,
+.panel-kicker {
+  color: #5680a7;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.welcome-section h2 {
+  margin: 7px 0 6px;
+  color: #12304f;
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -0.7px;
+}
+
+.welcome-section p {
+  margin: 0;
+  color: #77899d;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.system-status {
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 18px;
+  background: #f0f9f5;
+  color: #398267;
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 210px;
-}
-
-.owner-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #f0f4f8;
-  color: #6d8198;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.owner-cell > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 10px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.type-badge {
-  display: inline-flex;
+.status-pulse {
+  width: 7px;
+  height: 7px;
+  background: #48a47c;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(72, 164, 124, 0.1);
+}
+
+/* ============================================
+   STATISTICS
+============================================ */
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 17px;
+}
+
+.stat-card {
+  min-height: 158px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e5edf5;
+  border-radius: 15px;
+  box-shadow: 0 4px 16px rgba(30, 64, 96, 0.025);
+}
+
+.stat-card.primary-stat {
+  background: #07559b;
+  border-color: #07559b;
+  color: #ffffff;
+}
+
+.stat-card-top {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  min-height: 25px;
-  padding: 0 9px;
-  border-radius: 7px;
-  background: #f2f5f8;
-  color: #64758a;
+}
+
+.stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primary-stat .stat-icon {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.green-icon {
+  color: #3d9472;
+  background: #edf8f4;
+}
+
+.orange-icon {
+  color: #bd7b35;
+  background: #fbf4e9;
+}
+
+.purple-icon {
+  color: #755da4;
+  background: #f3effa;
+}
+
+.stat-label {
+  color: #91a0b0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.primary-stat .stat-label {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.stat-value {
+  margin-top: 20px;
+  color: #183652;
+  font-size: 27px;
+  line-height: 1;
+  font-weight: 780;
+  letter-spacing: -0.8px;
+}
+
+.primary-stat .stat-value {
+  color: #ffffff;
+}
+
+.stat-footer {
+  margin-top: 15px;
+  color: #91a0b0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 9px;
+}
+
+.primary-stat .stat-footer {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.positive-value {
+  color: #4a9978;
   font-weight: 700;
 }
 
-.balance-value {
-  color: #183c60;
-  font-size: 11px;
-  white-space: nowrap;
+/* ============================================
+   PANELS
+============================================ */
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 17px;
+  margin-bottom: 29px;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 25px;
-  padding: 0 9px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.status-active {
-  background: #e9f7ef;
-  color: #22865a;
-}
-
-.status-frozen {
-  background: #fff2df;
-  color: #ad6b1b;
-}
-
-.status-inactive,
-.status-closed {
-  background: #fbeaea;
-  color: #b94b4b;
-}
-
-.status-default {
-  background: #eef1f5;
-  color: #69788c;
-}
-
-.date-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #78889c;
-  white-space: nowrap;
-}
-
-.action-column {
-  text-align: right !important;
-}
-
-.manage-button {
-  height: 31px;
-  padding: 0 11px;
-  border: 1px solid #d5e2ed;
-  border-radius: 7px;
+.dashboard-panel {
   background: #ffffff;
-  color: #07559b;
-  cursor: pointer;
-  font-size: 9px;
-  font-weight: 800;
+  border: 1px solid #e5edf5;
+  border-radius: 15px;
+  padding: 23px;
+  min-height: 286px;
 }
 
-.manage-button:hover {
-  background: #edf6fc;
-  border-color: #b7d0e3;
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  color: #71869c;
 }
 
-/* =========================
-   LOADING / EMPTY
-========================= */
+.panel-heading h3 {
+  margin: 5px 0 0;
+  color: #183652;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.2px;
+}
 
-.loading-state,
-.empty-state {
-  min-height: 290px;
+.activity-summary {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.activity-total {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-total strong {
+  color: #183652;
+  font-size: 27px;
+  letter-spacing: -0.7px;
+}
+
+.activity-total span {
+  margin-top: 5px;
+  color: #91a0b0;
+  font-size: 10px;
+}
+
+.activity-chart {
+  width: 91px;
+  height: 91px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-ring {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: conic-gradient(#07559b 0% 65%, #e9eef4 65% 100%);
+  position: relative;
+}
+
+.chart-ring::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+.ring-content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  text-align: center;
-  padding: 40px 20px;
 }
 
-.loading-state {
-  color: #07559b;
-}
-
-.loading-state strong {
-  color: #34516e;
-  font-size: 13px;
-  margin-top: 13px;
-}
-
-.loading-state span {
-  color: #98a5b5;
-  font-size: 11px;
-  margin-top: 5px;
-}
-
-.empty-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 15px;
-  background: #edf5fb;
-  color: #07559b;
-  display: grid;
-  place-items: center;
-}
-
-.empty-state h3 {
-  color: #294662;
-  margin: 15px 0 5px;
+.ring-content strong {
+  color: #173652;
   font-size: 15px;
 }
 
-.empty-state p {
-  color: #8d9aaa;
-  font-size: 11px;
-  margin: 0;
+.ring-content span {
+  color: #91a0b0;
+  font-size: 8px;
+  margin-top: 2px;
 }
 
-.clear-filters-button {
-  margin-top: 15px;
-  height: 35px;
-  padding: 0 13px;
-  border: 1px solid #d6e2ed;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #07559b;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
+.status-list {
+  margin-top: 22px;
 }
 
-/* =========================
-   PAGINATION
-========================= */
-
-.pagination {
-  min-height: 63px;
-  padding: 12px 18px;
-  border-top: 1px solid #edf1f5;
+.status-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 15px;
-}
-
-.pagination-info {
-  color: #8b98a8;
+  align-items: center;
+  color: #708399;
   font-size: 10px;
 }
 
-.pagination-info strong {
-  color: #556a82;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pagination-controls button {
-  min-height: 31px;
-  padding: 0 9px;
-  border: 1px solid #dce5ee;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #5d7088;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.pagination-controls button:hover:not(:disabled) {
-  border-color: #b7ccdf;
-  color: #07559b;
-}
-
-.pagination-controls button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.page-number {
-  color: #74849a;
-  font-size: 9px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* =========================
-   BACK
-========================= */
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #6d8096;
-  text-decoration: none;
+.status-row strong {
+  color: #27445f;
   font-size: 11px;
-  font-weight: 700;
-  margin-top: 20px;
 }
 
-.back-link:hover {
-  color: #07559b;
-}
-
-/* =========================
-   MODAL
-========================= */
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(11, 31, 53, 0.38);
-  backdrop-filter: blur(3px);
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  z-index: 500;
-}
-
-.status-modal {
-  width: min(470px, 100%);
-  background: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 24px 70px rgba(16, 45, 80, 0.22);
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 17px 18px;
-  border-bottom: 1px solid #edf1f5;
+.status-row-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-}
-
-.modal-title-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modal-icon {
-  width: 39px;
-  height: 39px;
-  border-radius: 10px;
-  background: #e8f3fb;
-  color: #07559b;
-  display: grid;
-  place-items: center;
-}
-
-.modal-title-group h3 {
-  margin: 0 0 3px;
-  color: #183653;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.modal-title-group span {
-  color: #94a0af;
-  font-size: 10px;
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  border-radius: 8px;
-  background: #f4f6f8;
-  color: #728198;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.modal-close:hover:not(:disabled) {
-  background: #eaf0f5;
-  color: #294662;
-}
-
-.modal-close:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.modal-body {
-  padding: 18px;
-}
-
-.current-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  padding: 12px;
-  background: #f8fafc;
-  border: 1px solid #edf1f5;
-  border-radius: 10px;
-}
-
-.current-status > span:first-child {
-  color: #6f8197;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.modal-description {
-  color: #7d8c9e;
-  font-size: 11px;
-  line-height: 1.6;
-  margin: 14px 2px;
-}
-
-.status-options {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.status-option {
-  width: 100%;
-  min-height: 62px;
-  border: 1px solid #e2e8ef;
-  border-radius: 10px;
-  background: #ffffff;
+.status-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.status-indicator.active {
+  background: #4ba47c;
+}
+
+.status-indicator.inactive {
+  background: #b9c3cd;
+}
+
+.status-progress {
+  height: 5px;
+  background: #edf1f5;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 7px 0 13px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.active-fill {
+  background: #4ba47c;
+}
+
+.inactive-fill {
+  background: #b8c1ca;
+}
+
+.composition-list {
+  margin-top: 26px;
+}
+
+.composition-item {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 9px 11px;
-  text-align: left;
-  cursor: pointer;
+  gap: 12px;
 }
 
-.status-option:hover:not(:disabled) {
-  border-color: #b9cfe0;
-  background: #fbfdff;
-}
-
-.status-option.selected {
-  border-color: #9fc1da;
-  background: #f3f8fc;
-}
-
-.status-option:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.status-option-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.status-option-text {
-  flex: 1;
+.composition-icon {
+  width: 41px;
+  height: 41px;
+  border-radius: 11px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
 }
 
-.status-option-text strong {
-  color: #294662;
-  font-size: 11px;
-}
-
-.status-option-text span {
-  color: #8b98a9;
-  font-size: 9px;
-}
-
-.selected-check {
+.composition-icon.customer {
+  background: #eaf3fb;
   color: #07559b;
 }
 
-.modal-footer {
-  padding: 12px 18px;
-  border-top: 1px solid #edf1f5;
+.composition-icon.admin {
+  background: #f3effa;
+  color: #755da4;
+}
+
+.composition-details {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  flex: 1;
 }
 
-.cancel-button {
-  height: 34px;
-  padding: 0 13px;
-  border: 1px solid #dce4ec;
-  border-radius: 8px;
+.composition-details strong {
+  color: #29445e;
+  font-size: 11px;
+}
+
+.composition-details span {
+  color: #93a1af;
+  font-size: 9px;
+  margin-top: 4px;
+}
+
+.composition-number {
+  color: #173652;
+  font-size: 17px;
+}
+
+.composition-divider {
+  height: 1px;
+  background: #edf1f5;
+  margin: 18px 0;
+}
+
+.admin-notice {
+  margin-top: 20px;
+  border-radius: 10px;
+  background: #f6f9fc;
+  padding: 11px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #07559b;
+}
+
+.admin-notice div {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-notice strong {
+  color: #36536e;
+  font-size: 9px;
+}
+
+.admin-notice span {
+  color: #8b9aaa;
+  font-size: 8px;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ============================================
+   QUICK ACTIONS
+============================================ */
+
+.quick-section {
+  margin-top: 3px;
+}
+
+.section-heading-row {
+  margin-bottom: 13px;
+}
+
+.section-heading-row h3 {
+  margin: 5px 0 0;
+  color: #183652;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.quick-action {
+  min-height: 82px;
+  padding: 14px 15px;
+  border: 1px solid #e5edf5;
   background: #ffffff;
-  color: #60738a;
-  cursor: pointer;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.quick-action:hover {
+  transform: translateY(-2px);
+  border-color: #cdddeb;
+  box-shadow: 0 7px 20px rgba(30, 64, 96, 0.06);
+}
+
+.quick-action-icon {
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quick-action div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.quick-action strong {
+  color: #29445e;
   font-size: 10px;
-  font-weight: 700;
 }
 
-.cancel-button:hover:not(:disabled) {
-  background: #f6f8fa;
+.quick-action span {
+  color: #91a0b0;
+  font-size: 8px;
+  margin-top: 4px;
+  line-height: 1.35;
 }
 
-.cancel-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.quick-action > svg {
+  color: #a3b1bf;
+  flex-shrink: 0;
 }
 
-/* =========================
-   ANIMATION
-========================= */
+.quick-action-count {
+  min-width: 23px;
+  height: 23px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
 
-.spinning {
-  animation: spin 0.9s linear infinite;
+/* ============================================
+   LOADING / ERROR
+============================================ */
+
+.loading-state,
+.error-state {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid #e4edf5;
+  border-top-color: #07559b;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -2586,185 +1828,499 @@ onMounted(() => {
   }
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+.loading-state h2,
+.error-state h2 {
+  margin: 20px 0 6px;
+  color: #183652;
+  font-size: 18px;
+}
 
-@media (max-width: 1180px) {
-  .stats-grid {
+.loading-state p,
+.error-state p {
+  margin: 0;
+  max-width: 430px;
+  color: #8a9bad;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.error-icon {
+  width: 53px;
+  height: 53px;
+  border-radius: 15px;
+  background: #fdf0f0;
+  color: #d15b5b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.retry-button {
+  margin-top: 20px;
+  border: 0;
+  background: #07559b;
+  color: #ffffff;
+  border-radius: 9px;
+  padding: 11px 19px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ============================================
+   MOBILE
+============================================ */
+
+.mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .statistics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .content {
-    padding-left: 25px;
-    padding-right: 25px;
-  }
-
-  .topbar {
-    padding-left: 25px;
-    padding-right: 25px;
+  .quick-actions {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 900px) {
-  .sidebar {
+@media (max-width: 850px) {
+  .admin-sidebar {
     position: fixed;
-    left: 0;
+    left: -280px;
     top: 0;
-    bottom: 0;
-    transform: translateX(-105%);
-    transition: transform 0.25s ease;
-    box-shadow: 15px 0 35px rgba(17, 46, 76, 0.12);
+    transition: left 0.25s ease;
+    box-shadow: 12px 0 30px rgba(20, 48, 78, 0.1);
   }
 
-  .sidebar.sidebar-open {
-    transform: translateX(0);
+  .admin-sidebar.sidebar-open {
+    left: 0;
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 36, 59, 0.35);
+    z-index: 90;
   }
 
   .mobile-close {
-    display: grid;
-    place-items: center;
     position: absolute;
-    top: 25px;
-    right: 15px;
-    width: 35px;
-    height: 35px;
+    top: 24px;
+    right: 17px;
+    width: 36px;
+    height: 36px;
     border: 0;
-    border-radius: 8px;
-    background: #f1f4f7;
-    color: #62758b;
+    border-radius: 9px;
+    background: #f4f7fa;
+    color: #6c7e91;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
   }
 
   .mobile-menu-button {
-    width: 38px;
-    height: 38px;
-    border: 1px solid #dde6ef;
-    border-radius: 9px;
+    width: 39px;
+    height: 39px;
+    border: 1px solid #e4ebf3;
+    border-radius: 10px;
     background: #ffffff;
-    color: #34526f;
-    display: grid;
-    place-items: center;
+    color: #526b83;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
   }
 
-  .mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(12, 33, 54, 0.32);
-    z-index: 90;
+  .admin-header {
+    padding: 0 22px;
   }
 
-  .topbar {
-    height: 74px;
+  .admin-content {
+    padding: 29px 22px 45px;
   }
 
-  .content {
-    padding-top: 25px;
+  .dashboard-columns {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 700px) {
-  .topbar-right .admin-status {
+@media (max-width: 600px) {
+  .admin-header {
+    height: 74px;
+    padding: 0 15px;
+  }
+
+  .admin-header h1 {
+    font-size: 20px;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  .header-profile {
+    margin-left: 2px;
+  }
+
+  .profile-info {
     display: none;
   }
 
-  .topbar {
-    padding: 0 17px;
+  .header-icon-button {
+    width: 35px;
+    height: 35px;
   }
 
-  .content {
-    padding: 22px 15px 35px;
+  .profile-avatar {
+    width: 35px;
+    height: 35px;
   }
 
-  .page-heading {
+  .admin-content {
+    padding: 24px 15px 40px;
+  }
+
+  .welcome-section {
     align-items: flex-start;
     flex-direction: column;
+    gap: 15px;
   }
 
-  .page-heading > div:first-child {
-    align-items: flex-start;
+  .welcome-section h2 {
+    font-size: 23px;
   }
 
-  .refresh-button {
-    align-self: stretch;
-    justify-content: center;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .stat-card {
-    padding: 14px;
-  }
-
-  .stat-value {
-    font-size: 21px;
-  }
-
-  .stat-balance {
-    font-size: 16px;
-  }
-
-  .panel-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .toolbar-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-box,
-  .status-filter {
-    width: 100%;
-  }
-
-  .pagination {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .pagination-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .error-banner {
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 470px) {
-  .stats-grid {
+  .statistics-grid {
     grid-template-columns: 1fr;
   }
 
-  .page-heading h2 {
-    font-size: 18px;
+  .stat-card {
+    min-height: 145px;
   }
 
-  .page-heading p {
-    line-height: 1.5;
+  .dashboard-panel {
+    padding: 19px;
   }
 
-  .topbar h1 {
-    font-size: 21px;
+  .system-status {
+    height: 33px;
   }
+}
 
-  .pagination-info {
-    font-size: 9px;
+/* ============================================
+   CARD MANAGEMENT
+============================================ */
+
+.card-management-section {
+  margin-top: 26px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e4ebf3;
+  border-radius: 16px;
+}
+
+.section-description {
+  margin: 6px 0 0;
+  color: #8191a3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.refresh-cards-button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #dfe7ef;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #526a82;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refresh-cards-button:hover {
+  background: #f5f9fd;
+  color: #07559b;
+}
+
+.refresh-cards-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: card-refresh-spin 0.9s linear infinite;
+}
+
+@keyframes card-refresh-spin {
+  to {
+    transform: rotate(360deg);
   }
+}
 
-  .pagination-controls {
-    gap: 5px;
+.card-action-error {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #f2caca;
+  border-radius: 10px;
+  background: #fff6f6;
+  color: #b74343;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+
+.card-action-error span {
+  flex: 1;
+}
+
+.card-action-error button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  background: transparent;
+  color: #b74343;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.cards-management-loading,
+.cards-management-empty {
+  margin-top: 18px;
+  min-height: 90px;
+  border: 1px dashed #dce5ee;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  color: #8191a3;
+  font-size: 12px;
+}
+
+.cards-management-empty {
+  justify-content: flex-start;
+  padding: 18px;
+}
+
+.cards-management-empty > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cards-management-empty strong {
+  color: #314b65;
+  font-size: 12px;
+}
+.cards-management-empty span {
+  color: #8797a8;
+  font-size: 11px;
+}
+
+.admin-card-list {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-card-row {
+  padding: 16px;
+  border: 1px solid #e5ecf3;
+  border-radius: 12px;
+  background: #fbfdff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-card-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.admin-card-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 10px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-card-details {
+  min-width: 0;
+}
+
+.admin-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-card-title-row strong {
+  color: #203b57;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+}
+
+.admin-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.admin-card-status.active {
+  background: #eaf8f0;
+  color: #278152;
+}
+.admin-card-status.blocked {
+  background: #fff5e8;
+  color: #b56a18;
+}
+.admin-card-status.expired {
+  background: #f1f3f6;
+  color: #7a8795;
+}
+.admin-card-status.cancelled {
+  background: #fff0f0;
+  color: #b44b4b;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.admin-card-meta {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  color: #8292a4;
+  font-size: 10px;
+}
+
+.admin-card-meta span:not(:last-child)::after {
+  content: '•';
+  margin-left: 14px;
+  color: #c2ccd6;
+}
+
+.admin-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.card-control-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.card-control-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.card-control-button.freeze {
+  border: 1px solid #e7cfae;
+  background: #fffaf3;
+  color: #9a651f;
+}
+.card-control-button.freeze:hover:not(:disabled) {
+  background: #fff1dc;
+}
+.card-control-button.activate {
+  border: 1px solid #bfe3cd;
+  background: #f2fbf6;
+  color: #287c50;
+}
+.card-control-button.activate:hover:not(:disabled) {
+  background: #e5f7ed;
+}
+.card-control-button.cancel {
+  border: 1px solid #efc9c9;
+  background: #fff7f7;
+  color: #b34a4a;
+}
+.card-control-button.cancel:hover:not(:disabled) {
+  background: #ffeded;
+}
+.card-no-actions {
+  color: #9aa7b4;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+@media (max-width: 900px) {
+  .admin-card-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
+  .admin-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
 
-  .pagination-controls button {
-    padding: 0 7px;
+@media (max-width: 600px) {
+  .card-management-section {
+    padding: 18px;
+  }
+  .card-management-section .section-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .admin-card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .admin-card-meta span:not(:last-child)::after {
+    display: none;
+  }
+  .admin-card-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .card-control-button {
+    width: 100%;
   }
 }
 </style>

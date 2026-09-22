@@ -1,24 +1,24 @@
-```
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 
 import {
   ArrowLeftRight,
+  BarChart3,
   CreditCard,
-  Eye,
-  EyeOff,
   HelpCircle,
   LayoutDashboard,
-  Lock,
   LogOut,
   Menu,
   Send,
   Settings,
   WalletCards,
-  Wifi,
+  Wifi
 } from 'lucide-vue-next'
+
+import { type Card, getCardsByAccount } from '../service/cardService'
+import { type CardApplication, createCardApplication, getMyCardApplications } from '../service/cardApplicationService'
 
 interface Role {
   id: number
@@ -58,15 +58,21 @@ interface ApiResponse<T> {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-
 const router = useRouter()
 
 const mobileMenuOpen = ref(false)
 const loading = ref(true)
 const errorMessage = ref('')
 
-const showCardNumber = ref(false)
-const cardLocked = ref(false)
+const cards = ref<Card[]>([])
+const selectedCardIndex = ref(0)
+
+const applications = ref<CardApplication[]>([])
+const applicationModalOpen = ref(false)
+const applicationSubmitting = ref(false)
+const applicationError = ref('')
+const applicationSuccess = ref('')
+const selectedApplicationType = ref<'DEBIT' | 'CREDIT'>('DEBIT')
 
 const user = ref<User>({
   id: 0,
@@ -100,15 +106,126 @@ const userInitials = computed(() => {
   return `${first}${last}`.toUpperCase() || 'U'
 })
 
-const maskedCardNumber = computed(() => {
-  return showCardNumber.value ? '4532 7819 6421 3456' : '•••• •••• •••• 3456'
+const selectedCard = computed<Card | null>(() => {
+  return cards.value[selectedCardIndex.value] ?? cards.value[0] ?? null
 })
 
 const cardHolderName = computed(() => {
-  return fullName.value || 'ACCOUNT HOLDER'
+  return selectedCard.value?.holderName || fullName.value || 'ACCOUNT HOLDER'
 })
 
-async function loadUserAndAccount() {
+const cardTypeLabel = computed(() => {
+  const type = selectedCard.value?.cardType || 'CARD'
+
+  return type
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+})
+
+const cardStatusLabel = computed(() => {
+  const status = selectedCard.value?.cardStatus || 'UNKNOWN'
+
+  return status
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+})
+
+const cardIsActive = computed(() => {
+  return selectedCard.value?.cardStatus?.toUpperCase() === 'ACTIVE'
+})
+
+const cardIsBlocked = computed(() => {
+  return selectedCard.value?.cardStatus?.toUpperCase() === 'BLOCKED'
+})
+
+const cardStatusClass = computed(() => {
+  if (cardIsActive.value) {
+    return 'active'
+  }
+
+  if (cardIsBlocked.value) {
+    return 'blocked'
+  }
+
+  return 'other'
+})
+
+const maskedCardNumber = computed(() => {
+  return selectedCard.value?.maskedCardNumber || '•••• •••• •••• ••••'
+})
+
+const expiryDate = computed(() => {
+  const date = selectedCard.value?.expiryDate
+
+  if (!date) {
+    return '—'
+  }
+
+  const parsedDate = new Date(date)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date
+  }
+
+  return parsedDate.toLocaleDateString('en-GB', {
+    month: '2-digit',
+    year: '2-digit',
+  })
+})
+
+const expiryDateLong = computed(() => {
+  const date = selectedCard.value?.expiryDate
+
+  if (!date) {
+    return '—'
+  }
+
+  const parsedDate = new Date(date)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date
+  }
+
+  return parsedDate.toLocaleDateString('en-GB', {
+    month: '2-digit',
+    year: 'numeric',
+  })
+})
+
+const cardNumberSuffix = computed(() => {
+  const value = selectedCard.value?.maskedCardNumber || ''
+  const digits = value.replace(/\D/g, '')
+
+  return digits.slice(-4) || '••••'
+})
+
+const pendingApplication = computed<CardApplication | null>(
+  () =>
+    applications.value.find(
+      (a) => a.applicationStatus === 'PENDING' && a.accountNumber === account.value.accountNumber,
+    ) ?? null,
+)
+
+const latestApplication = computed<CardApplication | null>(
+  () => applications.value.find((a) => a.accountNumber === account.value.accountNumber) ?? null,
+)
+
+const applicationStatusLabel = computed(() => {
+  const status = latestApplication.value?.applicationStatus
+  if (!status) return ''
+  return status
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+})
+
+const applicationStatusClass = computed(
+  () => latestApplication.value?.applicationStatus?.toLowerCase() ?? 'pending',
+)
+
+async function loadUserAndCards() {
   loading.value = true
   errorMessage.value = ''
 
@@ -145,23 +262,68 @@ async function loadUserAndAccount() {
 
     user.value = result.data.user
     account.value = result.data.account
+
+    cards.value = await getCardsByAccount(account.value.accountNumber)
+    selectedCardIndex.value = 0
+
+    try {
+      applications.value = await getMyCardApplications()
+    } catch (applicationError) {
+      console.error('Failed to load card applications:', applicationError)
+      applications.value = []
+    }
   } catch (error) {
-    console.error('Failed to load user and account:', error)
+    console.error('Failed to load user and cards:', error)
 
     errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to load your account information.'
+      error instanceof Error ? error.message : 'Unable to load your card information.'
   } finally {
     loading.value = false
   }
 }
 
-function navigateTo(path: string) {
-  mobileMenuOpen.value = false
-  router.push(path)
+function openApplicationModal(type: 'DEBIT' | 'CREDIT' = 'DEBIT') {
+  applicationError.value = ''
+  applicationSuccess.value = ''
+  selectedApplicationType.value = type
+  applicationModalOpen.value = true
 }
 
-function toggleCardLock() {
-  cardLocked.value = !cardLocked.value
+function closeApplicationModal() {
+  if (!applicationSubmitting.value) applicationModalOpen.value = false
+  applicationError.value = ''
+}
+
+async function submitCardApplication() {
+  if (pendingApplication.value) {
+    applicationError.value = 'You already have a pending card application for this account.'
+    return
+  }
+  applicationSubmitting.value = true
+  applicationError.value = ''
+  applicationSuccess.value = ''
+  try {
+    const application = await createCardApplication({
+      accountNumber: account.value.accountNumber,
+      cardType: selectedApplicationType.value,
+      holderName: fullName.value,
+    })
+    applications.value = [
+      application,
+      ...applications.value.filter((item) => item.id !== application.id),
+    ]
+    applicationModalOpen.value = false
+    applicationSuccess.value = `${selectedApplicationType.value === 'DEBIT' ? 'Debit' : 'Credit'} card application submitted successfully.`
+  } catch (error) {
+    applicationError.value =
+      error instanceof Error ? error.message : 'Unable to submit your card application.'
+  } finally {
+    applicationSubmitting.value = false
+  }
+}
+
+function selectCard(index: number) {
+  selectedCardIndex.value = index
 }
 
 function logout() {
@@ -174,7 +336,7 @@ function logout() {
   router.push('/login')
 }
 
-onMounted(loadUserAndAccount)
+onMounted(loadUserAndCards)
 </script>
 
 <template>
@@ -183,17 +345,17 @@ onMounted(loadUserAndAccount)
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false" />
 
     <!-- SIDEBAR -->
-    <aside class="sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
+    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="sidebar">
       <div class="sidebar-top">
-        <RouterLink to="/" class="dashboard-logo" @click="mobileMenuOpen = false">
+        <RouterLink class="dashboard-logo" to="/" @click="mobileMenuOpen = false">
           <span>B</span>
           <strong>Buuchezo Bank</strong>
         </RouterLink>
 
         <button
-          type="button"
-          class="mobile-close"
           aria-label="Close menu"
+          class="mobile-close"
+          type="button"
           @click="mobileMenuOpen = false"
         >
           ×
@@ -203,34 +365,34 @@ onMounted(loadUserAndAccount)
       <nav class="sidebar-nav">
         <p class="nav-section-title">MAIN</p>
 
-        <RouterLink to="/dashboard" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink class="nav-item" to="/dashboard" @click="mobileMenuOpen = false">
           <LayoutDashboard :size="19" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink to="/accounts" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink class="nav-item" to="/accounts" @click="mobileMenuOpen = false">
           <WalletCards :size="19" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink to="/transactions" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink class="nav-item" to="/transactions" @click="mobileMenuOpen = false">
           <ArrowLeftRight :size="19" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink to="/cards" class="nav-item active" @click="mobileMenuOpen = false">
+        <RouterLink class="nav-item active" to="/cards" @click="mobileMenuOpen = false">
           <CreditCard :size="19" />
           <span>Cards</span>
         </RouterLink>
 
         <p class="nav-section-title second">SERVICES</p>
 
-        <RouterLink to="/transfers" class="nav-item" @click="mobileMenuOpen = false">
+        <RouterLink class="nav-item" to="/transfers" @click="mobileMenuOpen = false">
           <Send :size="19" />
           <span>Transfers</span>
         </RouterLink>
 
-        <a href="#" class="nav-item" @click.prevent>
+        <a class="nav-item" href="#" @click.prevent>
           <Settings :size="19" />
           <span>Settings</span>
         </a>
@@ -248,7 +410,7 @@ onMounted(loadUserAndAccount)
           </div>
         </div>
 
-        <button type="button" class="logout-button" @click="logout">
+        <button class="logout-button" type="button" @click="logout">
           <LogOut :size="18" />
           <span>Log out</span>
         </button>
@@ -261,9 +423,9 @@ onMounted(loadUserAndAccount)
       <header class="dashboard-header">
         <div class="header-left">
           <button
-            type="button"
-            class="mobile-menu-button"
             aria-label="Open menu"
+            class="mobile-menu-button"
+            type="button"
             @click="mobileMenuOpen = true"
           >
             <Menu :size="22" />
@@ -314,7 +476,7 @@ onMounted(loadUserAndAccount)
 
           <span>{{ errorMessage }}</span>
 
-          <button type="button" @click="loadUserAndAccount">Try again</button>
+          <button type="button" @click="loadUserAndCards">Try again</button>
         </div>
 
         <!-- LOADING -->
@@ -325,209 +487,353 @@ onMounted(loadUserAndAccount)
         </div>
 
         <template v-else-if="!errorMessage">
+          <!-- NO CARD STATE -->
+          <section v-if="cards.length === 0" class="no-card-state">
+            <div class="no-card-icon">
+              <CreditCard :size="26" />
+            </div>
+
+            <div>
+              <p class="eyebrow">YOUR CARDS</p>
+              <h2>No card yet</h2>
+              <p>You don't have a Buuchezo Bank card linked to your account yet.</p>
+            </div>
+
+            <button
+              :disabled="!!pendingApplication"
+              class="apply-card-button"
+              type="button"
+              @click="openApplicationModal('DEBIT')"
+            >
+              <CreditCard :size="17" />
+              {{ pendingApplication ? 'Application pending' : 'Apply for a card' }}
+            </button>
+          </section>
+
           <!-- CARD + DETAILS -->
-          <section class="cards-layout">
-            <!-- VISUAL BANK CARD -->
-            <div class="card-column">
-              <div class="bank-card" :class="{ locked: cardLocked }">
-                <div class="card-lock-overlay">
-                  <Lock :size="25" />
+          <template v-else>
+            <section class="cards-layout">
+              <!-- VISUAL BANK CARD -->
+              <div class="card-column">
+                <div class="bank-card">
+                  <div class="card-top">
+                    <div class="card-brand">
+                      <span>B</span>
+                      <strong>Buuchezo</strong>
+                    </div>
 
-                  <span>Card locked</span>
-                </div>
-
-                <div class="card-top">
-                  <div class="card-brand">
-                    <span>B</span>
-                    <strong>Buuchezo</strong>
+                    <Wifi :size="25" class="contactless" />
                   </div>
 
-                  <Wifi :size="25" class="contactless" />
+                  <div class="chip">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+
+                  <div class="card-number">
+                    {{ maskedCardNumber }}
+                  </div>
+
+                  <div class="card-bottom">
+                    <div>
+                      <span>CARD HOLDER</span>
+
+                      <strong>
+                        {{ cardHolderName }}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>VALID THRU</span>
+
+                      <strong>{{ expiryDate }}</strong>
+                    </div>
+
+                    <div class="visa">VISA</div>
+                  </div>
                 </div>
 
-                <div class="chip">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
+                <div v-if="cards.length > 1" class="card-selector">
+                  <button
+                    v-for="(card, index) in cards"
+                    :key="card.id"
+                    :class="{ selected: selectedCardIndex === index }"
+                    type="button"
+                    @click="selectCard(index)"
+                  >
+                    <CreditCard :size="15" />
+                    {{ card.maskedCardNumber }}
+                  </button>
                 </div>
+              </div>
 
-                <div class="card-number">
-                  {{ maskedCardNumber }}
-                </div>
-
-                <div class="card-bottom">
+              <!-- CARD DETAILS -->
+              <div class="card-details">
+                <div class="details-header">
                   <div>
-                    <span>CARD HOLDER</span>
+                    <p class="eyebrow">
+                      {{ cardTypeLabel.toUpperCase() }}
+                    </p>
+
+                    <h3>Personal Card</h3>
+                  </div>
+
+                  <span :class="cardStatusClass" class="card-status">
+                    <span />
+
+                    {{ cardStatusLabel }}
+                  </span>
+                </div>
+
+                <div class="details-list">
+                  <div class="detail-row">
+                    <span>Card holder</span>
 
                     <strong>
                       {{ cardHolderName }}
                     </strong>
                   </div>
 
-                  <div>
-                    <span>VALID THRU</span>
+                  <div class="detail-row">
+                    <span>Card type</span>
 
-                    <strong>12/29</strong>
+                    <strong>{{ cardTypeLabel }}</strong>
                   </div>
 
-                  <div class="visa">VISA</div>
+                  <div class="detail-row">
+                    <span>Card number</span>
+
+                    <strong>•••• {{ cardNumberSuffix }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Expiration</span>
+
+                    <strong>{{ expiryDateLong }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Account</span>
+
+                    <strong>{{ account.accountNumber }}</strong>
+                  </div>
+
+                  <div class="detail-row">
+                    <span>Currency</span>
+
+                    <strong>
+                      {{ account.currency || 'EUR' }}
+                    </strong>
+                  </div>
+                </div>
+
+                <div class="security-note">
+                  <CreditCard :size="14" />
+
+                  <span>
+                    Your card number is protected. Buuchezo Bank only provides the masked card
+                    number through the customer API.
+                  </span>
                 </div>
               </div>
+            </section>
 
-              <div class="card-number-control">
-                <button type="button" @click="showCardNumber = !showCardNumber">
-                  <EyeOff v-if="showCardNumber" :size="17" />
+            <!-- CARD FEATURES -->
+            <section class="features-section">
+              <div class="section-heading">
+                <p class="eyebrow">CARD SERVICES</p>
 
-                  <Eye v-else :size="17" />
-
-                  {{ showCardNumber ? 'Hide card number' : 'Show card number' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- CARD DETAILS -->
-            <div class="card-details">
-              <div class="details-header">
-                <div>
-                  <p class="eyebrow">VISA DEBIT</p>
-
-                  <h3>Personal Card</h3>
-                </div>
-
-                <span class="card-status" :class="{ locked: cardLocked }">
-                  <span />
-
-                  {{ cardLocked ? 'Locked' : 'Active' }}
-                </span>
+                <h2>Everything in one place.</h2>
               </div>
 
-              <div class="details-list">
-                <div class="detail-row">
-                  <span>Card holder</span>
+              <div class="features-grid">
+                <article class="feature-card">
+                  <div class="feature-icon blue">
+                    <CreditCard :size="20" />
+                  </div>
 
-                  <strong>
-                    {{ cardHolderName }}
-                  </strong>
+                  <h3>Card status</h3>
+
+                  <p>
+                    Your current card status is
+                    <strong>{{ cardStatusLabel.toLowerCase() }}</strong
+                    >.
+                  </p>
+
+                  <span class="feature-status">
+                    {{ cardIsActive ? 'Active' : 'See status above' }}
+                  </span>
+                </article>
+
+                <article class="feature-card">
+                  <div class="feature-icon purple">
+                    <BarChart3 :size="20" />
+                  </div>
+
+                  <h3>Manage your finances</h3>
+
+                  <p>
+                    Use your card together with your Buuchezo Bank account and transaction tools.
+                  </p>
+
+                  <span class="feature-status"> Available </span>
+                </article>
+
+                <article class="feature-card">
+                  <div class="feature-icon green">
+                    <Wifi :size="20" />
+                  </div>
+
+                  <h3>Contactless payments</h3>
+
+                  <p>Use contactless payments wherever your card is accepted.</p>
+
+                  <span class="feature-status"> Available </span>
+                </article>
+              </div>
+            </section>
+
+            <!-- CARD APPLICATION -->
+            <section class="coming-soon">
+              <div class="coming-soon-content">
+                <div class="coming-icon"><CreditCard :size="22" /></div>
+                <div class="application-copy">
+                  <p class="eyebrow">ADDITIONAL CARDS</p>
+                  <h3>Need another card?</h3>
+                  <p>
+                    Apply for an additional debit or credit card. Your application will be reviewed
+                    by Buuchezo Bank before a card is issued.
+                  </p>
+                  <div v-if="latestApplication" class="application-status-row">
+                    <span>Latest application</span>
+                    <strong :class="applicationStatusClass">{{ applicationStatusLabel }}</strong>
+                  </div>
+                  <p
+                    v-if="
+                      latestApplication?.applicationStatus === 'REJECTED' &&
+                      latestApplication.rejectionReason
+                    "
+                    class="application-rejection"
+                  >
+                    {{ latestApplication.rejectionReason }}
+                  </p>
+                  <p v-if="applicationSuccess" class="application-success">
+                    {{ applicationSuccess }}
+                  </p>
                 </div>
-
-                <div class="detail-row">
-                  <span>Card type</span>
-
-                  <strong>Visa Debit</strong>
-                </div>
-
-                <div class="detail-row">
-                  <span>Card number</span>
-
-                  <strong>•••• 3456</strong>
-                </div>
-
-                <div class="detail-row">
-                  <span>Expiration</span>
-
-                  <strong>12/2029</strong>
-                </div>
-
-                <div class="detail-row">
-                  <span>Currency</span>
-
-                  <strong>
-                    {{ account.currency || 'EUR' }}
-                  </strong>
+                <div class="application-actions">
+                  <button
+                    :disabled="!!pendingApplication"
+                    class="secondary-card-button"
+                    type="button"
+                    @click="openApplicationModal('DEBIT')"
+                  >
+                    Debit card
+                  </button>
+                  <button
+                    :disabled="!!pendingApplication"
+                    class="secondary-card-button secondary"
+                    type="button"
+                    @click="openApplicationModal('CREDIT')"
+                  >
+                    Credit card
+                  </button>
                 </div>
               </div>
-
-              <button
-                type="button"
-                class="lock-card-button"
-                :class="{ unlock: cardLocked }"
-                @click="toggleCardLock"
-              >
-                <Lock v-if="!cardLocked" :size="18" />
-
-                <CreditCard v-else :size="18" />
-
-                {{ cardLocked ? 'Unlock card' : 'Lock card' }}
-              </button>
-
-              <p class="security-note">
-                <Lock :size="14" />
-
-                Locking your card is a frontend demonstration until card-management endpoints are
-                added to the backend.
-              </p>
-            </div>
-          </section>
-
-          <!-- CARD FEATURES -->
-          <section class="features-section">
-            <div class="section-heading">
-              <p class="eyebrow">CARD SERVICES</p>
-
-              <h2>Everything in one place.</h2>
-            </div>
-
-            <div class="features-grid">
-              <article class="feature-card">
-                <div class="feature-icon blue">
-                  <Lock :size="20" />
-                </div>
-
-                <h3>Card security</h3>
-
-                <p>Lock your card quickly if you notice anything unusual.</p>
-
-                <span class="feature-status"> Available </span>
-              </article>
-
-              <article class="feature-card">
-                <div class="feature-icon purple">
-                  <CreditCard :size="20" />
-                </div>
-
-                <h3>Digital card</h3>
-
-                <p>Your digital banking card can be used for supported online payments.</p>
-
-                <span class="feature-status"> Coming soon </span>
-              </article>
-
-              <article class="feature-card">
-                <div class="feature-icon green">
-                  <Wifi :size="20" />
-                </div>
-
-                <h3>Contactless payments</h3>
-
-                <p>Use contactless payments wherever your card is accepted.</p>
-
-                <span class="feature-status"> Available </span>
-              </article>
-            </div>
-          </section>
-
-          <!-- COMING SOON -->
-          <section class="coming-soon">
-            <div class="coming-soon-content">
-              <div class="coming-icon">
-                <CreditCard :size="22" />
-              </div>
-
-              <div>
-                <p class="eyebrow">NEXT STEP</p>
-
-                <h3>More card controls are coming.</h3>
-
-                <p>
-                  Card limits, online-payment controls, replacement cards and additional cards can
-                  be connected here once the corresponding backend endpoints are available.
-                </p>
-              </div>
-            </div>
-          </section>
+            </section>
+          </template>
         </template>
       </section>
+
+      <div
+        v-if="applicationModalOpen"
+        class="application-modal-backdrop"
+        @click.self="closeApplicationModal"
+      >
+        <section
+          aria-labelledby="application-modal-title"
+          aria-modal="true"
+          class="application-modal"
+          role="dialog"
+        >
+          <div class="application-modal-header">
+            <div>
+              <p class="eyebrow">CARD APPLICATION</p>
+              <h2 id="application-modal-title">Apply for a card</h2>
+            </div>
+            <button
+              :disabled="applicationSubmitting"
+              aria-label="Close application"
+              class="application-close"
+              type="button"
+              @click="closeApplicationModal"
+            >
+              ×
+            </button>
+          </div>
+          <p class="application-modal-text">
+            Choose the card type you would like to request. Your application will be reviewed by
+            Buuchezo Bank.
+          </p>
+          <div class="application-type-grid">
+            <button
+              :class="{ selected: selectedApplicationType === 'DEBIT' }"
+              type="button"
+              @click="selectedApplicationType = 'DEBIT'"
+            >
+              <CreditCard :size="20" /><span
+                ><strong>Debit Card</strong
+                ><small>Use your bank account for everyday payments.</small></span
+              >
+            </button>
+            <button
+              :class="{ selected: selectedApplicationType === 'CREDIT' }"
+              type="button"
+              @click="selectedApplicationType = 'CREDIT'"
+            >
+              <CreditCard :size="20" /><span
+                ><strong>Credit Card</strong
+                ><small>Request a credit card for eligible purchases.</small></span
+              >
+            </button>
+          </div>
+          <div class="application-summary">
+            <div>
+              <span>Card holder</span><strong>{{ fullName }}</strong>
+            </div>
+            <div>
+              <span>Account</span><strong>{{ account.accountNumber }}</strong>
+            </div>
+            <div>
+              <span>Card type</span
+              ><strong>{{ selectedApplicationType === 'DEBIT' ? 'Debit' : 'Credit' }}</strong>
+            </div>
+          </div>
+          <div v-if="applicationError" class="application-modal-error">{{ applicationError }}</div>
+          <div class="application-modal-actions">
+            <button
+              :disabled="applicationSubmitting"
+              class="application-cancel"
+              type="button"
+              @click="closeApplicationModal"
+            >
+              Cancel
+            </button>
+            <button
+              :disabled="applicationSubmitting"
+              class="application-submit"
+              type="button"
+              @click="submitCardApplication"
+            >
+              <span v-if="applicationSubmitting" class="small-spinner" />{{
+                applicationSubmitting ? 'Submitting...' : 'Submit application'
+              }}
+            </button>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 </template>
@@ -1465,6 +1771,17 @@ onMounted(loadUserAndAccount)
   .coming-soon-content {
     flex-direction: column;
   }
+
+  .application-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  .application-actions .secondary-card-button {
+    flex: 1;
+  }
+  .application-type-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 430px) {
@@ -1490,6 +1807,371 @@ onMounted(loadUserAndAccount)
     gap: 11px;
   }
 }
-</style>
 
-```
+/* =========================
+   BACKEND CARD STATES
+========================= */
+
+.no-card-state {
+  background: #ffffff;
+  border: 1px solid #e7edf4;
+  border-radius: 17px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 32px;
+  box-shadow: 0 7px 20px rgba(29, 59, 89, 0.035);
+}
+
+.no-card-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: grid;
+  place-items: center;
+}
+
+.no-card-state h2 {
+  margin: 0;
+  color: #193550;
+  font-size: 20px;
+}
+
+.no-card-state p:not(.eyebrow) {
+  margin: 6px 0 0;
+  color: #8e9cad;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.apply-card-button,
+.secondary-card-button {
+  border: 0;
+  border-radius: 9px;
+  background: #07559b;
+  color: #ffffff;
+  height: 42px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.apply-card-button:hover,
+.secondary-card-button:hover {
+  background: #063f75;
+}
+
+.card-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.card-selector button {
+  border: 1px solid #dfe7ef;
+  background: #ffffff;
+  color: #63768a;
+  border-radius: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.card-selector button.selected {
+  border-color: #07559b;
+  background: #eaf3fb;
+  color: #07559b;
+}
+
+.card-status.active {
+  background: #eaf8f2;
+  color: #2a8e67;
+}
+
+.card-status.active span {
+  background: #35a874;
+}
+
+.card-status.blocked {
+  background: #fff1e8;
+  color: #b7682d;
+}
+
+.card-status.blocked span {
+  background: #d67b35;
+}
+
+.card-status.other {
+  background: #eef2f6;
+  color: #66788b;
+}
+
+.card-status.other span {
+  background: #8998a8;
+}
+
+.security-note {
+  align-items: flex-start;
+}
+
+.security-note span {
+  display: block;
+}
+
+.secondary-card-button {
+  margin-left: auto;
+  align-self: center;
+}
+
+/* =========================
+   CARD APPLICATION
+========================= */
+.application-copy {
+  min-width: 0;
+  flex: 1;
+}
+.application-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+  font-size: 10px;
+  color: #8e9dab;
+}
+.application-status-row strong {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.application-status-row strong.pending {
+  background: #fff5df;
+  color: #a76d19;
+}
+.application-status-row strong.approved {
+  background: #eaf8f2;
+  color: #2a8e67;
+}
+.application-status-row strong.rejected {
+  background: #fff1f1;
+  color: #b04f4f;
+}
+.application-rejection {
+  margin-top: 8px !important;
+  color: #b04f4f !important;
+}
+.application-success {
+  margin-top: 8px !important;
+  color: #2a8e67 !important;
+  font-weight: 600;
+}
+.application-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.secondary-card-button:disabled,
+.apply-card-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.secondary-card-button.secondary {
+  background: #fff;
+  color: #07559b;
+  border: 1px solid #cddceb;
+}
+.secondary-card-button.secondary:hover:not(:disabled) {
+  background: #eaf3fb;
+}
+.application-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(12, 31, 50, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.application-modal {
+  width: min(100%, 520px);
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #e3eaf1;
+  box-shadow: 0 24px 70px rgba(13, 39, 65, 0.2);
+  padding: 25px;
+}
+.application-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+.application-modal-header h2 {
+  margin: 0;
+  color: #193550;
+  font-size: 21px;
+}
+.application-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f6f9;
+  color: #61758a;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.application-modal-text {
+  margin: 13px 0 18px;
+  color: #8e9dab;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.application-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.application-type-grid button {
+  border: 1px solid #dfe7ef;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+  color: #5e7287;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.application-type-grid button.selected {
+  border-color: #07559b;
+  background: #eaf3fb;
+  color: #07559b;
+}
+.application-type-grid strong,
+.application-type-grid small {
+  display: block;
+}
+.application-type-grid strong {
+  color: #29455f;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.application-type-grid small {
+  color: #8e9dab;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.application-summary {
+  margin-top: 16px;
+  border: 1px solid #e7edf4;
+  border-radius: 12px;
+  padding: 13px 14px;
+  background: #f8fafc;
+}
+.application-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  min-height: 32px;
+  align-items: center;
+  border-bottom: 1px solid #e9eef3;
+}
+.application-summary > div:last-child {
+  border-bottom: 0;
+}
+.application-summary span {
+  color: #8e9dab;
+  font-size: 10px;
+}
+.application-summary strong {
+  color: #304860;
+  font-size: 10px;
+  text-align: right;
+}
+.application-modal-error {
+  margin-top: 13px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fff3f3;
+  border: 1px solid #f2d3d3;
+  color: #a34e4e;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.application-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 20px;
+}
+.application-cancel,
+.application-submit {
+  height: 40px;
+  padding: 0 15px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.application-cancel {
+  border: 1px solid #dce5ee;
+  background: #fff;
+  color: #50657b;
+}
+.application-submit {
+  border: 0;
+  background: #07559b;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.small-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@media (max-width: 750px) {
+  .no-card-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .apply-card-button {
+    margin-left: 0;
+  }
+
+  .coming-soon-content .secondary-card-button {
+    margin-left: 0;
+  }
+}
+</style>

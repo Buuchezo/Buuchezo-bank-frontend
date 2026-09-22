@@ -4,8 +4,8 @@
          SIDEBAR
     ====================================================== -->
 
-    <aside class="dashboard-sidebar" :class="{ open: mobileMenuOpen }">
-      <RouterLink to="/" class="dashboard-logo">
+    <aside :class="{ open: mobileMenuOpen }" class="dashboard-sidebar">
+      <RouterLink class="dashboard-logo" to="/">
         <span>B</span>
         <strong>Buuchezo Bank</strong>
       </RouterLink>
@@ -13,34 +13,43 @@
       <nav class="dashboard-nav">
         <span class="nav-section-title"> MAIN </span>
 
-        <RouterLink to="/dashboard" class="dashboard-nav-link active">
+        <RouterLink class="dashboard-nav-link active" to="/dashboard">
           <LayoutDashboard :size="18" />
           <span>Overview</span>
         </RouterLink>
 
-        <RouterLink to="/accounts" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/accounts">
           <WalletCards :size="18" />
           <span>Accounts</span>
         </RouterLink>
 
-        <RouterLink to="/transactions" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/transactions">
           <ArrowLeftRight :size="18" />
           <span>Transactions</span>
         </RouterLink>
 
-        <RouterLink to="/cards" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/cards">
           <CreditCard :size="18" />
           <span>Cards</span>
         </RouterLink>
 
         <span class="nav-section-title second-nav-title"> SERVICES </span>
 
-        <RouterLink to="/transfers" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/transfers">
           <Send :size="18" />
           <span>Transfers</span>
         </RouterLink>
 
-        <RouterLink to="/settings" class="dashboard-nav-link">
+        <RouterLink class="dashboard-nav-link" to="/investments">
+          <ChartCandlestick :size="18" />
+          <span>Investments</span>
+        </RouterLink>
+
+        <RouterLink class="dashboard-nav-link" to="/market">
+          <TrendingUp :size="18" />
+          <span>Market Data</span>
+        </RouterLink>
+        <RouterLink class="dashboard-nav-link" to="/settings">
           <Settings :size="18" />
           <span>Settings</span>
         </RouterLink>
@@ -81,22 +90,22 @@
         </div>
 
         <div class="header-actions">
-          <RouterLink v-if="isAdmin" to="/admin/dashboard" class="admin-dashboard-button">
+          <RouterLink v-if="isAdmin" class="admin-dashboard-button" to="/admin/dashboard">
             <ShieldCheck :size="16" />
             <span>Admin Dashboard</span>
           </RouterLink>
 
           <button
+            :disabled="refreshing"
+            aria-label="Refresh dashboard"
             class="header-icon"
             type="button"
-            aria-label="Refresh dashboard"
-            :disabled="refreshing"
             @click="refreshDashboard"
           >
-            <RefreshCw :size="17" :class="{ spinning: refreshing }" />
+            <RefreshCw :class="{ spinning: refreshing }" :size="17" />
           </button>
 
-          <button class="header-icon" type="button" aria-label="Notifications">
+          <button aria-label="Notifications" class="header-icon" type="button">
             <NotificationDropdown />
             <span class="notification-dot"></span>
           </button>
@@ -161,9 +170,9 @@
                     </h2>
 
                     <button
-                      type="button"
-                      class="balance-visibility-button"
                       :aria-label="showBalance ? 'Hide balance' : 'Show balance'"
+                      class="balance-visibility-button"
+                      type="button"
                       @click="showBalance = !showBalance"
                     >
                       <Eye v-if="showBalance" :size="17" />
@@ -184,7 +193,7 @@
 
                 <span> •••• {{ maskedAccountNumber }} </span>
 
-                <span class="account-status" :class="account.accountStatus?.toLowerCase()">
+                <span :class="account.accountStatus?.toLowerCase()" class="account-status">
                   <span class="status-dot"></span>
                   {{ account.accountStatus || 'ACTIVE' }}
                 </span>
@@ -250,7 +259,7 @@
 
                 <span> Make a transfer </span>
 
-                <ArrowUpRight class="action-arrow" :size="17" />
+                <ArrowUpRight :size="17" class="action-arrow" />
               </button>
 
               <button class="action-card" type="button" @click="router.push('/accounts')">
@@ -262,7 +271,7 @@
 
                 <span> View your details </span>
 
-                <ArrowUpRight class="action-arrow" :size="17" />
+                <ArrowUpRight :size="17" class="action-arrow" />
               </button>
 
               <button class="action-card" type="button" @click="router.push('/cards')">
@@ -274,7 +283,7 @@
 
                 <span> View your cards </span>
 
-                <ArrowUpRight class="action-arrow" :size="17" />
+                <ArrowUpRight :size="17" class="action-arrow" />
               </button>
 
               <button class="action-card" type="button" @click="router.push('/transactions')">
@@ -286,7 +295,7 @@
 
                 <span> See your activity </span>
 
-                <ArrowUpRight class="action-arrow" :size="17" />
+                <ArrowUpRight :size="17" class="action-arrow" />
               </button>
             </div>
           </section>
@@ -336,10 +345,10 @@
                   class="dashboard-transaction"
                 >
                   <div
-                    class="transaction-symbol"
                     :class="{
                       'income-symbol': transaction.transactionDirection === 'CREDIT',
                     }"
+                    class="transaction-symbol"
                   >
                     <component :is="getTransactionIcon(transaction)" :size="17" />
                   </div>
@@ -357,8 +366,8 @@
                   </div>
 
                   <strong
-                    class="transaction-value"
                     :class="transaction.transactionDirection === 'CREDIT' ? 'positive' : 'negative'"
+                    class="transaction-value"
                   >
                     {{ transaction.transactionDirection === 'CREDIT' ? '+' : '−'
                     }}{{ formatMoney(Math.abs(Number(transaction.amount))) }}
@@ -489,7 +498,7 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
@@ -500,8 +509,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
+  ChartCandlestick,
   ChevronDown,
   CreditCard,
+  Eye,
+  EyeOff,
   HelpCircle,
   LayoutDashboard,
   LogOut,
@@ -509,12 +521,11 @@ import {
   RefreshCw,
   Send,
   Settings,
-  ShoppingBag,
   ShieldCheck,
+  ShoppingBag,
+  TrendingUp,
   WalletCards,
-  Wifi,
-  Eye,
-  EyeOff,
+  Wifi
 } from 'lucide-vue-next'
 
 /* =========================================================

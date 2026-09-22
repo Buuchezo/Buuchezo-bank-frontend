@@ -13,6 +13,9 @@ import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminUsersView from '@/views/AdminUsersView.vue'
 import AdminAccountsView from '@/views/AdminAccountsView.vue'
 import AdminTransactionsView from '@/views/AdminTransactionsView.vue'
+import InvestmentsView from '@/views/InvestmentsView.vue'
+import MarketDataView from '@/views/MarketDataView.vue'
+import AdminCardApplicationsView from '@/views/AdminCardApplicationsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -86,6 +89,14 @@ const router = createRouter({
         requiresAuth: true,
       },
     },
+    {
+      path: '/investments',
+      name: 'investments',
+      component: InvestmentsView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
 
     {
       path: '/settings',
@@ -104,6 +115,12 @@ const router = createRouter({
         requiresAuth: true,
         requiresAdmin: true,
       },
+    },
+    {
+      path: '/market',
+      name: 'market',
+      component: MarketDataView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/users',
@@ -127,6 +144,15 @@ const router = createRouter({
       path: '/admin/transactions',
       name: 'admin-transactions',
       component: AdminTransactionsView,
+      meta: {
+        requiresAuth: true,
+        requiresAdmin: true,
+      },
+    },
+    {
+      path: '/admin/card-applications',
+      name: 'admin-card-applications',
+      component: AdminCardApplicationsView,
       meta: {
         requiresAuth: true,
         requiresAdmin: true,

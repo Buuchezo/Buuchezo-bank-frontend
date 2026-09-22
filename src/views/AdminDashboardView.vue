@@ -1,24 +1,30 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
-  LayoutDashboard,
-  Users,
-  WalletCards,
+  Activity,
   ArrowLeftRight,
-  Settings,
+  Bell,
+  ChevronRight,
+  CreditCard,
+  LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
-  X,
-  UserRound,
-  Bell,
+  RefreshCw,
   Search,
-  UserCheck,
-  CreditCard,
+  Settings,
   ShieldCheck,
-  Activity,
-  ChevronRight,
+  Unlock,
+  UserCheck,
+  UserRound,
+  Users,
+  WalletCards,
+  X,
+  XCircle
 } from 'lucide-vue-next'
+import { getPendingCardApplications } from '../service/cardApplicationService'
+import { activateCard, blockCard, cancelCard, type Card, getAllCards } from '../service/cardService'
 
 const router = useRouter()
 
@@ -62,6 +68,12 @@ const currentUser = ref<User | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
 const mobileMenuOpen = ref(false)
+const pendingCardApplications = ref(0)
+const loadingCardApplications = ref(false)
+const adminCards = ref<Card[]>([])
+const loadingCards = ref(false)
+const cardActionLoadingId = ref<number | null>(null)
+const cardActionError = ref('')
 
 const fullName = computed(() => {
   if (!currentUser.value) {
@@ -202,6 +214,80 @@ async function loadStatistics() {
   }
 }
 
+async function loadPendingCardApplications() {
+  loadingCardApplications.value = true
+
+  try {
+    const applications = await getPendingCardApplications()
+    pendingCardApplications.value = applications.length
+  } catch (error) {
+    console.error('Failed to load pending card applications:', error)
+    pendingCardApplications.value = 0
+  } finally {
+    loadingCardApplications.value = false
+  }
+}
+
+async function loadAdminCards() {
+  loadingCards.value = true
+  cardActionError.value = ''
+
+  try {
+    adminCards.value = await getAllCards()
+  } catch (error) {
+    console.error('Failed to load admin cards:', error)
+    cardActionError.value =
+      error instanceof Error ? error.message : 'Could not load customer cards.'
+  } finally {
+    loadingCards.value = false
+  }
+}
+
+async function handleCardAction(card: Card, action: 'BLOCK' | 'ACTIVATE' | 'CANCEL') {
+  if (cardActionLoadingId.value !== null) {
+    return
+  }
+
+  const actionText = action === 'BLOCK' ? 'freeze' : action === 'ACTIVATE' ? 'unfreeze' : 'cancel'
+
+  const confirmation = window.confirm(
+    action === 'CANCEL'
+      ? `Cancel card ${card.maskedCardNumber}? This action is permanent and the card cannot be activated again.`
+      : `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} card ${card.maskedCardNumber}?`,
+  )
+
+  if (!confirmation) {
+    return
+  }
+
+  cardActionLoadingId.value = card.id
+  cardActionError.value = ''
+
+  try {
+    let updatedCard: Card
+
+    if (action === 'BLOCK') {
+      updatedCard = await blockCard(card.id)
+    } else if (action === 'ACTIVATE') {
+      updatedCard = await activateCard(card.id)
+    } else {
+      updatedCard = await cancelCard(card.id)
+    }
+
+    const index = adminCards.value.findIndex((item) => item.id === updatedCard.id)
+
+    if (index !== -1) {
+      adminCards.value[index] = updatedCard
+    }
+  } catch (error) {
+    console.error(`Failed to ${actionText} card:`, error)
+    cardActionError.value =
+      error instanceof Error ? error.message : 'Could not update the card status.'
+  } finally {
+    cardActionLoadingId.value = null
+  }
+}
+
 async function loadDashboard() {
   loading.value = true
   errorMessage.value = ''
@@ -213,7 +299,7 @@ async function loadDashboard() {
       return
     }
 
-    await loadStatistics()
+    await Promise.all([loadStatistics(), loadPendingCardApplications(), loadAdminCards()])
   } catch (error) {
     console.error('Failed to load admin dashboard:', error)
 
@@ -243,10 +329,10 @@ onMounted(() => {
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
 
     <!-- Sidebar -->
-    <aside class="admin-sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
+    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="admin-sidebar">
       <div class="sidebar-top">
         <!-- Logo -->
-        <RouterLink to="/" class="admin-logo">
+        <RouterLink class="admin-logo" to="/">
           <span class="logo-mark">B</span>
 
           <div class="logo-text">
@@ -265,36 +351,48 @@ onMounted(() => {
           <p class="navigation-label">ADMINISTRATION</p>
 
           <RouterLink
-            to="/admin/dashboard"
             class="admin-nav-link active"
+            to="/admin/dashboard"
             @click="mobileMenuOpen = false"
           >
             <LayoutDashboard :size="19" />
             <span>Overview</span>
           </RouterLink>
 
-          <RouterLink to="/admin/users" class="admin-nav-link" @click="mobileMenuOpen = false">
+          <RouterLink class="admin-nav-link" to="/admin/users" @click="mobileMenuOpen = false">
             <Users :size="19" />
             <span>Users</span>
           </RouterLink>
 
-          <RouterLink to="/admin/accounts" class="admin-nav-link" @click="mobileMenuOpen = false">
+          <RouterLink class="admin-nav-link" to="/admin/accounts" @click="mobileMenuOpen = false">
             <WalletCards :size="19" />
             <span>Accounts</span>
           </RouterLink>
 
           <RouterLink
-            to="/admin/transactions"
             class="admin-nav-link"
+            to="/admin/transactions"
             @click="mobileMenuOpen = false"
           >
             <ArrowLeftRight :size="19" />
             <span>Transactions</span>
           </RouterLink>
 
+          <RouterLink
+            class="admin-nav-link"
+            to="/admin/card-applications"
+            @click="mobileMenuOpen = false"
+          >
+            <CreditCard :size="19" />
+            <span>Card Applications</span>
+            <span v-if="pendingCardApplications > 0" class="nav-count-badge">
+              {{ pendingCardApplications }}
+            </span>
+          </RouterLink>
+
           <p class="navigation-label second-label">SYSTEM</p>
 
-          <RouterLink to="/settings" class="admin-nav-link" @click="mobileMenuOpen = false">
+          <RouterLink class="admin-nav-link" to="/settings" @click="mobileMenuOpen = false">
             <Settings :size="19" />
             <span>Settings</span>
           </RouterLink>
@@ -314,7 +412,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <button type="button" class="logout-button" @click="logout">
+        <button class="logout-button" type="button" @click="logout">
           <LogOut :size="18" />
           <span>Logout</span>
         </button>
@@ -326,7 +424,7 @@ onMounted(() => {
       <!-- Header -->
       <header class="admin-header">
         <div class="header-left">
-          <button type="button" class="mobile-menu-button" @click="mobileMenuOpen = true">
+          <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = true">
             <Menu :size="23" />
           </button>
 
@@ -337,14 +435,14 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
-          <button type="button" class="header-icon-button" title="Search">
+          <button class="header-icon-button" title="Search" type="button">
             <Search :size="19" />
           </button>
 
           <button
-            type="button"
             class="header-icon-button notification-button"
             title="Notifications"
+            type="button"
           >
             <Bell :size="19" />
             <span class="notification-dot"></span>
@@ -381,7 +479,7 @@ onMounted(() => {
           <h2>Unable to load dashboard</h2>
           <p>{{ errorMessage }}</p>
 
-          <button type="button" class="retry-button" @click="loadDashboard">Try again</button>
+          <button class="retry-button" type="button" @click="loadDashboard">Try again</button>
         </div>
 
         <!-- Dashboard -->
@@ -528,8 +626,8 @@ onMounted(() => {
 
                 <div class="status-progress">
                   <div
-                    class="progress-fill active-fill"
                     :style="{ width: `${activePercentage}%` }"
+                    class="progress-fill active-fill"
                   ></div>
                 </div>
 
@@ -546,8 +644,8 @@ onMounted(() => {
 
                 <div class="status-progress">
                   <div
-                    class="progress-fill inactive-fill"
                     :style="{ width: `${inactivePercentage}%` }"
+                    class="progress-fill inactive-fill"
                   ></div>
                 </div>
               </div>
@@ -619,7 +717,7 @@ onMounted(() => {
             </div>
 
             <div class="quick-actions">
-              <RouterLink to="/admin/users" class="quick-action">
+              <RouterLink class="quick-action" to="/admin/users">
                 <div class="quick-action-icon">
                   <Users :size="21" />
                 </div>
@@ -632,7 +730,7 @@ onMounted(() => {
                 <ChevronRight :size="19" />
               </RouterLink>
 
-              <RouterLink to="/admin/accounts" class="quick-action">
+              <RouterLink class="quick-action" to="/admin/accounts">
                 <div class="quick-action-icon">
                   <WalletCards :size="21" />
                 </div>
@@ -645,7 +743,7 @@ onMounted(() => {
                 <ChevronRight :size="19" />
               </RouterLink>
 
-              <RouterLink to="/admin/transactions" class="quick-action">
+              <RouterLink class="quick-action" to="/admin/transactions">
                 <div class="quick-action-icon">
                   <ArrowLeftRight :size="21" />
                 </div>
@@ -657,6 +755,166 @@ onMounted(() => {
 
                 <ChevronRight :size="19" />
               </RouterLink>
+
+              <RouterLink
+                class="quick-action card-application-action"
+                to="/admin/card-applications"
+              >
+                <div class="quick-action-icon">
+                  <CreditCard :size="21" />
+                </div>
+
+                <div>
+                  <strong>Card applications</strong>
+                  <span>
+                    {{
+                      pendingCardApplications > 0
+                        ? `${pendingCardApplications} pending application${pendingCardApplications === 1 ? '' : 's'} to review`
+                        : 'Review customer card applications'
+                    }}
+                  </span>
+                </div>
+
+                <span v-if="pendingCardApplications > 0" class="quick-action-count">
+                  {{ pendingCardApplications }}
+                </span>
+
+                <ChevronRight :size="19" />
+              </RouterLink>
+            </div>
+          </section>
+
+          <!-- CARD MANAGEMENT -->
+          <section class="card-management-section">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-kicker">CARD MANAGEMENT</span>
+                <h3>Customer cards</h3>
+                <p class="section-description">
+                  Freeze, unfreeze or permanently cancel customer cards.
+                </p>
+              </div>
+
+              <button
+                :disabled="loadingCards"
+                class="refresh-cards-button"
+                type="button"
+                @click="loadAdminCards"
+              >
+                <RefreshCw :class="{ spinning: loadingCards }" :size="16" />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            <div v-if="cardActionError" class="card-action-error">
+              <XCircle :size="17" />
+              <span>{{ cardActionError }}</span>
+              <button type="button" @click="cardActionError = ''">×</button>
+            </div>
+
+            <div v-if="loadingCards" class="cards-management-loading">
+              <div class="loading-spinner small"></div>
+              <span>Loading customer cards...</span>
+            </div>
+
+            <div v-else-if="adminCards.length === 0" class="cards-management-empty">
+              <div class="empty-card-icon">
+                <CreditCard :size="22" />
+              </div>
+              <div>
+                <strong>No customer cards found</strong>
+                <span>Approved customer cards will appear here.</span>
+              </div>
+            </div>
+
+            <div v-else class="admin-card-list">
+              <article v-for="card in adminCards" :key="card.id" class="admin-card-row">
+                <div class="admin-card-main">
+                  <div class="admin-card-icon">
+                    <CreditCard :size="20" />
+                  </div>
+
+                  <div class="admin-card-details">
+                    <div class="admin-card-title-row">
+                      <strong>{{ card.maskedCardNumber }}</strong>
+
+                      <span :class="card.cardStatus.toLowerCase()" class="admin-card-status">
+                        <span class="status-dot"></span>
+                        {{ card.cardStatus }}
+                      </span>
+                    </div>
+
+                    <div class="admin-card-meta">
+                      <span>{{ card.holderName }}</span>
+                      <span>{{ card.cardType }}</span>
+                      <span>Account {{ card.accountNumber }}</span>
+                      <span>Card #{{ card.id }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="admin-card-actions">
+                  <template v-if="card.cardStatus === 'ACTIVE'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button freeze"
+                      type="button"
+                      @click="handleCardAction(card, 'BLOCK')"
+                    >
+                      <Lock :size="15" />
+                      <span>{{ cardActionLoadingId === card.id ? 'Freezing...' : 'Freeze' }}</span>
+                    </button>
+
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
+
+                  <template v-else-if="card.cardStatus === 'BLOCKED'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button activate"
+                      type="button"
+                      @click="handleCardAction(card, 'ACTIVATE')"
+                    >
+                      <Unlock :size="15" />
+                      <span>{{
+                        cardActionLoadingId === card.id ? 'Unfreezing...' : 'Unfreeze'
+                      }}</span>
+                    </button>
+
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
+
+                  <template v-else-if="card.cardStatus === 'EXPIRED'">
+                    <button
+                      :disabled="cardActionLoadingId === card.id"
+                      class="card-control-button cancel"
+                      type="button"
+                      @click="handleCardAction(card, 'CANCEL')"
+                    >
+                      <XCircle :size="15" />
+                      <span>Cancel</span>
+                    </button>
+                  </template>
+
+                  <span v-else class="card-no-actions">No actions available</span>
+                </div>
+              </article>
             </div>
           </section>
         </template>
@@ -796,6 +1054,21 @@ onMounted(() => {
   background: #eaf3fb;
   color: #07559b;
   font-weight: 750;
+}
+
+.nav-count-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 10px;
+  background: #07559b;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .sidebar-bottom {
@@ -1216,7 +1489,7 @@ onMounted(() => {
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: conic-gradient(#07559b 0% var(--active, 0%), #e9eef4 var(--active, 0%) 100%);
+  background: conic-gradient(#07559b 0% 65%, #e9eef4 65% 100%);
   position: relative;
 }
 
@@ -1474,6 +1747,21 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.quick-action-count {
+  min-width: 23px;
+  height: 23px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
 /* ============================================
    LOADING / ERROR
 ============================================ */
@@ -1683,6 +1971,319 @@ onMounted(() => {
 
   .system-status {
     height: 33px;
+  }
+}
+
+/* ============================================
+   CARD MANAGEMENT
+============================================ */
+
+.card-management-section {
+  margin-top: 26px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #e4ebf3;
+  border-radius: 16px;
+}
+
+.section-description {
+  margin: 6px 0 0;
+  color: #8191a3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.refresh-cards-button {
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #dfe7ef;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #526a82;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refresh-cards-button:hover {
+  background: #f5f9fd;
+  color: #07559b;
+}
+
+.refresh-cards-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: card-refresh-spin 0.9s linear infinite;
+}
+
+@keyframes card-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.card-action-error {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #f2caca;
+  border-radius: 10px;
+  background: #fff6f6;
+  color: #b74343;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+
+.card-action-error span {
+  flex: 1;
+}
+
+.card-action-error button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  background: transparent;
+  color: #b74343;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.cards-management-loading,
+.cards-management-empty {
+  margin-top: 18px;
+  min-height: 90px;
+  border: 1px dashed #dce5ee;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  color: #8191a3;
+  font-size: 12px;
+}
+
+.cards-management-empty {
+  justify-content: flex-start;
+  padding: 18px;
+}
+
+.cards-management-empty > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cards-management-empty strong {
+  color: #314b65;
+  font-size: 12px;
+}
+.cards-management-empty span {
+  color: #8797a8;
+  font-size: 11px;
+}
+
+.admin-card-list {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-card-row {
+  padding: 16px;
+  border: 1px solid #e5ecf3;
+  border-radius: 12px;
+  background: #fbfdff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-card-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.admin-card-icon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 10px;
+  background: #eaf3fb;
+  color: #07559b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-card-details {
+  min-width: 0;
+}
+
+.admin-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-card-title-row strong {
+  color: #203b57;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+}
+
+.admin-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.admin-card-status.active {
+  background: #eaf8f0;
+  color: #278152;
+}
+.admin-card-status.blocked {
+  background: #fff5e8;
+  color: #b56a18;
+}
+.admin-card-status.expired {
+  background: #f1f3f6;
+  color: #7a8795;
+}
+.admin-card-status.cancelled {
+  background: #fff0f0;
+  color: #b44b4b;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.admin-card-meta {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  color: #8292a4;
+  font-size: 10px;
+}
+
+.admin-card-meta span:not(:last-child)::after {
+  content: '•';
+  margin-left: 14px;
+  color: #c2ccd6;
+}
+
+.admin-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.card-control-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.card-control-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.card-control-button.freeze {
+  border: 1px solid #e7cfae;
+  background: #fffaf3;
+  color: #9a651f;
+}
+.card-control-button.freeze:hover:not(:disabled) {
+  background: #fff1dc;
+}
+.card-control-button.activate {
+  border: 1px solid #bfe3cd;
+  background: #f2fbf6;
+  color: #287c50;
+}
+.card-control-button.activate:hover:not(:disabled) {
+  background: #e5f7ed;
+}
+.card-control-button.cancel {
+  border: 1px solid #efc9c9;
+  background: #fff7f7;
+  color: #b34a4a;
+}
+.card-control-button.cancel:hover:not(:disabled) {
+  background: #ffeded;
+}
+.card-no-actions {
+  color: #9aa7b4;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+@media (max-width: 900px) {
+  .admin-card-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .admin-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .card-management-section {
+    padding: 18px;
+  }
+  .card-management-section .section-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .admin-card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .admin-card-meta span:not(:last-child)::after {
+    display: none;
+  }
+  .admin-card-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .card-control-button {
+    width: 100%;
   }
 }
 </style>
