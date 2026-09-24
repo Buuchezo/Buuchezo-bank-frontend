@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+
 import {
   ArrowRight,
   ArrowUpRight,
@@ -180,7 +182,8 @@ async function register() {
       throw new Error(result.message || 'Registration failed. Please try again.')
     }
 
-    successMessage.value = result.message || 'Your account has been created successfully.'
+    successMessage.value =
+      result.message || 'Your account has been created successfully.'
 
     /*
      * Registration does not automatically store a token.
@@ -201,7 +204,9 @@ async function register() {
     console.error('Registration failed:', error)
 
     errorMessage.value =
-      error instanceof Error ? error.message : 'Registration failed. Please try again.'
+      error instanceof Error
+        ? error.message
+        : 'Registration failed. Please try again.'
   } finally {
     loading.value = false
   }
@@ -216,7 +221,12 @@ async function register() {
 
       <div class="visual-content">
         <RouterLink to="/" class="brand">
-          <span>B</span>
+          <img
+            :src="buuchezoBankLogo"
+            alt="Buuchezo Bank"
+            class="register-brand-logo"
+          />
+
           <strong>Buuchezo Bank</strong>
         </RouterLink>
 
@@ -228,14 +238,21 @@ async function register() {
             <span>your future.</span>
           </h1>
 
-          <p>Open your Buuchezo Bank account and manage your money with confidence.</p>
+          <p>
+            Open your Buuchezo Bank account and manage your money with confidence.
+          </p>
         </div>
 
         <!-- CARD -->
         <div class="visual-card">
           <div class="card-top">
             <div class="card-brand">
-              <span>B</span>
+              <img
+                :src="buuchezoBankLogo"
+                alt="Buuchezo Bank"
+                class="card-brand-logo"
+              />
+
               <strong>Buuchezo</strong>
             </div>
 
@@ -249,7 +266,9 @@ async function register() {
             <span />
           </div>
 
-          <div class="card-number">•••• &nbsp; •••• &nbsp; •••• &nbsp; 3456</div>
+          <div class="card-number">
+            •••• &nbsp; •••• &nbsp; •••• &nbsp; 3456
+          </div>
 
           <div class="card-bottom">
             <div>
@@ -271,9 +290,9 @@ async function register() {
           </div>
 
           <div>
-            <strong> Secure banking </strong>
+            <strong>Secure banking</strong>
 
-            <span> Your account is protected by design. </span>
+            <span>Your account is protected by design.</span>
           </div>
 
           <Check :size="17" />
@@ -286,7 +305,12 @@ async function register() {
       <div class="register-container">
         <div class="mobile-brand">
           <RouterLink to="/" class="brand">
-            <span>B</span>
+            <img
+              :src="buuchezoBankLogo"
+              alt="Buuchezo Bank"
+              class="register-brand-logo"
+            />
+
             <strong>Buuchezo Bank</strong>
           </RouterLink>
         </div>
@@ -328,7 +352,7 @@ async function register() {
           <!-- NAME -->
           <div class="form-row">
             <div class="form-group">
-              <label for="firstName"> First name </label>
+              <label for="firstName">First name</label>
 
               <input
                 id="firstName"
@@ -341,7 +365,7 @@ async function register() {
             </div>
 
             <div class="form-group">
-              <label for="lastName"> Last name </label>
+              <label for="lastName">Last name</label>
 
               <input
                 id="lastName"
@@ -356,7 +380,7 @@ async function register() {
 
           <!-- EMAIL -->
           <div class="form-group">
-            <label for="email"> Email address </label>
+            <label for="email">Email address</label>
 
             <input
               id="email"
@@ -370,7 +394,7 @@ async function register() {
 
           <!-- PASSWORD -->
           <div class="form-group">
-            <label for="password"> Password </label>
+            <label for="password">Password</label>
 
             <div class="password-wrapper">
               <LockKeyhole :size="17" class="field-icon" />
@@ -388,11 +412,12 @@ async function register() {
                 type="button"
                 class="password-toggle"
                 :disabled="loading"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :aria-label="
+                  showPassword ? 'Hide password' : 'Show password'
+                "
                 @click="showPassword = !showPassword"
               >
                 <EyeOff v-if="showPassword" :size="17" />
-
                 <Eye v-else :size="17" />
               </button>
             </div>
@@ -419,13 +444,14 @@ async function register() {
             </div>
 
             <small class="field-hint">
-              Use at least 8 characters with a mix of letters, numbers and symbols.
+              Use at least 8 characters with a mix of letters, numbers and
+              symbols.
             </small>
           </div>
 
           <!-- CONFIRM PASSWORD -->
           <div class="form-group">
-            <label for="confirmPassword"> Confirm password </label>
+            <label for="confirmPassword">Confirm password</label>
 
             <div
               class="password-wrapper"
@@ -448,23 +474,33 @@ async function register() {
                 type="button"
                 class="password-toggle"
                 :disabled="loading"
-                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                :aria-label="
+                  showConfirmPassword
+                    ? 'Hide password'
+                    : 'Show password'
+                "
                 @click="showConfirmPassword = !showConfirmPassword"
               >
                 <EyeOff v-if="showConfirmPassword" :size="17" />
-
                 <Eye v-else :size="17" />
               </button>
             </div>
 
-            <small v-if="confirmPassword && !passwordsMatch" class="validation-message">
+            <small
+              v-if="confirmPassword && !passwordsMatch"
+              class="validation-message"
+            >
               Passwords do not match.
             </small>
           </div>
 
           <!-- TERMS -->
           <label class="terms">
-            <input v-model="acceptedTerms" type="checkbox" :disabled="loading" />
+            <input
+              v-model="acceptedTerms"
+              type="checkbox"
+              :disabled="loading"
+            />
 
             <span class="custom-checkbox">
               <Check :size="12" />
@@ -472,14 +508,18 @@ async function register() {
 
             <span class="terms-text">
               I agree to the
-              <a href="#" @click.prevent> Terms & Conditions </a>
+              <a href="#" @click.prevent>Terms &amp; Conditions</a>
               and
-              <a href="#" @click.prevent> Privacy Policy </a>.
+              <a href="#" @click.prevent>Privacy Policy</a>.
             </span>
           </label>
 
           <!-- SUBMIT -->
-          <button type="submit" class="register-button" :disabled="!canSubmit">
+          <button
+            type="submit"
+            class="register-button"
+            :disabled="!canSubmit"
+          >
             <span>
               {{ loading ? 'Creating account...' : 'Create account' }}
             </span>
@@ -492,7 +532,7 @@ async function register() {
 
         <!-- LOGIN -->
         <div class="login-link">
-          <span> Already have an account? </span>
+          <span>Already have an account?</span>
 
           <RouterLink to="/login">
             Sign in
@@ -504,7 +544,9 @@ async function register() {
         <div class="legal">
           <ShieldCheck :size="13" />
 
-          <span> Your information is securely transmitted and protected. </span>
+          <span>
+            Your information is securely transmitted and protected.
+          </span>
         </div>
       </div>
     </section>
@@ -548,8 +590,16 @@ async function register() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 75% 25%, rgba(49, 133, 207, 0.42), transparent 31%),
-    radial-gradient(circle at 20% 85%, rgba(11, 82, 147, 0.5), transparent 34%),
+    radial-gradient(
+      circle at 75% 25%,
+      rgba(49, 133, 207, 0.42),
+      transparent 31%
+    ),
+    radial-gradient(
+      circle at 20% 85%,
+      rgba(11, 82, 147, 0.5),
+      transparent 34%
+    ),
     linear-gradient(145deg, #042f5c 0%, #07559b 52%, #123e9b 100%);
 }
 
@@ -591,15 +641,12 @@ async function register() {
   color: #ffffff;
 }
 
-.brand span {
+.register-brand-logo {
   width: 38px;
   height: 38px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.15);
-  display: grid;
-  place-items: center;
-  font-size: 20px;
-  font-weight: 800;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .brand strong {
@@ -656,7 +703,11 @@ async function register() {
   border-radius: 19px;
   padding: 24px 26px;
   background:
-    radial-gradient(circle at 88% 15%, rgba(89, 174, 237, 0.38), transparent 28%),
+    radial-gradient(
+      circle at 88% 15%,
+      rgba(89, 174, 237, 0.38),
+      transparent 28%
+    ),
     linear-gradient(135deg, #126aa9, #1741a7);
   box-shadow:
     0 25px 55px rgba(1, 26, 55, 0.28),
@@ -688,15 +739,12 @@ async function register() {
   gap: 8px;
 }
 
-.card-brand span {
+.card-brand-logo {
   width: 29px;
   height: 29px;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.14);
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  font-weight: 800;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .card-brand strong {
@@ -1239,11 +1287,6 @@ async function register() {
 
   .mobile-brand .brand {
     color: #10243e;
-  }
-
-  .mobile-brand .brand span {
-    background: #07559b;
-    color: #ffffff;
   }
 }
 

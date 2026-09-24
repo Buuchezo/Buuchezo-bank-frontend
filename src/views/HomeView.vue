@@ -20,6 +20,7 @@ import BankingLifeSectionView from '@/components/layout/BankingLifeSectionView.v
 import FinalCTAView from '@/components/layout/FinalCTAView.vue'
 import Footer from '@/components/layout/Footer.vue'
 import Navbar from '@/components/layout/Navbar.vue'
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
 </script>
 
 <template>
@@ -291,7 +292,7 @@ import Navbar from '@/components/layout/Navbar.vue'
 
         <div class="card-header">
           <div class="card-brand">
-            <div class="card-logo">B</div>
+            <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="bank-card-logo" />
 
             <strong> Buuchezo Bank </strong>
           </div>
@@ -1047,7 +1048,12 @@ import Navbar from '@/components/layout/Navbar.vue'
     transform 0.5s ease,
     box-shadow 0.5s ease;
 }
-
+.bank-card-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  display: block;
+}
 .bank-card:hover {
   transform: perspective(1600px) rotateX(5deg) rotateY(-9deg) rotateZ(-4deg) translateY(-5px);
 

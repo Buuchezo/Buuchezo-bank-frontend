@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import BankingShell from '../components/BankingShell.vue'
 import {
   ArrowLeft,
   ArrowDownLeft,
@@ -9,15 +10,9 @@ import {
   ChevronDown,
   Clock3,
   FileText,
-  LayoutDashboard,
-  LogOut,
-  Menu,
   RefreshCw,
   Search,
-  Settings,
   ShieldCheck,
-  Users,
-  WalletCards,
   X,
   XCircle,
   Eye,
@@ -74,8 +69,6 @@ const searchedAccountNumber = ref('')
 const transactionFilter = ref('ALL')
 const directionFilter = ref('ALL')
 
-const mobileMenuOpen = ref(false)
-
 const selectedTransaction = ref<Transaction | null>(null)
 const showTransactionModal = ref(false)
 
@@ -86,36 +79,6 @@ const depositLoading = ref(false)
 const depositMessage = ref('')
 const depositError = ref('')
 
-const sidebarItems = [
-  {
-    label: 'Overview',
-    to: '/admin/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    label: 'Users',
-    to: '/admin/users',
-    icon: Users,
-  },
-  {
-    label: 'Accounts',
-    to: '/admin/accounts',
-    icon: WalletCards,
-  },
-  {
-    label: 'Transactions',
-    to: '/admin/transactions',
-    icon: FileText,
-  },
-]
-
-const serviceItems = [
-  {
-    label: 'Settings',
-    to: '/settings',
-    icon: Settings,
-  },
-]
 
 const filteredTransactions = computed(() => {
   return transactions.value.filter((transaction) => {
@@ -588,15 +551,6 @@ async function makeDeposit() {
   }
 }
 
-function logout() {
-  localStorage.removeItem('adminAccessToken')
-  localStorage.removeItem('user')
-
-  sessionStorage.removeItem('adminAccessToken')
-  sessionStorage.removeItem('user')
-
-  router.push('/admin/login')
-}
 
 onMounted(async () => {
   loadingProfile.value = true
@@ -617,181 +571,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="admin-page">
-
-    <!-- Mobile overlay -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    ></div>
-
-    <!-- Sidebar -->
-    <aside
-      class="sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
-      <div class="sidebar-top">
-
-        <RouterLink
-          to="/"
-          class="brand"
-          @click="mobileMenuOpen = false"
-        >
-          <span class="brand-mark">B</span>
-
-          <span class="brand-text">
-            <strong>Buuchezo</strong>
-            <small>Bank</small>
-          </span>
-        </RouterLink>
-
-        <button
-          class="mobile-close"
-          type="button"
-          aria-label="Close navigation"
-          @click="mobileMenuOpen = false"
-        >
-          <X :size="22" />
-        </button>
-
-        <div class="admin-label">
-          <ShieldCheck :size="15" />
-          <span>ADMINISTRATION</span>
-        </div>
-
-        <nav class="navigation">
-
-          <RouterLink
-            v-for="item in sidebarItems"
-            :key="item.to"
-            :to="item.to"
-            class="nav-item"
-            :class="{
-              active: item.to === '/admin/transactions',
-            }"
-            @click="mobileMenuOpen = false"
-          >
-            <component
-              :is="item.icon"
-              :size="19"
-            />
-
-            <span>{{ item.label }}</span>
-          </RouterLink>
-
-        </nav>
-
-        <div class="nav-divider"></div>
-
-        <div class="nav-section-title">
-          SERVICES
-        </div>
-
-        <nav class="navigation">
-
-          <RouterLink
-            v-for="item in serviceItems"
-            :key="item.to"
-            :to="item.to"
-            class="nav-item"
-            @click="mobileMenuOpen = false"
-          >
-            <component
-              :is="item.icon"
-              :size="19"
-            />
-
-            <span>{{ item.label }}</span>
-          </RouterLink>
-
-        </nav>
-
-      </div>
-
-      <div class="sidebar-bottom">
-
-        <div class="admin-profile">
-
-          <div class="profile-avatar">
-            {{ currentUser?.firstName?.charAt(0) || 'A' }}
-          </div>
-
-          <div class="profile-details">
-            <strong>
-              {{
-                currentUser
-                  ? `${currentUser.firstName} ${currentUser.lastName}`
-                  : 'Administrator'
-              }}
-            </strong>
-
-            <span>
-              Administrator
-            </span>
-          </div>
-
-        </div>
-
-        <button
-          class="logout-button"
-          type="button"
-          @click="logout"
-        >
-          <LogOut :size="18" />
-          <span>Sign out</span>
-        </button>
-
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="main-content">
-
-      <!-- Header -->
-      <header class="topbar">
-
-        <div class="topbar-left">
-
-          <button
-            class="mobile-menu-button"
-            type="button"
-            aria-label="Open navigation"
-            @click="mobileMenuOpen = true"
-          >
-            <Menu :size="22" />
-          </button>
-
-          <div>
-            <span class="eyebrow">
-              ADMINISTRATION
-            </span>
-
-            <h1>
-              Transactions
-            </h1>
-          </div>
-
-        </div>
-
-        <div class="topbar-right">
-
-          <div class="admin-status">
-            <span class="status-dot"></span>
-            <span>System operational</span>
-          </div>
-
-          <div class="header-avatar">
-            {{
-              currentUser?.firstName?.charAt(0) || 'A'
-            }}
-          </div>
-
-        </div>
-
-      </header>
-
-      <!-- Content -->
+  <BankingShell
+    :admin="true"
+    page-title="Transactions"
+    page-section="ADMINISTRATION"
+    :user="currentUser || undefined"
+  >
+    <div class="admin-transactions-page">
       <section class="content">
 
         <!-- Heading -->
@@ -1599,67 +1385,65 @@ onMounted(async () => {
 
       </section>
 
-    </main>
+      <!-- Transaction detail modal -->
+      <div
+        v-if="showTransactionModal && selectedTransaction"
+        class="modal-backdrop"
+        @click.self="closeTransaction"
+      >
 
-    <!-- Transaction detail modal -->
-    <div
-      v-if="showTransactionModal && selectedTransaction"
-      class="modal-backdrop"
-      @click.self="closeTransaction"
-    >
+        <div class="transaction-modal">
 
-      <div class="transaction-modal">
+          <div class="modal-header">
 
-        <div class="modal-header">
+            <div class="modal-title-group">
 
-          <div class="modal-title-group">
-
-            <div
-              class="modal-transaction-icon"
-              :class="
+              <div
+                class="modal-transaction-icon"
+                :class="
                 getDirectionClass(
                   selectedTransaction.transactionDirection,
                 )
               "
-            >
-              <component
-                :is="
+              >
+                <component
+                  :is="
                   getDirectionIcon(
                     selectedTransaction.transactionDirection,
                   )
                 "
-                :size="21"
-              />
-            </div>
+                  :size="21"
+                />
+              </div>
 
-            <div>
-              <h3>
-                Transaction details
-              </h3>
+              <div>
+                <h3>
+                  Transaction details
+                </h3>
 
-              <span>
+                <span>
                 {{
-                  selectedTransaction.reference ||
-                  `Transaction #${selectedTransaction.id}`
-                }}
+                    selectedTransaction.reference ||
+                    `Transaction #${selectedTransaction.id}`
+                  }}
               </span>
+              </div>
+
             </div>
+
+            <button
+              type="button"
+              class="modal-close"
+              @click="closeTransaction"
+            >
+              <X :size="19" />
+            </button>
 
           </div>
 
-          <button
-            type="button"
-            class="modal-close"
-            @click="closeTransaction"
-          >
-            <X :size="19" />
-          </button>
+          <div class="modal-body">
 
-        </div>
-
-        <div class="modal-body">
-
-          <div class="modal-amount">
+            <div class="modal-amount">
 
             <span>
               {{
@@ -1669,484 +1453,192 @@ onMounted(async () => {
               }}
             </span>
 
-            <strong
-              :class="
+              <strong
+                :class="
                 selectedTransaction.transactionDirection ===
                 'CREDIT'
                   ? 'amount-credit'
                   : 'amount-debit'
               "
-            >
-              {{
-                selectedTransaction.transactionDirection ===
-                'CREDIT'
-                  ? '+'
-                  : '-'
-              }}{{
-                formatCurrency(
-                  Number(
-                    selectedTransaction.amount || 0,
-                  ),
-                  selectedTransaction.currency,
-                )
-              }}
-            </strong>
+              >
+                {{
+                  selectedTransaction.transactionDirection ===
+                  'CREDIT'
+                    ? '+'
+                    : '-'
+                }}{{
+                  formatCurrency(
+                    Number(
+                      selectedTransaction.amount || 0,
+                    ),
+                    selectedTransaction.currency,
+                  )
+                }}
+              </strong>
 
-          </div>
+            </div>
 
-          <div class="detail-grid">
+            <div class="detail-grid">
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Reference
               </span>
 
-              <strong>
-                {{
-                  selectedTransaction.reference || '—'
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    selectedTransaction.reference || '—'
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Transaction ID
               </span>
 
-              <strong>
-                #{{ selectedTransaction.id }}
-              </strong>
-            </div>
+                <strong>
+                  #{{ selectedTransaction.id }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 From account
               </span>
 
-              <strong>
-                {{
-                  selectedTransaction.fromAccountNumber ||
-                  '—'
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    selectedTransaction.fromAccountNumber ||
+                    '—'
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 To account
               </span>
 
-              <strong>
-                {{
-                  selectedTransaction.toAccountNumber ||
-                  '—'
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    selectedTransaction.toAccountNumber ||
+                    '—'
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Type
               </span>
 
-              <strong>
-                {{
-                  formatType(
-                    selectedTransaction.transactionType,
-                  )
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    formatType(
+                      selectedTransaction.transactionType,
+                    )
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Status
               </span>
 
-              <strong>
-                {{
-                  formatStatus(
-                    selectedTransaction.transactionStatus,
-                  )
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    formatStatus(
+                      selectedTransaction.transactionStatus,
+                    )
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Direction
               </span>
 
-              <strong>
-                {{
-                  formatDirection(
-                    selectedTransaction.transactionDirection,
-                  )
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    formatDirection(
+                      selectedTransaction.transactionDirection,
+                    )
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Channel
               </span>
 
-              <strong>
-                {{
-                  formatChannel(
-                    selectedTransaction.channel,
-                  )
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    formatChannel(
+                      selectedTransaction.channel,
+                    )
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item">
+              <div class="detail-item">
               <span>
                 Created
               </span>
 
-              <strong>
-                {{
-                  formatDate(
-                    selectedTransaction.createdAt,
-                  )
-                }}
-              </strong>
-            </div>
+                <strong>
+                  {{
+                    formatDate(
+                      selectedTransaction.createdAt,
+                    )
+                  }}
+                </strong>
+              </div>
 
-            <div class="detail-item detail-wide">
+              <div class="detail-item detail-wide">
               <span>
                 Description
               </span>
 
-              <strong>
-                {{
-                  selectedTransaction.description ||
-                  'No description'
-                }}
-              </strong>
+                <strong>
+                  {{
+                    selectedTransaction.description ||
+                    'No description'
+                  }}
+                </strong>
+              </div>
+
             </div>
 
           </div>
 
-        </div>
+          <div class="modal-footer">
 
-        <div class="modal-footer">
+            <button
+              type="button"
+              class="cancel-button"
+              @click="closeTransaction"
+            >
+              Close
+            </button>
 
-          <button
-            type="button"
-            class="cancel-button"
-            @click="closeTransaction"
-          >
-            Close
-          </button>
+          </div>
 
         </div>
 
       </div>
 
-    </div>
 
-  </div>
+    </div>
+  </BankingShell>
 </template>
 
 <style scoped>
 * {
   box-sizing: border-box;
-}
-
-.admin-page {
-  min-height: 100vh;
-  background: #f4f7fb;
-  color: #10233f;
-  display: flex;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
-
-/* =========================
-   SIDEBAR
-========================= */
-
-.sidebar {
-  width: 258px;
-  min-width: 258px;
-  min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e4eaf2;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 25px 16px 18px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
-}
-
-.sidebar-top {
-  min-width: 0;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  color: #082c55;
-  padding: 4px 10px 26px;
-}
-
-.brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: linear-gradient(
-    145deg,
-    #07559b,
-    #063d74
-  );
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 21px;
-  font-weight: 800;
-  box-shadow: 0 8px 20px rgba(6, 61, 116, 0.2);
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-}
-
-.brand-text strong {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.brand-text small {
-  color: #71819a;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
-  margin-top: 4px;
-}
-
-.admin-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #8190a6;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  padding: 0 12px 10px;
-}
-
-.navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.nav-item {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 13px;
-  border-radius: 10px;
-  color: #68788f;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.nav-item:hover {
-  background: #f2f6fb;
-  color: #07559b;
-}
-
-.nav-item.active {
-  background: #eaf3fb;
-  color: #07559b;
-  font-weight: 700;
-}
-
-.nav-divider {
-  height: 1px;
-  background: #edf1f6;
-  margin: 21px 12px 17px;
-}
-
-.nav-section-title {
-  color: #a0acbc;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-  padding: 0 13px 8px;
-}
-
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.admin-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 9px;
-  border-radius: 12px;
-  background: #f7f9fc;
-}
-
-.profile-avatar,
-.header-avatar {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #dcecf9;
-  color: #07559b;
-  font-weight: 800;
-}
-
-.profile-avatar {
-  width: 36px;
-  height: 36px;
-  font-size: 13px;
-}
-
-.profile-details {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.profile-details strong {
-  font-size: 12px;
-  color: #17304f;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profile-details span {
-  color: #8492a6;
-  font-size: 10px;
-  margin-top: 3px;
-}
-
-.logout-button {
-  border: 0;
-  background: transparent;
-  color: #7b899c;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 11px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-}
-
-.logout-button:hover {
-  background: #f8eaea;
-  color: #b53b3b;
-}
-
-.mobile-close,
-.mobile-menu-button {
-  display: none;
-}
-
-/* =========================
-   MAIN
-========================= */
-
-.main-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.topbar {
-  height: 82px;
-  background: #ffffff;
-  border-bottom: 1px solid #e6ebf2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 38px;
-}
-
-.topbar-left,
-.topbar-right {
-  display: flex;
-  align-items: center;
-}
-
-.topbar-left {
-  gap: 16px;
-}
-
-.eyebrow {
-  display: block;
-  color: #7d8da3;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.6px;
-  margin-bottom: 4px;
-}
-
-.topbar h1 {
-  margin: 0;
-  color: #102d50;
-  font-size: 24px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-}
-
-.topbar-right {
-  gap: 18px;
-}
-
-.admin-status {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #718097;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #27a56a;
-  box-shadow: 0 0 0 4px #e7f6ee;
-}
-
-.header-avatar {
-  width: 38px;
-  height: 38px;
-  font-size: 13px;
 }
 
 /* =========================
@@ -2652,20 +2144,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.direction-credit {
-  background: #e9f7ef;
-  color: #23855a;
-}
-
-.direction-debit {
-  background: #fff0ee;
-  color: #c25445;
-}
-
-.direction-default {
-  background: #eef2f6;
-  color: #687a8f;
-}
 
 .transaction-info {
   display: flex;
@@ -2738,26 +2216,6 @@ onMounted(async () => {
   font-size: 9px;
   font-weight: 800;
   white-space: nowrap;
-}
-
-.status-success {
-  background: #e9f7ef;
-  color: #22865a;
-}
-
-.status-pending {
-  background: #fff3df;
-  color: #aa701f;
-}
-
-.status-failed {
-  background: #fbeaea;
-  color: #b94b4b;
-}
-
-.status-default {
-  background: #eef1f5;
-  color: #6c7c90;
 }
 
 .channel-cell {
@@ -3255,78 +2713,13 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    transform: translateX(-105%);
-    transition: transform 0.25s ease;
-    box-shadow: 15px 0 35px rgba(17, 46, 76, 0.12);
-  }
-
-  .sidebar.sidebar-open {
-    transform: translateX(0);
-  }
-
-  .mobile-close {
-    display: grid;
-    place-items: center;
-    position: absolute;
-    top: 25px;
-    right: 15px;
-    width: 35px;
-    height: 35px;
-    border: 0;
-    border-radius: 8px;
-    background: #f1f4f7;
-    color: #62758b;
-    cursor: pointer;
-  }
-
-  .mobile-menu-button {
-    width: 38px;
-    height: 38px;
-    border: 1px solid #dde6ef;
-    border-radius: 9px;
-    background: #ffffff;
-    color: #34526f;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-  }
-
-  .mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(12, 33, 54, 0.32);
-    z-index: 90;
-  }
-
-  .topbar {
-    height: 74px;
-  }
-
   .content {
-    padding-left: 25px;
-    padding-right: 25px;
-  }
-
-  .topbar {
     padding-left: 25px;
     padding-right: 25px;
   }
 }
 
 @media (max-width: 700px) {
-  .topbar-right .admin-status {
-    display: none;
-  }
-
-  .topbar {
-    padding: 0 17px;
-  }
-
   .content {
     padding: 22px 15px 35px;
   }
@@ -3423,10 +2816,6 @@ onMounted(async () => {
     font-size: 18px;
   }
 
-  .topbar h1 {
-    font-size: 21px;
-  }
-
   .toolbar-controls {
     grid-template-columns: 1fr;
   }
@@ -3441,7 +2830,4 @@ onMounted(async () => {
     flex-direction: column;
   }
 }
-</style>cd
-
-
-
+</style>

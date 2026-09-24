@@ -1,5 +1,6 @@
-```vue
 <script setup lang="ts">
+import BankingShell from '@/components/BankingShell.vue'
+
 import { computed, onMounted, ref } from 'vue'
 import QRCode from 'qrcode'
 import { useRouter } from 'vue-router'
@@ -65,6 +66,41 @@ interface ApiResponse<T> {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
+
+function getAccessToken(): string | null {
+  return (
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken')
+  )
+}
+
+function isAdminSession(): boolean {
+  return Boolean(
+    localStorage.getItem('adminAccessToken') ||
+    sessionStorage.getItem('adminAccessToken'),
+  )
+}
+
+function clearCurrentSession(admin: boolean) {
+  if (admin) {
+    localStorage.removeItem('adminAccessToken')
+    localStorage.removeItem('adminUser')
+    sessionStorage.removeItem('adminAccessToken')
+    sessionStorage.removeItem('adminUser')
+    return
+  }
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('user')
+  sessionStorage.removeItem('accessToken')
+  sessionStorage.removeItem('user')
+}
+
+async function handleUnauthorized(admin: boolean) {
+  clearCurrentSession(admin)
+  await router.push(admin ? '/admin/login' : '/login')
+}
 
 const mobileMenuOpen = ref(false)
 const loading = ref(true)
@@ -174,12 +210,11 @@ async function loadSettings() {
   loading.value = true
   errorMessage.value = ''
 
-  const token =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+  const admin = isAdminSession()
+  const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push(admin ? '/admin/login' : '/login')
     return
   }
 
@@ -192,12 +227,7 @@ async function loadSettings() {
     })
 
     if (response.status === 401) {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
-      sessionStorage.removeItem('accessToken')
-      sessionStorage.removeItem('user')
-
-      await router.push('/login')
+      await handleUnauthorized(admin)
       return
     }
 
@@ -274,12 +304,11 @@ async function setupTwoFactor() {
   errorMessage.value = ''
   successMessage.value = ''
 
-  const token =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+  const admin = isAdminSession()
+  const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push(admin ? '/admin/login' : '/login')
     return
   }
 
@@ -295,7 +324,7 @@ async function setupTwoFactor() {
     )
 
     if (response.status === 401) {
-      logout()
+      await handleUnauthorized(admin)
       return
     }
 
@@ -347,12 +376,11 @@ async function verifyTwoFactor() {
   errorMessage.value = ''
   successMessage.value = ''
 
-  const token =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+  const admin = isAdminSession()
+  const token = getAccessToken()
 
   if (!token) {
-    await router.push('/login')
+    await router.push(admin ? '/admin/login' : '/login')
     return
   }
 
@@ -372,7 +400,7 @@ async function verifyTwoFactor() {
     )
 
     if (response.status === 401) {
-      logout()
+      await handleUnauthorized(admin)
       return
     }
 
@@ -441,13 +469,12 @@ async function confirmDisableTwoFactor() {
   errorMessage.value = ''
   successMessage.value = ''
 
-  const token =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+  const admin = isAdminSession()
+  const token = getAccessToken()
 
   if (!token) {
     twoFactorDisabling.value = false
-    await router.push('/login')
+    await router.push(admin ? '/admin/login' : '/login')
     return
   }
 
@@ -467,7 +494,7 @@ async function confirmDisableTwoFactor() {
     )
 
     if (response.status === 401) {
-      logout()
+      await handleUnauthorized(admin)
       return
     }
 
@@ -519,374 +546,372 @@ function requestPasswordChange() {
   }, 4000)
 }
 
-function navigateTo(path: string) {
-  mobileMenuOpen.value = false
-  router.push(path)
-}
 
 function logout() {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('user')
-
-  sessionStorage.removeItem('accessToken')
-  sessionStorage.removeItem('user')
-
-  router.push('/login')
+  const admin = isAdminSession()
+  clearCurrentSession(admin)
+  router.push(admin ? '/admin/login' : '/login')
 }
 
 onMounted(loadSettings)
 </script>
 
 <template>
-  <div class="settings-page">
-    <!-- MOBILE OVERLAY -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    />
 
-    <!-- SIDEBAR -->
-    <aside
-      class="sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
-      <div class="sidebar-top">
-        <RouterLink
-          to="/"
-          class="dashboard-logo"
-          @click="mobileMenuOpen = false"
-        >
-          <span>B</span>
-          <strong>Buuchezo Bank</strong>
-        </RouterLink>
+  <BankingShell
+    page-title="Settings"
+    page-section="BANKING"
+    :user="user"
+  >
+    <div class="settings-page">
+      <!-- MOBILE OVERLAY -->
+      <div
+        v-if="mobileMenuOpen"
+        class="mobile-overlay"
+        @click="mobileMenuOpen = false"
+      />
 
-        <button
-          type="button"
-          class="mobile-close"
-          aria-label="Close menu"
-          @click="mobileMenuOpen = false"
-        >
-          ×
-        </button>
-      </div>
+      <!-- SIDEBAR -->
+      <aside
+        class="sidebar"
+        :class="{ 'sidebar-open': mobileMenuOpen }"
+      >
+        <div class="sidebar-top">
+          <RouterLink
+            to="/"
+            class="dashboard-logo"
+            @click="mobileMenuOpen = false"
+          >
+            <span>B</span>
+            <strong>Buuchezo Bank</strong>
+          </RouterLink>
 
-      <nav class="sidebar-nav">
-        <p class="nav-section-title">MAIN</p>
-
-        <RouterLink
-          to="/dashboard"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
-          <LayoutDashboard :size="19" />
-          <span>Overview</span>
-        </RouterLink>
-
-        <RouterLink
-          to="/accounts"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
-          <WalletCards :size="19" />
-          <span>Accounts</span>
-        </RouterLink>
-
-        <RouterLink
-          to="/transactions"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
-          <ArrowLeftRight :size="19" />
-          <span>Transactions</span>
-        </RouterLink>
-
-        <RouterLink
-          to="/cards"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
-          <CreditCard :size="19" />
-          <span>Cards</span>
-        </RouterLink>
-
-        <p class="nav-section-title second">SERVICES</p>
-
-        <RouterLink
-          to="/transfers"
-          class="nav-item"
-          @click="mobileMenuOpen = false"
-        >
-          <Send :size="19" />
-          <span>Transfers</span>
-        </RouterLink>
-
-        <RouterLink
-          to="/settings"
-          class="nav-item active"
-          @click="mobileMenuOpen = false"
-        >
-          <Settings :size="19" />
-          <span>Settings</span>
-        </RouterLink>
-      </nav>
-
-      <div class="sidebar-bottom">
-        <div class="support-box">
-          <div class="support-icon">
-            <HelpCircle :size="18" />
-          </div>
-
-          <div>
-            <strong>Need help?</strong>
-            <span>We're here for you.</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          class="logout-button"
-          @click="logout"
-        >
-          <LogOut :size="18" />
-          <span>Log out</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main-content">
-      <!-- HEADER -->
-      <header class="dashboard-header">
-        <div class="header-left">
           <button
             type="button"
-            class="mobile-menu-button"
-            aria-label="Open menu"
-            @click="mobileMenuOpen = true"
+            class="mobile-close"
+            aria-label="Close menu"
+            @click="mobileMenuOpen = false"
           >
-            <Menu :size="22" />
+            ×
           </button>
-
-          <div>
-            <span class="page-label">ACCOUNT</span>
-            <h1>Settings</h1>
-          </div>
         </div>
 
-        <div class="header-right">
-          <NotificationDropdown />
+        <nav class="sidebar-nav">
+          <p class="nav-section-title">MAIN</p>
 
-          <div class="profile">
-            <div class="avatar">
-              {{ userInitials }}
+          <RouterLink
+            to="/dashboard"
+            class="nav-item"
+            @click="mobileMenuOpen = false"
+          >
+            <LayoutDashboard :size="19" />
+            <span>Overview</span>
+          </RouterLink>
+
+          <RouterLink
+            to="/accounts"
+            class="nav-item"
+            @click="mobileMenuOpen = false"
+          >
+            <WalletCards :size="19" />
+            <span>Accounts</span>
+          </RouterLink>
+
+          <RouterLink
+            to="/transactions"
+            class="nav-item"
+            @click="mobileMenuOpen = false"
+          >
+            <ArrowLeftRight :size="19" />
+            <span>Transactions</span>
+          </RouterLink>
+
+          <RouterLink
+            to="/cards"
+            class="nav-item"
+            @click="mobileMenuOpen = false"
+          >
+            <CreditCard :size="19" />
+            <span>Cards</span>
+          </RouterLink>
+
+          <p class="nav-section-title second">SERVICES</p>
+
+          <RouterLink
+            to="/transfers"
+            class="nav-item"
+            @click="mobileMenuOpen = false"
+          >
+            <Send :size="19" />
+            <span>Transfers</span>
+          </RouterLink>
+
+          <RouterLink
+            to="/settings"
+            class="nav-item active"
+            @click="mobileMenuOpen = false"
+          >
+            <Settings :size="19" />
+            <span>Settings</span>
+          </RouterLink>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="support-box">
+            <div class="support-icon">
+              <HelpCircle :size="18" />
             </div>
 
-            <div class="profile-info">
-              <strong>
-                {{ fullName || 'Account holder' }}
-              </strong>
+            <div>
+              <strong>Need help?</strong>
+              <span>We're here for you.</span>
+            </div>
+          </div>
 
-              <span>
+          <button
+            type="button"
+            class="logout-button"
+            @click="logout"
+          >
+            <LogOut :size="18" />
+            <span>Log out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main-content">
+        <!-- HEADER -->
+        <header class="dashboard-header">
+          <div class="header-left">
+            <button
+              type="button"
+              class="mobile-menu-button"
+              aria-label="Open menu"
+              @click="mobileMenuOpen = true"
+            >
+              <Menu :size="22" />
+            </button>
+
+            <div>
+              <span class="page-label">ACCOUNT</span>
+              <h1>Settings</h1>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <NotificationDropdown />
+
+            <div class="profile">
+              <div class="avatar">
+                {{ userInitials }}
+              </div>
+
+              <div class="profile-info">
+                <strong>
+                  {{ fullName || 'Account holder' }}
+                </strong>
+
+                <span>
                 {{ user.email || '—' }}
               </span>
+              </div>
+
+              <ChevronDown
+                :size="16"
+                class="profile-chevron"
+              />
             </div>
-
-            <ChevronDown
-              :size="16"
-              class="profile-chevron"
-            />
           </div>
-        </div>
-      </header>
+        </header>
 
-      <!-- CONTENT -->
-      <section class="content">
-        <div class="page-intro">
-          <div>
-            <p class="eyebrow">ACCOUNT SETTINGS</p>
+        <!-- CONTENT -->
+        <section class="content">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">ACCOUNT SETTINGS</p>
 
-            <h2>Manage your account.</h2>
+              <h2>Manage your account.</h2>
 
-            <p class="intro-text">
-              Review your profile, security and notification
-              preferences.
-            </p>
+              <p class="intro-text">
+                Review your profile, security and notification
+                preferences.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- ERROR -->
-        <div v-if="errorMessage" class="error-box">
-          <strong>Something went wrong</strong>
+          <!-- ERROR -->
+          <div v-if="errorMessage" class="error-box">
+            <strong>Something went wrong</strong>
 
-          <span>{{ errorMessage }}</span>
+            <span>{{ errorMessage }}</span>
 
-          <button
-            type="button"
-            @click="loadSettings"
+            <button
+              type="button"
+              @click="loadSettings"
+            >
+              Try again
+            </button>
+          </div>
+
+          <!-- SUCCESS -->
+          <div
+            v-if="successMessage"
+            class="success-box"
           >
-            Try again
-          </button>
-        </div>
-
-        <!-- SUCCESS -->
-        <div
-          v-if="successMessage"
-          class="success-box"
-        >
-          <div class="success-icon">
-            <Check :size="16" />
-          </div>
-
-          <span>{{ successMessage }}</span>
-        </div>
-
-        <!-- LOADING -->
-        <div
-          v-if="loading"
-          class="loading-card"
-        >
-          <div class="spinner" />
-
-          <p>Loading your settings...</p>
-        </div>
-
-        <template v-else-if="!errorMessage">
-          <!-- PROFILE -->
-          <section class="settings-section">
-            <div class="section-heading">
-              <div class="section-icon blue">
-                <User :size="20" />
-              </div>
-
-              <div>
-                <p class="eyebrow">PROFILE</p>
-
-                <h2>Personal information</h2>
-
-                <p>
-                  Your registered Buuchezo Bank profile.
-                </p>
-              </div>
+            <div class="success-icon">
+              <Check :size="16" />
             </div>
 
-            <div class="settings-card">
-              <div class="profile-header">
-                <div class="large-avatar">
-                  {{ userInitials }}
+            <span>{{ successMessage }}</span>
+          </div>
+
+          <!-- LOADING -->
+          <div
+            v-if="loading"
+            class="loading-card"
+          >
+            <div class="spinner" />
+
+            <p>Loading your settings...</p>
+          </div>
+
+          <template v-else-if="!errorMessage">
+            <!-- PROFILE -->
+            <section class="settings-section">
+              <div class="section-heading">
+                <div class="section-icon blue">
+                  <User :size="20" />
                 </div>
 
                 <div>
-                  <h3>{{ fullName }}</h3>
+                  <p class="eyebrow">PROFILE</p>
 
-                  <span>
-                    Buuchezo Bank customer
-                  </span>
+                  <h2>Personal information</h2>
+
+                  <p>
+                    Your registered Buuchezo Bank profile.
+                  </p>
                 </div>
               </div>
 
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="firstName">
-                    First name
-                  </label>
+              <div class="settings-card">
+                <div class="profile-header">
+                  <div class="large-avatar">
+                    {{ userInitials }}
+                  </div>
 
-                  <input
-                    id="firstName"
-                    v-model="profileForm.firstName"
-                    type="text"
-                    disabled
-                  />
+                  <div>
+                    <h3>{{ fullName }}</h3>
+
+                    <span>
+                    Buuchezo Bank customer
+                  </span>
+                  </div>
                 </div>
 
-                <div class="form-group">
-                  <label for="lastName">
-                    Last name
-                  </label>
-
-                  <input
-                    id="lastName"
-                    v-model="profileForm.lastName"
-                    type="text"
-                    disabled
-                  />
-                </div>
-
-                <div class="form-group full">
-                  <label for="email">
-                    Email address
-                  </label>
-
-                  <div class="input-with-icon">
-                    <Mail :size="16" />
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="firstName">
+                      First name
+                    </label>
 
                     <input
-                      id="email"
-                      :value="user.email"
-                      type="email"
+                      id="firstName"
+                      v-model="profileForm.firstName"
+                      type="text"
                       disabled
                     />
                   </div>
-                </div>
-              </div>
 
-              <div class="settings-card-footer">
+                  <div class="form-group">
+                    <label for="lastName">
+                      Last name
+                    </label>
+
+                    <input
+                      id="lastName"
+                      v-model="profileForm.lastName"
+                      type="text"
+                      disabled
+                    />
+                  </div>
+
+                  <div class="form-group full">
+                    <label for="email">
+                      Email address
+                    </label>
+
+                    <div class="input-with-icon">
+                      <Mail :size="16" />
+
+                      <input
+                        id="email"
+                        :value="user.email"
+                        type="email"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-card-footer">
                 <span>
                   Profile information is managed by your bank
                   account.
                 </span>
 
-                <button
-                  type="button"
-                  class="secondary-button"
-                  @click="requestProfileChange"
-                >
-                  Request a change
-                </button>
+                  <button
+                    type="button"
+                    class="secondary-button"
+                    @click="requestProfileChange"
+                  >
+                    Request a change
+                  </button>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- ACCOUNT -->
-          <section class="settings-section">
-            <div class="section-heading">
-              <div class="section-icon purple">
-                <WalletCards :size="20" />
-              </div>
-
-              <div>
-                <p class="eyebrow">ACCOUNT</p>
-
-                <h2>Account information</h2>
-
-                <p>
-                  Information associated with your bank account.
-                </p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="account-information-grid">
-                <div class="account-information">
-                  <span>Account number</span>
-
-                  <strong>
-                    {{ account.accountNumber || '—' }}
-                  </strong>
+            <!-- ACCOUNT -->
+            <section class="settings-section">
+              <div class="section-heading">
+                <div class="section-icon purple">
+                  <WalletCards :size="20" />
                 </div>
 
-                <div class="account-information">
-                  <span>Account type</span>
+                <div>
+                  <p class="eyebrow">ACCOUNT</p>
 
-                  <strong>
-                    {{ accountTypeLabel }}
-                  </strong>
+                  <h2>Account information</h2>
+
+                  <p>
+                    Information associated with your bank account.
+                  </p>
                 </div>
+              </div>
 
-                <div class="account-information">
-                  <span>Account status</span>
+              <div class="settings-card">
+                <div class="account-information-grid">
+                  <div class="account-information">
+                    <span>Account number</span>
 
-                  <strong class="status-value">
+                    <strong>
+                      {{ account.accountNumber || '—' }}
+                    </strong>
+                  </div>
+
+                  <div class="account-information">
+                    <span>Account type</span>
+
+                    <strong>
+                      {{ accountTypeLabel }}
+                    </strong>
+                  </div>
+
+                  <div class="account-information">
+                    <span>Account status</span>
+
+                    <strong class="status-value">
                     <span
                       class="status-dot"
                       :class="{
@@ -895,476 +920,478 @@ onMounted(loadSettings)
                       }"
                     />
 
-                    {{ accountStatusLabel }}
-                  </strong>
-                </div>
+                      {{ accountStatusLabel }}
+                    </strong>
+                  </div>
 
-                <div class="account-information">
-                  <span>Member since</span>
+                  <div class="account-information">
+                    <span>Member since</span>
 
-                  <strong>
-                    {{ formattedCreatedAt }}
-                  </strong>
+                    <strong>
+                      {{ formattedCreatedAt }}
+                    </strong>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- SECURITY -->
-          <section class="settings-section">
-            <div class="section-heading">
-              <div class="section-icon green">
-                <ShieldCheck :size="20" />
-              </div>
-
-              <div>
-                <p class="eyebrow">SECURITY</p>
-
-                <h2>Security settings</h2>
-
-                <p>
-                  Keep your account protected.
-                </p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <!-- PASSWORD -->
-              <div class="security-row">
-                <div class="security-row-icon">
-                  <Lock :size="19" />
+            <!-- SECURITY -->
+            <section class="settings-section">
+              <div class="section-heading">
+                <div class="section-icon green">
+                  <ShieldCheck :size="20" />
                 </div>
 
-                <div class="security-row-content">
-                  <strong>Password</strong>
+                <div>
+                  <p class="eyebrow">SECURITY</p>
 
-                  <span>
+                  <h2>Security settings</h2>
+
+                  <p>
+                    Keep your account protected.
+                  </p>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <!-- PASSWORD -->
+                <div class="security-row">
+                  <div class="security-row-icon">
+                    <Lock :size="19" />
+                  </div>
+
+                  <div class="security-row-content">
+                    <strong>Password</strong>
+
+                    <span>
                     Your password is securely stored by the
                     backend.
                   </span>
-                </div>
-
-                <button
-                  type="button"
-                  class="secondary-button"
-                  @click="requestPasswordChange"
-                >
-                  Change password
-                </button>
-              </div>
-
-              <div class="security-divider" />
-
-              <!-- 2FA -->
-              <div class="security-row two-factor-row">
-                <div class="security-row-icon">
-                  <ShieldCheck :size="19" />
-                </div>
-
-                <div class="security-row-content">
-                  <strong>
-                    Two-factor authentication
-                  </strong>
-
-                  <span v-if="twoFactorEnabled">
-                    Your account requires an authenticator
-                    code when you sign in.
-                  </span>
-
-                  <span v-else>
-                    Add an extra layer of security with an
-                    authenticator app.
-                  </span>
-                </div>
-
-                <span
-                  v-if="twoFactorEnabled"
-                  class="verified-badge"
-                >
-                  <Check :size="13" />
-                  Enabled
-                </span>
-
-                <button
-                  v-else
-                  type="button"
-                  class="secondary-button"
-                  :disabled="twoFactorLoading"
-                  @click="setupTwoFactor"
-                >
-                  {{
-                    twoFactorLoading
-                      ? 'Preparing...'
-                      : 'Enable 2FA'
-                  }}
-                </button>
-
-                <button
-                  v-if="twoFactorEnabled"
-                  type="button"
-                  class="danger-button"
-                  @click="openDisableTwoFactor"
-                >
-                  Disable
-                </button>
-              </div>
-
-              <!-- 2FA SETUP -->
-              <div
-                v-if="twoFactorSetupOpen"
-                class="two-factor-setup"
-              >
-                <div class="two-factor-setup-header">
-                  <div>
-                    <strong>
-                      Set up your authenticator app
-                    </strong>
-
-                    <span>
-                      Scan the QR code with Google Authenticator,
-                      Microsoft Authenticator, Authy or another
-                      TOTP app.
-                    </span>
                   </div>
 
                   <button
                     type="button"
-                    class="setup-close"
-                    @click="cancelTwoFactorSetup"
+                    class="secondary-button"
+                    @click="requestPasswordChange"
                   >
-                    ×
+                    Change password
                   </button>
                 </div>
 
-                <div class="two-factor-setup-body">
-                  <div class="qr-wrapper">
-                    <img
-                      v-if="twoFactorQrCode"
-                      :src="twoFactorQrCode"
-                      alt="Two-factor authentication QR code"
-                    />
+                <div class="security-divider" />
+
+                <!-- 2FA -->
+                <div class="security-row two-factor-row">
+                  <div class="security-row-icon">
+                    <ShieldCheck :size="19" />
                   </div>
 
-                  <div class="two-factor-instructions">
-                    <p>
-                      After scanning, enter the 6-digit code
-                      currently shown in your authenticator app.
-                    </p>
+                  <div class="security-row-content">
+                    <strong>
+                      Two-factor authentication
+                    </strong>
 
-                    <label for="two-factor-code">
-                      Authenticator code
-                    </label>
+                    <span v-if="twoFactorEnabled">
+                    Your account requires an authenticator
+                    code when you sign in.
+                  </span>
 
-                    <input
-                      id="two-factor-code"
-                      v-model="twoFactorCode"
-                      type="text"
-                      inputmode="numeric"
-                      autocomplete="one-time-code"
-                      maxlength="6"
-                      placeholder="000000"
-                      @input="
+                    <span v-else>
+                    Add an extra layer of security with an
+                    authenticator app.
+                  </span>
+                  </div>
+
+                  <span
+                    v-if="twoFactorEnabled"
+                    class="verified-badge"
+                  >
+                  <Check :size="13" />
+                  Enabled
+                </span>
+
+                  <button
+                    v-else
+                    type="button"
+                    class="secondary-button"
+                    :disabled="twoFactorLoading"
+                    @click="setupTwoFactor"
+                  >
+                    {{
+                      twoFactorLoading
+                        ? 'Preparing...'
+                        : 'Enable 2FA'
+                    }}
+                  </button>
+
+                  <button
+                    v-if="twoFactorEnabled"
+                    type="button"
+                    class="danger-button"
+                    @click="openDisableTwoFactor"
+                  >
+                    Disable
+                  </button>
+                </div>
+
+                <!-- 2FA SETUP -->
+                <div
+                  v-if="twoFactorSetupOpen"
+                  class="two-factor-setup"
+                >
+                  <div class="two-factor-setup-header">
+                    <div>
+                      <strong>
+                        Set up your authenticator app
+                      </strong>
+
+                      <span>
+                      Scan the QR code with Google Authenticator,
+                      Microsoft Authenticator, Authy or another
+                      TOTP app.
+                    </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="setup-close"
+                      @click="cancelTwoFactorSetup"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div class="two-factor-setup-body">
+                    <div class="qr-wrapper">
+                      <img
+                        v-if="twoFactorQrCode"
+                        :src="twoFactorQrCode"
+                        alt="Two-factor authentication QR code"
+                      />
+                    </div>
+
+                    <div class="two-factor-instructions">
+                      <p>
+                        After scanning, enter the 6-digit code
+                        currently shown in your authenticator app.
+                      </p>
+
+                      <label for="two-factor-code">
+                        Authenticator code
+                      </label>
+
+                      <input
+                        id="two-factor-code"
+                        v-model="twoFactorCode"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                        placeholder="000000"
+                        @input="
                         twoFactorCode =
                           twoFactorCode
                             .replace(/\D/g, '')
                             .slice(0, 6)
                       "
-                    />
+                      />
 
-                    <div class="manual-secret">
+                      <div class="manual-secret">
                       <span>
                         Can't scan the QR code?
                       </span>
 
-                      <code>
-                        {{ twoFactorSecret }}
-                      </code>
-                    </div>
+                        <code>
+                          {{ twoFactorSecret }}
+                        </code>
+                      </div>
 
-                    <div class="two-factor-actions">
-                      <button
-                        type="button"
-                        class="secondary-button"
-                        @click="cancelTwoFactorSetup"
-                      >
-                        Cancel
-                      </button>
+                      <div class="two-factor-actions">
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          @click="cancelTwoFactorSetup"
+                        >
+                          Cancel
+                        </button>
 
-                      <button
-                        type="button"
-                        class="primary-button"
-                        :disabled="
+                        <button
+                          type="button"
+                          class="primary-button"
+                          :disabled="
                           twoFactorVerifying ||
                           twoFactorCode.length !== 6
                         "
-                        @click="verifyTwoFactor"
-                      >
-                        {{
-                          twoFactorVerifying
-                            ? 'Verifying...'
-                            : 'Verify & enable'
-                        }}
-                      </button>
+                          @click="verifyTwoFactor"
+                        >
+                          {{
+                            twoFactorVerifying
+                              ? 'Verifying...'
+                              : 'Verify & enable'
+                          }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div class="security-divider" />
+                <div class="security-divider" />
 
-              <!-- EMAIL -->
-              <div class="security-row">
-                <div class="security-row-icon">
-                  <Mail :size="19" />
-                </div>
+                <!-- EMAIL -->
+                <div class="security-row">
+                  <div class="security-row-icon">
+                    <Mail :size="19" />
+                  </div>
 
-                <div class="security-row-content">
-                  <strong>
-                    Email verification
-                  </strong>
+                  <div class="security-row-content">
+                    <strong>
+                      Email verification
+                    </strong>
 
-                  <span>
+                    <span>
                     Your account is associated with
                     {{ user.email }}.
                   </span>
-                </div>
+                  </div>
 
-                <span class="verified-badge">
+                  <span class="verified-badge">
                   <Check :size="13" />
                   Account email
                 </span>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- NOTIFICATIONS -->
-          <section class="settings-section">
-            <div class="section-heading">
-              <div class="section-icon orange">
-                <Bell :size="20" />
-              </div>
+            <!-- NOTIFICATIONS -->
+            <section class="settings-section">
+              <div class="section-heading">
+                <div class="section-icon orange">
+                  <Bell :size="20" />
+                </div>
 
-              <div>
-                <p class="eyebrow">NOTIFICATIONS</p>
-
-                <h2>Notification preferences</h2>
-
-                <p>
-                  Choose which notifications you want to receive.
-                </p>
-              </div>
-            </div>
-
-            <div class="settings-card">
-              <div class="preference-row">
                 <div>
-                  <strong>
-                    Transaction notifications
-                  </strong>
+                  <p class="eyebrow">NOTIFICATIONS</p>
 
-                  <span>
+                  <h2>Notification preferences</h2>
+
+                  <p>
+                    Choose which notifications you want to receive.
+                  </p>
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="preference-row">
+                  <div>
+                    <strong>
+                      Transaction notifications
+                    </strong>
+
+                    <span>
                     Receive notifications when money moves in or
                     out of your account.
                   </span>
+                  </div>
+
+                  <label class="toggle">
+                    <input
+                      v-model="settings.transactionNotifications"
+                      type="checkbox"
+                    />
+
+                    <span class="toggle-slider" />
+                  </label>
                 </div>
 
-                <label class="toggle">
-                  <input
-                    v-model="settings.transactionNotifications"
-                    type="checkbox"
-                  />
+                <div class="preference-divider" />
 
-                  <span class="toggle-slider" />
-                </label>
-              </div>
+                <div class="preference-row">
+                  <div>
+                    <strong>
+                      Security notifications
+                    </strong>
 
-              <div class="preference-divider" />
-
-              <div class="preference-row">
-                <div>
-                  <strong>
-                    Security notifications
-                  </strong>
-
-                  <span>
+                    <span>
                     Receive important account security alerts.
                   </span>
+                  </div>
+
+                  <label class="toggle">
+                    <input
+                      v-model="settings.securityNotifications"
+                      type="checkbox"
+                    />
+
+                    <span class="toggle-slider" />
+                  </label>
                 </div>
 
-                <label class="toggle">
-                  <input
-                    v-model="settings.securityNotifications"
-                    type="checkbox"
-                  />
+                <div class="preference-divider" />
 
-                  <span class="toggle-slider" />
-                </label>
-              </div>
+                <div class="preference-row">
+                  <div>
+                    <strong>
+                      Product and marketing emails
+                    </strong>
 
-              <div class="preference-divider" />
-
-              <div class="preference-row">
-                <div>
-                  <strong>
-                    Product and marketing emails
-                  </strong>
-
-                  <span>
+                    <span>
                     Receive optional product updates and
                     information.
                   </span>
+                  </div>
+
+                  <label class="toggle">
+                    <input
+                      v-model="settings.marketingEmails"
+                      type="checkbox"
+                    />
+
+                    <span class="toggle-slider" />
+                  </label>
                 </div>
 
-                <label class="toggle">
-                  <input
-                    v-model="settings.marketingEmails"
-                    type="checkbox"
-                  />
+                <div class="preferences-footer">
+                  <button
+                    type="button"
+                    class="primary-button"
+                    :disabled="saving"
+                    @click="savePreferences"
+                  >
+                    <Save :size="16" />
 
-                  <span class="toggle-slider" />
-                </label>
+                    {{
+                      saving
+                        ? 'Saving...'
+                        : 'Save preferences'
+                    }}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- HELP -->
+            <section class="help-card">
+              <div class="help-card-icon">
+                <HelpCircle :size="23" />
               </div>
 
-              <div class="preferences-footer">
-                <button
-                  type="button"
-                  class="primary-button"
-                  :disabled="saving"
-                  @click="savePreferences"
-                >
-                  <Save :size="16" />
+              <div>
+                <p class="eyebrow">
+                  NEED ASSISTANCE?
+                </p>
 
-                  {{
-                    saving
-                      ? 'Saving...'
-                      : 'Save preferences'
-                  }}
-                </button>
+                <h3>We're here to help.</h3>
+
+                <p>
+                  If you need to change information that cannot
+                  currently be edited here, contact Buuchezo Bank
+                  support.
+                </p>
               </div>
-            </div>
-          </section>
+            </section>
+          </template>
+        </section>
+      </main>
 
-          <!-- HELP -->
-          <section class="help-card">
-            <div class="help-card-icon">
-              <HelpCircle :size="23" />
-            </div>
-
-            <div>
-              <p class="eyebrow">
-                NEED ASSISTANCE?
-              </p>
-
-              <h3>We're here to help.</h3>
-
-              <p>
-                If you need to change information that cannot
-                currently be edited here, contact Buuchezo Bank
-                support.
-              </p>
-            </div>
-          </section>
-        </template>
-      </section>
-    </main>
-
-    <!-- DISABLE 2FA MODAL -->
-    <div
-      v-if="twoFactorDisableOpen"
-      class="modal-overlay"
-      @click.self="cancelDisableTwoFactor"
-    >
+      <!-- DISABLE 2FA MODAL -->
       <div
-        class="disable-2fa-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="disable-2fa-title"
+        v-if="twoFactorDisableOpen"
+        class="modal-overlay"
+        @click.self="cancelDisableTwoFactor"
       >
-        <div class="modal-icon">
-          <ShieldCheck :size="23" />
-        </div>
+        <div
+          class="disable-2fa-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="disable-2fa-title"
+        >
+          <div class="modal-icon">
+            <ShieldCheck :size="23" />
+          </div>
 
-        <div class="modal-content">
-          <h3 id="disable-2fa-title">
-            Disable two-factor authentication?
-          </h3>
+          <div class="modal-content">
+            <h3 id="disable-2fa-title">
+              Disable two-factor authentication?
+            </h3>
 
-          <p>
-            This will remove the additional authentication step
-            from your account. You will only need your email and
-            password to sign in again.
-          </p>
+            <p>
+              This will remove the additional authentication step
+              from your account. You will only need your email and
+              password to sign in again.
+            </p>
 
-          <div class="modal-warning">
-            <ShieldCheck :size="16" />
+            <div class="modal-warning">
+              <ShieldCheck :size="16" />
 
-            <span>
+              <span>
               For your security, enter the current code from your
               authenticator app to continue.
             </span>
-          </div>
+            </div>
 
-          <div class="modal-form-group">
-            <label for="disable-2fa-code">
-              Authenticator code
-            </label>
+            <div class="modal-form-group">
+              <label for="disable-2fa-code">
+                Authenticator code
+              </label>
 
-            <input
-              id="disable-2fa-code"
-              v-model="twoFactorDisableCode"
-              type="text"
-              inputmode="numeric"
-              autocomplete="one-time-code"
-              maxlength="6"
-              placeholder="000000"
-              :disabled="twoFactorDisabling"
-              @input="
+              <input
+                id="disable-2fa-code"
+                v-model="twoFactorDisableCode"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="000000"
+                :disabled="twoFactorDisabling"
+                @input="
                 twoFactorDisableCode =
                   twoFactorDisableCode
                     .replace(/\D/g, '')
                     .slice(0, 6)
               "
-              @keyup.enter="confirmDisableTwoFactor"
-            />
+                @keyup.enter="confirmDisableTwoFactor"
+              />
 
-            <span
-              v-if="twoFactorDisableError"
-              class="modal-error"
-            >
+              <span
+                v-if="twoFactorDisableError"
+                class="modal-error"
+              >
               {{ twoFactorDisableError }}
             </span>
-          </div>
+            </div>
 
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="modal-cancel-button"
-              :disabled="twoFactorDisabling"
-              @click="cancelDisableTwoFactor"
-            >
-              Cancel
-            </button>
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="modal-cancel-button"
+                :disabled="twoFactorDisabling"
+                @click="cancelDisableTwoFactor"
+              >
+                Cancel
+              </button>
 
-            <button
-              type="button"
-              class="modal-confirm-button"
-              :disabled="
+              <button
+                type="button"
+                class="modal-confirm-button"
+                :disabled="
                 twoFactorDisabling ||
                 twoFactorDisableCode.length !== 6
               "
-              @click="confirmDisableTwoFactor"
-            >
-              {{
-                twoFactorDisabling
-                  ? 'Disabling...'
-                  : 'Disable 2FA'
-              }}
-            </button>
+                @click="confirmDisableTwoFactor"
+              >
+                {{
+                  twoFactorDisabling
+                    ? 'Disabling...'
+                    : 'Disable 2FA'
+                }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+
+  </BankingShell>
 </template>
 
 <style scoped>
@@ -2729,5 +2756,135 @@ onMounted(loadSettings)
     width: 100%;
   }
 }
+
+
+/* ============================================================
+   BUUCHEZO BANK — LEGACY CUSTOMER SHELL DISABLED
+   BankingShell.vue is now the single customer application shell.
+   ============================================================ */
+
+/* ----------------------------
+   Legacy sidebars
+---------------------------- */
+.banking-content .sidebar,
+.banking-content .mobile-overlay {
+  display: none !important;
+}
+
+/* ----------------------------
+   Legacy headers
+---------------------------- */
+
+.banking-content .dashboard-header,
+
+.banking-content .cards-page .dashboard-header,
+
+
+
+/* ----------------------------
+   Legacy shell containers
+---------------------------- */
+
+
+.banking-content .settings-page {
+  width: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* ----------------------------
+   Legacy main containers
+---------------------------- */
+
+
+.banking-content .main-content,
+
+/* ----------------------------
+   Legacy content wrappers
+---------------------------- */
+
+
+.banking-content .content {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* ----------------------------
+   Legacy mobile controls
+---------------------------- */
+
+.banking-content .mobile-menu-button,
+.banking-content .mobile-close {
+  display: none !important;
+}
+
+/* ----------------------------
+   Legacy page-level typography
+---------------------------- */
+
+.banking-content .dashboard-main > h1,
+.banking-content .dashboard-main > h2,
+.banking-content .main-content > h1,
+.banking-content .main-content > h2 {
+  font-family: inherit !important;
+}
+
+/* ----------------------------
+   Investments / standalone pages
+---------------------------- */
+
+.banking-content > .settings-page {
+  box-sizing: border-box !important;
+}
+
+/* ----------------------------
+   Shared customer page spacing
+---------------------------- */
+
+
+.banking-content > .settings-page {
+  box-sizing: border-box !important;
+}
+
+/* ============================================================
+   FORCE CONSISTENT CUSTOMER TYPOGRAPHY
+   ============================================================ */
+
+.banking-content > .dashboard-page h1,
+.banking-content > .cards-page h1,
+.banking-content > .transfers-page h1,
+.banking-content > .accounts-page h1,
+.banking-content > .transactions-page h1,
+.banking-content > .investments-page h1,
+.banking-content > .market-page h1,
+.banking-content > .settings-page h1 {
+  color: #132945;
+}
+
+.banking-content > .dashboard-page p,
+.banking-content > .cards-page p,
+.banking-content > .transfers-page p,
+.banking-content > .accounts-page p,
+.banking-content > .transactions-page p,
+.banking-content > .investments-page p,
+.banking-content > .market-page p,
+.banking-content > .settings-page p {
+  color: #718096;
+}
+
+/* ============================================================
+   IMPORTANT:
+   Existing page-specific cards/buttons remain intact.
+   Only the outer application shell is centralized.
+   ============================================================ */
+
 </style>
-```
+

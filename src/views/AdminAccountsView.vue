@@ -1,54 +1,40 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import BankingShell from '@/components/BankingShell.vue'
+
 import {
-  Activity,
-  ArrowLeftRight,
-  Bell,
-  ChevronRight,
-  CreditCard,
-  LayoutDashboard,
-  Lock,
-  LogOut,
-  Menu,
-  RefreshCw,
-  Search,
-  Settings,
-  ShieldCheck,
-  Unlock,
-  UserCheck,
-  UserRound,
-  Users,
   WalletCards,
+  Search,
   X,
-  XCircle,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Mail,
+  CalendarDays,
+  ShieldCheck,
+  Lock,
+  Unlock,
+  CircleAlert,
 } from 'lucide-vue-next'
-import {
-  type CardApplication,
-  getAllCardApplications,
-  getPendingCardApplications,
-} from '../service/cardApplicationService'
-import {
-  activateCard,
-  blockCard,
-  cancelCard,
-  type Card,
-  getCardsByAccount,
-} from '../service/cardService'
 
 const router = useRouter()
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-interface AdminStatistics {
-  totalUsers: number
-  activeUsers: number
-  inactiveUsers: number
-  totalAccounts: number
-  averageAccountPerUser: number
-  customersCount: number
-  adminsCount: number
-}
+/*
+ * Change ONLY this value if your backend uses a different
+ * endpoint for finding a user by email.
+ *
+ * Current assumption:
+ * GET /api/users/email/{email}
+ */
+const USER_BY_EMAIL_ENDPOINT = '/api/users/email'
+
+/* --------------------------------------------------------------------------
+ * Types
+ * -------------------------------------------------------------------------- */
 
 interface User {
   id: number
@@ -56,77 +42,192 @@ interface User {
   firstName: string
   lastName: string
   enabled: boolean
-  roles?: Array<{
-    id: number
-    name: string
-  }>
   createdAt: string
 }
 
-const statistics = ref<AdminStatistics>({
-  totalUsers: 0,
-  activeUsers: 0,
-  inactiveUsers: 0,
-  totalAccounts: 0,
-  averageAccountPerUser: 0,
-  customersCount: 0,
-  adminsCount: 0,
-})
+interface Account {
+  id: number
+  accountNumber: string
+  balance: number
+  currency: string
+  accountType: string
+  accountStatus: string
+  ownerEmail?: string
+  createdAt: string
+}
+
+interface PaginatedAccounts {
+  content: Account[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
+}
+
+interface ApiResponse<T> {
+  statusCode: number
+  message: string
+  data: T
+}
+
+/* --------------------------------------------------------------------------
+ * State
+ * -------------------------------------------------------------------------- */
+
+const accounts = ref<Account[]>([])
 
 const currentUser = ref<User | null>(null)
 
+/*
+ * Maps:
+ *
+ * email -> full customer name
+ *
+ * Example:
+ *
+ * {
+ *   "john@example.com": "John Doe"
+ * }
+ */
+const ownerNames = ref<Record<string, string>>({})
+
 const loading = ref(true)
+const refreshing = ref(false)
+
 const errorMessage = ref('')
-const mobileMenuOpen = ref(false)
-const pendingCardApplications = ref(0)
-const loadingCardApplications = ref(false)
-const adminCards = ref<Card[]>([])
-const loadingCards = ref(false)
-const cardActionLoadingId = ref<number | null>(null)
-const cardActionError = ref('')
+const successMessage = ref('')
 
-const fullName = computed(() => {
-  if (!currentUser.value) {
-    return 'Administrator'
-  }
+const searchQuery = ref('')
+const statusFilter = ref('')
 
-  return `${currentUser.value.firstName} ${currentUser.value.lastName}`
+const currentPage = ref(0)
+const pageSize = ref(10)
+
+const totalElements = ref(0)
+const totalPages = ref(0)
+
+const changingStatusAccount = ref<string | null>(null)
+
+/* --------------------------------------------------------------------------
+ * Computed
+ * -------------------------------------------------------------------------- */
+
+const filteredAccounts = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  const status = statusFilter.value.toUpperCase()
+
+  return accounts.value.filter((account) => {
+    const ownerName = getOwnerName(account).toLowerCase()
+    const ownerEmail = account.ownerEmail?.toLowerCase() || ''
+
+    const matchesSearch =
+      !query ||
+      account.accountNumber?.toLowerCase().includes(query) ||
+      ownerName.includes(query) ||
+      ownerEmail.includes(query) ||
+      account.accountType?.toLowerCase().includes(query)
+
+    const matchesStatus = !status || account.accountStatus?.toUpperCase() === status
+
+    return matchesSearch && matchesStatus
+  })
 })
 
-const initials = computed(() => {
-  if (!currentUser.value) {
-    return 'A'
-  }
-
-  const first = currentUser.value.firstName?.charAt(0) || ''
-  const last = currentUser.value.lastName?.charAt(0) || ''
-
-  return `${first}${last}`.toUpperCase()
+const activeAccounts = computed(() => {
+  return accounts.value.filter((account) => account.accountStatus?.toUpperCase() === 'ACTIVE')
+    .length
 })
 
-const activePercentage = computed(() => {
-  if (statistics.value.totalUsers === 0) {
-    return 0
-  }
-
-  return Math.round((statistics.value.activeUsers / statistics.value.totalUsers) * 100)
+const frozenAccounts = computed(() => {
+  return accounts.value.filter((account) => account.accountStatus?.toUpperCase() === 'FROZEN')
+    .length
 })
 
-const inactivePercentage = computed(() => {
-  if (statistics.value.totalUsers === 0) {
-    return 0
-  }
-
-  return Math.round((statistics.value.inactiveUsers / statistics.value.totalUsers) * 100)
+const inactiveAccounts = computed(() => {
+  return accounts.value.filter((account) => account.accountStatus?.toUpperCase() === 'INACTIVE')
+    .length
 })
 
-const customerPercentage = computed(() => {
-  if (statistics.value.totalUsers === 0) {
-    return 0
+const visiblePages = computed(() => {
+  const pages: number[] = []
+
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    for (let i = 0; i < total; i += 1) {
+      pages.push(i)
+    }
+
+    return pages
   }
 
-  return Math.round((statistics.value.customersCount / statistics.value.totalUsers) * 100)
+  pages.push(0)
+
+  if (current > 3) {
+    pages.push(-1)
+  }
+
+  const start = Math.max(1, current - 1)
+  const end = Math.min(total - 2, current + 1)
+
+  for (let i = start; i <= end; i += 1) {
+    pages.push(i)
+  }
+
+  if (current < total - 4) {
+    pages.push(-1)
+  }
+
+  pages.push(total - 1)
+
+  return pages
 })
+
+/* --------------------------------------------------------------------------
+ * Owner helpers
+ * -------------------------------------------------------------------------- */
+
+function getOwnerName(account: Account): string {
+  const email = account.ownerEmail
+
+  if (!email) {
+    return 'Unknown owner'
+  }
+
+  const ownerName = ownerNames.value[email]
+
+  if (ownerName) {
+    return ownerName
+  }
+
+  return email
+}
+
+function getOwnerInitials(account: Account): string {
+  const name = getOwnerName(account).trim()
+
+  if (!name || name === 'Unknown owner') {
+    return 'U'
+  }
+
+  const parts = name.split(/\s+/)
+
+  if (parts.length >= 2) {
+    const firstInitial = parts[0]?.charAt(0) ?? ''
+    const lastInitial = parts[parts.length - 1]?.charAt(0) ?? ''
+
+    return `${firstInitial}${lastInitial}`.toUpperCase()
+  }
+
+  return name.substring(0, 2).toUpperCase()
+}
+
+/* --------------------------------------------------------------------------
+ * Authentication
+ * -------------------------------------------------------------------------- */
 
 function getAccessToken(): string | null {
   return localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
@@ -134,19 +235,25 @@ function getAccessToken(): string | null {
 
 function logout() {
   localStorage.removeItem('adminAccessToken')
+  localStorage.removeItem('adminUser')
   localStorage.removeItem('user')
 
   sessionStorage.removeItem('adminAccessToken')
+  sessionStorage.removeItem('adminUser')
   sessionStorage.removeItem('user')
 
   router.push('/admin/login')
 }
 
-async function loadCurrentUser() {
+/* --------------------------------------------------------------------------
+ * Current administrator
+ * -------------------------------------------------------------------------- */
+
+async function loadCurrentUser(): Promise<boolean> {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/admin/login')
+    await router.push('/admin/login')
     return false
   }
 
@@ -158,1668 +265,1159 @@ async function loadCurrentUser() {
       },
     })
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       logout()
       return false
     }
 
+    if (response.status === 403) {
+      errorMessage.value = 'You do not have permission to access the administration area.'
+
+      return false
+    }
+
     if (!response.ok) {
-      throw new Error('Could not load your profile.')
+      throw new Error('Could not load your administrator profile.')
     }
 
     const result = await response.json()
+
+    if (!result?.data?.user) {
+      throw new Error('The server returned no administrator profile.')
+    }
 
     currentUser.value = result.data.user
 
     return true
   } catch (error) {
-    console.error('Failed to load current user:', error)
+    console.error('Failed to load current administrator:', error)
+
     throw error
   }
 }
 
-async function loadStatistics() {
+/* --------------------------------------------------------------------------
+ * Load owner names
+ * -------------------------------------------------------------------------- */
+
+/**
+ * Uses the ownerEmail from each account to retrieve the
+ * corresponding user.
+ *
+ * The result is cached in ownerNames so we don't repeatedly
+ * request the same user.
+ */
+async function loadOwnerNames(accountList: Account[]) {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/admin/login')
     return
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/users/admin/stats`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const emails = [
+    ...new Set(
+      accountList
+        .map((account) => account.ownerEmail)
+        .filter((email): email is string => Boolean(email && email.trim())),
+    ),
+  ]
 
-  if (response.status === 401) {
-    logout()
-    return
-  }
+  await Promise.all(
+    emails.map(async (email) => {
+      if (ownerNames.value[email]) {
+        return
+      }
 
-  if (response.status === 403) {
-    errorMessage.value = 'You do not have permission to access the administration area.'
-    return
-  }
+      try {
+        const params = new URLSearchParams()
+        params.set('email', email)
 
-  if (!response.ok) {
-    throw new Error('Could not load administration statistics.')
-  }
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/admin/search?${params.toString()}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+            },
+          },
+        )
 
-  const result = await response.json()
-
-  if (!result.data) {
-    throw new Error('The server returned no statistics.')
-  }
-
-  statistics.value = {
-    totalUsers: Number(result.data.totalUsers ?? 0),
-    activeUsers: Number(result.data.activeUsers ?? 0),
-    inactiveUsers: Number(result.data.inactiveUsers ?? 0),
-    totalAccounts: Number(result.data.totalAccounts ?? 0),
-    averageAccountPerUser: Number(result.data.averageAccountPerUser ?? 0),
-    customersCount: Number(result.data.customersCount ?? 0),
-    adminsCount: Number(result.data.adminsCount ?? 0),
-  }
-}
-
-async function loadPendingCardApplications() {
-  loadingCardApplications.value = true
-
-  try {
-    const applications = await getPendingCardApplications()
-    pendingCardApplications.value = applications.length
-  } catch (error) {
-    console.error('Failed to load pending card applications:', error)
-    pendingCardApplications.value = 0
-  } finally {
-    loadingCardApplications.value = false
-  }
-}
-
-async function loadAdminCards() {
-  loadingCards.value = true
-  cardActionError.value = ''
-
-  try {
-    const applications: CardApplication[] = await getAllCardApplications()
-
-    const approvedApplications = applications.filter(
-      (application) => application.applicationStatus === 'APPROVED' && application.cardId !== null,
-    )
-
-    const accountNumbers = [
-      ...new Set(approvedApplications.map((application) => application.accountNumber)),
-    ]
-
-    const accountCardResults = await Promise.all(
-      accountNumbers.map(async (accountNumber) => {
-        try {
-          return await getCardsByAccount(accountNumber)
-        } catch (error) {
-          console.error(`Failed to load cards for account ${accountNumber}:`, error)
-          return []
+        if (response.status === 401) {
+          return
         }
-      }),
-    )
 
-    const approvedCardIds = new Set(
-      approvedApplications
-        .map((application) => application.cardId)
-        .filter((id): id is number => id !== null),
-    )
+        if (response.status === 403) {
+          console.error('You do not have permission to search users.')
+          return
+        }
 
-    adminCards.value = accountCardResults.flat().filter((card) => approvedCardIds.has(card.id))
-  } catch (error) {
-    console.error('Failed to load admin cards:', error)
-    cardActionError.value =
-      error instanceof Error ? error.message : 'Could not load customer cards.'
-  } finally {
-    loadingCards.value = false
-  }
-}
+        if (response.status === 404) {
+          console.warn(`No user found for email: ${email}`)
+          return
+        }
 
-async function handleCardAction(card: Card, action: 'BLOCK' | 'ACTIVATE' | 'CANCEL') {
-  if (cardActionLoadingId.value !== null) {
-    return
-  }
+        if (!response.ok) {
+          console.error(`Could not find user for email: ${email}`, response.status)
+          return
+        }
 
-  const actionText = action === 'BLOCK' ? 'freeze' : action === 'ACTIVATE' ? 'unfreeze' : 'cancel'
+        const result = await response.json()
 
-  const confirmation = window.confirm(
-    action === 'CANCEL'
-      ? `Cancel card ${card.maskedCardNumber}? This action is permanent and the card cannot be activated again.`
-      : `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} card ${card.maskedCardNumber}?`,
+        /*
+         * /api/users/admin/search returns UserWithAccountDto.
+         *
+         * The actual user is inside:
+         *
+         * result.data.user
+         */
+        const user = result?.data?.user
+
+        if (!user) {
+          console.warn(`No user data returned for email: ${email}`)
+          return
+        }
+
+        const firstName = typeof user.firstName === 'string' ? user.firstName.trim() : ''
+
+        const lastName = typeof user.lastName === 'string' ? user.lastName.trim() : ''
+
+        const fullName = `${firstName} ${lastName}`.trim()
+
+        if (fullName) {
+          ownerNames.value[email] = fullName
+        }
+      } catch (error) {
+        console.error(`Failed to load owner for ${email}:`, error)
+      }
+    }),
   )
+}
+/* --------------------------------------------------------------------------
+ * Load accounts
+ * -------------------------------------------------------------------------- */
 
-  if (!confirmation) {
+async function loadAccounts() {
+  const token = getAccessToken()
+
+  if (!token) {
+    await router.push('/admin/login')
     return
   }
 
-  cardActionLoadingId.value = card.id
-  cardActionError.value = ''
-
-  try {
-    let updatedCard: Card
-
-    if (action === 'BLOCK') {
-      updatedCard = await blockCard(card.id)
-    } else if (action === 'ACTIVATE') {
-      updatedCard = await activateCard(card.id)
-    } else {
-      updatedCard = await cancelCard(card.id)
-    }
-
-    const index = adminCards.value.findIndex((item) => item.id === updatedCard.id)
-
-    if (index !== -1) {
-      adminCards.value[index] = updatedCard
-    }
-  } catch (error) {
-    console.error(`Failed to ${actionText} card:`, error)
-    cardActionError.value =
-      error instanceof Error ? error.message : 'Could not update the card status.'
-  } finally {
-    cardActionLoadingId.value = null
-  }
-}
-
-async function loadDashboard() {
   loading.value = true
   errorMessage.value = ''
+  successMessage.value = ''
 
+  try {
+    const params = new URLSearchParams()
+
+    params.set('page', String(currentPage.value))
+    params.set('size', String(pageSize.value))
+
+    const response = await fetch(`${API_BASE_URL}/api/accounts/admin/all?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    if (response.status === 403) {
+      errorMessage.value = 'You do not have permission to view banking accounts.'
+
+      return
+    }
+
+    if (!response.ok) {
+      let message = 'Could not load banking accounts.'
+
+      try {
+        const result = await response.json()
+
+        if (result?.message) {
+          message = result.message
+        }
+      } catch {
+        // Ignore invalid error response.
+      }
+
+      throw new Error(message)
+    }
+
+    const result: ApiResponse<PaginatedAccounts> = await response.json()
+
+    if (!result?.data) {
+      throw new Error('The server returned no account data.')
+    }
+
+    accounts.value = result.data.content ?? []
+
+    totalElements.value = Number(result.data.totalElements ?? 0)
+
+    totalPages.value = Number(result.data.totalPages ?? 0)
+
+    currentPage.value = Number(result.data.number ?? currentPage.value)
+
+    /*
+     * Now that we have the accounts and their
+     * owner emails, resolve the customer names.
+     */
+    await loadOwnerNames(accounts.value)
+  } catch (error) {
+    console.error('Failed to load accounts:', error)
+
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Something went wrong while loading accounts.'
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Search / filters
+ * -------------------------------------------------------------------------- */
+
+function clearSearch() {
+  searchQuery.value = ''
+}
+
+function clearFilters() {
+  searchQuery.value = ''
+  statusFilter.value = ''
+}
+
+/* --------------------------------------------------------------------------
+ * Status management
+ * -------------------------------------------------------------------------- */
+
+async function changeAccountStatus(account: Account, status: 'ACTIVE' | 'INACTIVE' | 'FROZEN') {
+  if (changingStatusAccount.value !== null) {
+    return
+  }
+
+  if (account.accountStatus?.toUpperCase() === status) {
+    return
+  }
+
+  const token = getAccessToken()
+
+  if (!token) {
+    await router.push('/admin/login')
+    return
+  }
+
+  changingStatusAccount.value = account.accountNumber
+
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const params = new URLSearchParams()
+
+    params.set('accountNumber', account.accountNumber)
+
+    params.set('status', status)
+
+    const response = await fetch(`${API_BASE_URL}/api/accounts/admin/status?${params.toString()}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.status === 401) {
+      logout()
+      return
+    }
+
+    if (response.status === 403) {
+      errorMessage.value = 'You do not have permission to change account status.'
+
+      return
+    }
+
+    if (!response.ok) {
+      let message = 'Could not change account status.'
+
+      try {
+        const result = await response.json()
+
+        if (result?.message) {
+          message = result.message
+        }
+      } catch {
+        // Ignore invalid error response.
+      }
+
+      throw new Error(message)
+    }
+
+    const result: ApiResponse<Account> = await response.json()
+
+    const updatedAccount = result?.data
+
+    if (updatedAccount) {
+      const index = accounts.value.findIndex((item) => item.accountNumber === account.accountNumber)
+
+      if (index !== -1) {
+        accounts.value[index] = updatedAccount
+
+        /*
+         * If the status endpoint doesn't return ownerEmail,
+         * preserve it from the original account.
+         */
+        if (!accounts.value[index].ownerEmail && account.ownerEmail) {
+          accounts.value[index].ownerEmail = account.ownerEmail
+        }
+      }
+    } else {
+      account.accountStatus = status
+    }
+
+    successMessage.value = `Account ${account.accountNumber} is now ${formatStatus(status)}.`
+  } catch (error) {
+    console.error('Failed to change account status:', error)
+
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Something went wrong while changing account status.'
+  } finally {
+    changingStatusAccount.value = null
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Refresh
+ * -------------------------------------------------------------------------- */
+
+async function refreshAccounts() {
+  if (refreshing.value) {
+    return
+  }
+
+  refreshing.value = true
+
+  await loadAccounts()
+}
+
+/* --------------------------------------------------------------------------
+ * Pagination
+ * -------------------------------------------------------------------------- */
+
+async function goToPage(page: number) {
+  if (page < 0 || page >= totalPages.value || page === currentPage.value) {
+    return
+  }
+
+  currentPage.value = page
+
+  await loadAccounts()
+}
+
+async function nextPage() {
+  if (currentPage.value < totalPages.value - 1) {
+    await goToPage(currentPage.value + 1)
+  }
+}
+
+async function previousPage() {
+  if (currentPage.value > 0) {
+    await goToPage(currentPage.value - 1)
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Formatting
+ * -------------------------------------------------------------------------- */
+
+function formatMoney(amount: number, currency: string): string {
+  const numericAmount = Number(amount ?? 0)
+
+  return new Intl.NumberFormat('en-DE', {
+    style: 'currency',
+    currency: currency || 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericAmount)
+}
+
+function formatDate(date: string): string {
+  if (!date) {
+    return '—'
+  }
+
+  const parsedDate = new Date(date)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '—'
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsedDate)
+}
+
+function formatAccountType(type: string): string {
+  if (!type) {
+    return 'Bank Account'
+  }
+
+  return type
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function formatStatus(status: string): string {
+  if (!status) {
+    return 'Unknown'
+  }
+
+  return status
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function getStatusClass(status: string): string {
+  switch (status?.toUpperCase()) {
+    case 'ACTIVE':
+      return 'status-active'
+
+    case 'FROZEN':
+      return 'status-frozen'
+
+    case 'INACTIVE':
+      return 'status-inactive'
+
+    default:
+      return 'status-unknown'
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Initial load
+ * -------------------------------------------------------------------------- */
+
+onMounted(async () => {
   try {
     const authenticated = await loadCurrentUser()
 
     if (!authenticated) {
+      loading.value = false
       return
     }
 
-    await Promise.all([loadStatistics(), loadPendingCardApplications(), loadAdminCards()])
+    await loadAccounts()
   } catch (error) {
-    console.error('Failed to load admin dashboard:', error)
+    console.error('Failed to initialize accounts page:', error)
 
     errorMessage.value =
-      error instanceof Error ? error.message : 'Something went wrong while loading the dashboard.'
-  } finally {
+      error instanceof Error
+        ? error.message
+        : 'Something went wrong while loading the accounts page.'
+
     loading.value = false
   }
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value)
-}
-
-function formatDecimal(value: number): string {
-  return value.toFixed(2)
-}
-
-onMounted(() => {
-  loadDashboard()
 })
 </script>
 
 <template>
-  <div class="admin-layout">
-    <!-- Mobile Overlay -->
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+  <BankingShell
+    :admin="true"
+    :user="currentUser || undefined"
+    page-title="Accounts"
+    page-section="ADMINISTRATION"
+  >
+    <section class="admin-content">
+      <!-- Page introduction -->
+      <section class="page-introduction">
+        <div>
+          <span class="section-kicker"> ACCOUNT MANAGEMENT </span>
 
-    <!-- Sidebar -->
-    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="admin-sidebar">
-      <div class="sidebar-top">
-        <!-- Logo -->
-        <RouterLink class="admin-logo" to="/">
-          <span class="logo-mark">B</span>
+          <h2>Manage accounts</h2>
 
-          <div class="logo-text">
-            <strong>Buuchezo</strong>
-            <span>Bank</span>
-          </div>
-        </RouterLink>
-
-        <!-- Mobile Close -->
-        <button class="mobile-close" type="button" @click="mobileMenuOpen = false">
-          <X :size="22" />
-        </button>
-
-        <!-- Navigation -->
-        <nav class="admin-navigation">
-          <p class="navigation-label">ADMINISTRATION</p>
-
-          <RouterLink
-            class="admin-nav-link active"
-            to="/admin/dashboard"
-            @click="mobileMenuOpen = false"
-          >
-            <LayoutDashboard :size="19" />
-            <span>Overview</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/users" @click="mobileMenuOpen = false">
-            <Users :size="19" />
-            <span>Users</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/accounts" @click="mobileMenuOpen = false">
-            <WalletCards :size="19" />
-            <span>Accounts</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link"
-            to="/admin/transactions"
-            @click="mobileMenuOpen = false"
-          >
-            <ArrowLeftRight :size="19" />
-            <span>Transactions</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link"
-            to="/admin/card-applications"
-            @click="mobileMenuOpen = false"
-          >
-            <CreditCard :size="19" />
-            <span>Card Applications</span>
-            <span v-if="pendingCardApplications > 0" class="nav-count-badge">
-              {{ pendingCardApplications }}
-            </span>
-          </RouterLink>
-
-          <p class="navigation-label second-label">SYSTEM</p>
-
-          <RouterLink class="admin-nav-link" to="/settings" @click="mobileMenuOpen = false">
-            <Settings :size="19" />
-            <span>Settings</span>
-          </RouterLink>
-        </nav>
-      </div>
-
-      <!-- Sidebar Bottom -->
-      <div class="sidebar-bottom">
-        <div class="admin-support">
-          <div class="support-icon">
-            <ShieldCheck :size="18" />
-          </div>
-
-          <div>
-            <strong>Admin Area</strong>
-            <span>Secure access</span>
-          </div>
+          <p>Review customer banking accounts, balances, ownership and access status.</p>
         </div>
 
-        <button class="logout-button" type="button" @click="logout">
-          <LogOut :size="18" />
-          <span>Logout</span>
+        <div class="account-summary">
+          <div class="summary-item">
+            <span>Total accounts</span>
+            <strong>
+              {{ totalElements }}
+            </strong>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-item">
+            <span>Active</span>
+            <strong>
+              {{ activeAccounts }}
+            </strong>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-item">
+            <span>Frozen</span>
+            <strong>
+              {{ frozenAccounts }}
+            </strong>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-item">
+            <span>Inactive</span>
+            <strong>
+              {{ inactiveAccounts }}
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error -->
+      <div v-if="errorMessage && !loading" class="message-banner error-banner">
+        <div class="message-icon">
+          <CircleAlert :size="18" />
+        </div>
+
+        <div class="message-content">
+          <strong> Something went wrong </strong>
+
+          <span>
+            {{ errorMessage }}
+          </span>
+        </div>
+
+        <button type="button" @click="loadAccounts">Try again</button>
+      </div>
+
+      <!-- Success -->
+      <div v-if="successMessage" class="message-banner success-banner">
+        <div class="message-icon">
+          <ShieldCheck :size="18" />
+        </div>
+
+        <div class="message-content">
+          <strong> Account updated </strong>
+
+          <span>
+            {{ successMessage }}
+          </span>
+        </div>
+
+        <button type="button" aria-label="Dismiss success message" @click="successMessage = ''">
+          <X :size="16" />
         </button>
       </div>
-    </aside>
 
-    <!-- Main -->
-    <main class="admin-main">
-      <!-- Header -->
-      <header class="admin-header">
-        <div class="header-left">
-          <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = true">
-            <Menu :size="23" />
+      <!-- Toolbar -->
+      <section class="accounts-toolbar">
+        <div class="search-box">
+          <Search :size="18" />
+
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search account, customer name, email or type..."
+            aria-label="Search accounts"
+          />
+
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="clear-search"
+            aria-label="Clear search"
+            @click="clearSearch"
+          >
+            <X :size="15" />
           </button>
-
-          <div>
-            <span class="page-overline">ADMINISTRATION</span>
-            <h1>Overview</h1>
-          </div>
         </div>
 
-        <div class="header-right">
-          <button class="header-icon-button" title="Search" type="button">
-            <Search :size="19" />
+        <div class="toolbar-actions">
+          <label class="filter-control">
+            <span>Status</span>
+
+            <select v-model="statusFilter">
+              <option value="">All statuses</option>
+
+              <option value="ACTIVE">Active</option>
+
+              <option value="FROZEN">Frozen</option>
+
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </label>
+
+          <button
+            v-if="searchQuery || statusFilter"
+            type="button"
+            class="clear-filter-button"
+            @click="clearFilters"
+          >
+            Clear
           </button>
 
           <button
-            class="header-icon-button notification-button"
-            title="Notifications"
             type="button"
+            class="refresh-button"
+            :disabled="refreshing"
+            @click="refreshAccounts"
           >
-            <Bell :size="19" />
-            <span class="notification-dot"></span>
+            <RefreshCw
+              :size="16"
+              :class="{
+                spinning: refreshing,
+              }"
+            />
+
+            <span> Refresh </span>
           </button>
-
-          <div class="header-profile">
-            <div class="profile-avatar">
-              {{ initials }}
-            </div>
-
-            <div class="profile-info">
-              <strong>{{ fullName }}</strong>
-              <span>Administrator</span>
-            </div>
-          </div>
         </div>
-      </header>
+      </section>
 
-      <!-- Content -->
-      <section class="admin-content">
-        <!-- Loading -->
-        <div v-if="loading" class="loading-state">
-          <div class="loading-spinner"></div>
-          <h2>Loading administration dashboard</h2>
-          <p>Retrieving the latest bank statistics...</p>
-        </div>
+      <!-- Loading -->
+      <section v-if="loading" class="table-loading">
+        <div class="loading-spinner"></div>
 
-        <!-- Error -->
-        <div v-else-if="errorMessage" class="error-state">
-          <div class="error-icon">
-            <ShieldCheck :size="25" />
+        <h3>Loading accounts</h3>
+
+        <p>Retrieving the latest banking account information...</p>
+      </section>
+
+      <!-- Accounts -->
+      <section v-else class="accounts-panel">
+        <!-- Table header -->
+        <div class="table-header">
+          <div>
+            <span class="panel-kicker"> BANKING ACCOUNTS </span>
+
+            <h3>Account directory</h3>
           </div>
 
-          <h2>Unable to load dashboard</h2>
-          <p>{{ errorMessage }}</p>
+          <span class="result-count">
+            {{ filteredAccounts.length }}
 
-          <button class="retry-button" type="button" @click="loadDashboard">Try again</button>
+            {{ filteredAccounts.length === 1 ? 'account' : 'accounts' }}
+          </span>
         </div>
 
-        <!-- Dashboard -->
-        <template v-else>
-          <!-- Welcome -->
-          <section class="welcome-section">
-            <div>
-              <span class="section-kicker">BANK OPERATIONS</span>
+        <!-- Empty -->
+        <div v-if="filteredAccounts.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <WalletCards :size="25" />
+          </div>
 
-              <h2>Good morning, {{ currentUser?.firstName }}.</h2>
+          <h3>No accounts found</h3>
 
-              <p>Monitor your banking platform, users and accounts from one central workspace.</p>
-            </div>
+          <p>No accounts match the current search or filter.</p>
 
-            <div class="system-status">
-              <span class="status-pulse"></span>
-              <span>System operational</span>
-            </div>
-          </section>
+          <button v-if="searchQuery || statusFilter" type="button" @click="clearFilters">
+            Clear filters
+          </button>
+        </div>
 
-          <!-- Main Statistics -->
-          <section class="statistics-grid">
-            <article class="stat-card primary-stat">
-              <div class="stat-card-top">
-                <div class="stat-icon">
-                  <Users :size="21" />
-                </div>
+        <!-- Table -->
+        <div v-else class="table-wrapper">
+          <table class="accounts-table">
+            <thead>
+              <tr>
+                <th>Account</th>
 
-                <span class="stat-label">TOTAL USERS</span>
-              </div>
+                <th>Customer</th>
 
-              <div class="stat-value">
-                {{ formatNumber(statistics.totalUsers) }}
-              </div>
+                <th>Type</th>
 
-              <div class="stat-footer">
-                <span> Registered users </span>
+                <th>Balance</th>
 
-                <UserRound :size="15" />
-              </div>
-            </article>
+                <th>Status</th>
 
-            <article class="stat-card">
-              <div class="stat-card-top">
-                <div class="stat-icon green-icon">
-                  <UserCheck :size="21" />
-                </div>
+                <th>Created</th>
 
-                <span class="stat-label">ACTIVE USERS</span>
-              </div>
+                <th class="actions-column">Actions</th>
+              </tr>
+            </thead>
 
-              <div class="stat-value">
-                {{ formatNumber(statistics.activeUsers) }}
-              </div>
+            <tbody>
+              <tr v-for="account in filteredAccounts" :key="account.id">
+                <!-- Account -->
+                <td>
+                  <div class="account-cell">
+                    <div class="account-icon">
+                      <WalletCards :size="18" />
+                    </div>
 
-              <div class="stat-footer">
-                <span>{{ activePercentage }}% of users</span>
-                <span class="positive-value"> Active </span>
-              </div>
-            </article>
+                    <div class="account-details">
+                      <strong>
+                        {{ account.accountNumber }}
+                      </strong>
 
-            <article class="stat-card">
-              <div class="stat-card-top">
-                <div class="stat-icon orange-icon">
-                  <CreditCard :size="21" />
-                </div>
-
-                <span class="stat-label">TOTAL ACCOUNTS</span>
-              </div>
-
-              <div class="stat-value">
-                {{ formatNumber(statistics.totalAccounts) }}
-              </div>
-
-              <div class="stat-footer">
-                <span>Customer accounts</span>
-                <WalletCards :size="15" />
-              </div>
-            </article>
-
-            <article class="stat-card">
-              <div class="stat-card-top">
-                <div class="stat-icon purple-icon">
-                  <Activity :size="21" />
-                </div>
-
-                <span class="stat-label">AVG. ACCOUNTS / USER</span>
-              </div>
-
-              <div class="stat-value">
-                {{ formatDecimal(statistics.averageAccountPerUser) }}
-              </div>
-
-              <div class="stat-footer">
-                <span>Platform average</span>
-                <Activity :size="15" />
-              </div>
-            </article>
-          </section>
-
-          <!-- Secondary Statistics -->
-          <section class="dashboard-columns">
-            <!-- User Status -->
-            <article class="dashboard-panel">
-              <div class="panel-heading">
-                <div>
-                  <span class="panel-kicker">USER STATUS</span>
-                  <h3>Account activity</h3>
-                </div>
-
-                <Users :size="20" />
-              </div>
-
-              <div class="activity-summary">
-                <div class="activity-total">
-                  <strong>
-                    {{ formatNumber(statistics.totalUsers) }}
-                  </strong>
-
-                  <span>Total users</span>
-                </div>
-
-                <div class="activity-chart">
-                  <div class="chart-ring">
-                    <div class="ring-content">
-                      <strong>{{ activePercentage }}%</strong>
-                      <span>active</span>
+                      <span> #{{ account.id }} </span>
                     </div>
                   </div>
-                </div>
-              </div>
+                </td>
 
-              <div class="status-list">
-                <div class="status-row">
-                  <div class="status-row-label">
-                    <span class="status-indicator active"></span>
-                    <span>Active users</span>
-                  </div>
+                <!-- Customer -->
+                <td>
+                  <div class="owner-cell">
+                    <div class="owner-avatar">
+                      {{ getOwnerInitials(account) }}
+                    </div>
 
-                  <strong>
-                    {{ formatNumber(statistics.activeUsers) }}
-                  </strong>
-                </div>
+                    <div class="owner-details">
+                      <strong>
+                        {{ getOwnerName(account) }}
+                      </strong>
 
-                <div class="status-progress">
-                  <div
-                    :style="{ width: `${activePercentage}%` }"
-                    class="progress-fill active-fill"
-                  ></div>
-                </div>
+                      <span v-if="account.ownerEmail">
+                        <Mail :size="12" />
 
-                <div class="status-row">
-                  <div class="status-row-label">
-                    <span class="status-indicator inactive"></span>
-                    <span>Inactive users</span>
-                  </div>
-
-                  <strong>
-                    {{ formatNumber(statistics.inactiveUsers) }}
-                  </strong>
-                </div>
-
-                <div class="status-progress">
-                  <div
-                    :style="{ width: `${inactivePercentage}%` }"
-                    class="progress-fill inactive-fill"
-                  ></div>
-                </div>
-              </div>
-            </article>
-
-            <!-- User Composition -->
-            <article class="dashboard-panel">
-              <div class="panel-heading">
-                <div>
-                  <span class="panel-kicker">USER COMPOSITION</span>
-                  <h3>Platform users</h3>
-                </div>
-
-                <ShieldCheck :size="20" />
-              </div>
-
-              <div class="composition-list">
-                <div class="composition-item">
-                  <div class="composition-icon customer">
-                    <UserCheck :size="20" />
-                  </div>
-
-                  <div class="composition-details">
-                    <strong>Customers</strong>
-                    <span> {{ customerPercentage }}% of all users </span>
-                  </div>
-
-                  <strong class="composition-number">
-                    {{ formatNumber(statistics.customersCount) }}
-                  </strong>
-                </div>
-
-                <div class="composition-divider"></div>
-
-                <div class="composition-item">
-                  <div class="composition-icon admin">
-                    <ShieldCheck :size="20" />
-                  </div>
-
-                  <div class="composition-details">
-                    <strong>Administrators</strong>
-                    <span> Privileged platform users </span>
-                  </div>
-
-                  <strong class="composition-number">
-                    {{ formatNumber(statistics.adminsCount) }}
-                  </strong>
-                </div>
-              </div>
-
-              <div class="admin-notice">
-                <ShieldCheck :size="17" />
-
-                <div>
-                  <strong>Protected administration</strong>
-                  <span> Administrative actions require authorized access. </span>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <!-- Quick Actions -->
-          <section class="quick-section">
-            <div class="section-heading-row">
-              <div>
-                <span class="section-kicker">MANAGEMENT</span>
-                <h3>Quick actions</h3>
-              </div>
-            </div>
-
-            <div class="quick-actions">
-              <RouterLink class="quick-action" to="/admin/users">
-                <div class="quick-action-icon">
-                  <Users :size="21" />
-                </div>
-
-                <div>
-                  <strong>Manage users</strong>
-                  <span> Search and manage customer accounts </span>
-                </div>
-
-                <ChevronRight :size="19" />
-              </RouterLink>
-
-              <RouterLink class="quick-action" to="/admin/accounts">
-                <div class="quick-action-icon">
-                  <WalletCards :size="21" />
-                </div>
-
-                <div>
-                  <strong>Manage accounts</strong>
-                  <span> Review banking accounts and statuses </span>
-                </div>
-
-                <ChevronRight :size="19" />
-              </RouterLink>
-
-              <RouterLink class="quick-action" to="/admin/transactions">
-                <div class="quick-action-icon">
-                  <ArrowLeftRight :size="21" />
-                </div>
-
-                <div>
-                  <strong>Transactions</strong>
-                  <span> Review account transaction activity </span>
-                </div>
-
-                <ChevronRight :size="19" />
-              </RouterLink>
-
-              <RouterLink
-                class="quick-action card-application-action"
-                to="/admin/card-applications"
-              >
-                <div class="quick-action-icon">
-                  <CreditCard :size="21" />
-                </div>
-
-                <div>
-                  <strong>Card applications</strong>
-                  <span>
-                    {{
-                      pendingCardApplications > 0
-                        ? `${pendingCardApplications} pending application${pendingCardApplications === 1 ? '' : 's'} to review`
-                        : 'Review customer card applications'
-                    }}
-                  </span>
-                </div>
-
-                <span v-if="pendingCardApplications > 0" class="quick-action-count">
-                  {{ pendingCardApplications }}
-                </span>
-
-                <ChevronRight :size="19" />
-              </RouterLink>
-            </div>
-          </section>
-
-          <!-- CARD MANAGEMENT -->
-          <section class="card-management-section">
-            <div class="section-heading-row">
-              <div>
-                <span class="section-kicker">CARD MANAGEMENT</span>
-                <h3>Customer cards</h3>
-                <p class="section-description">
-                  Freeze, unfreeze or permanently cancel customer cards.
-                </p>
-              </div>
-
-              <button
-                :disabled="loadingCards"
-                class="refresh-cards-button"
-                type="button"
-                @click="loadAdminCards"
-              >
-                <RefreshCw :class="{ spinning: loadingCards }" :size="16" />
-                <span>Refresh</span>
-              </button>
-            </div>
-
-            <div v-if="cardActionError" class="card-action-error">
-              <XCircle :size="17" />
-              <span>{{ cardActionError }}</span>
-              <button type="button" @click="cardActionError = ''">×</button>
-            </div>
-
-            <div v-if="loadingCards" class="cards-management-loading">
-              <div class="loading-spinner small"></div>
-              <span>Loading customer cards...</span>
-            </div>
-
-            <div v-else-if="adminCards.length === 0" class="cards-management-empty">
-              <div class="empty-card-icon">
-                <CreditCard :size="22" />
-              </div>
-              <div>
-                <strong>No customer cards found</strong>
-                <span>Approved customer cards will appear here.</span>
-              </div>
-            </div>
-
-            <div v-else class="admin-card-list">
-              <article v-for="card in adminCards" :key="card.id" class="admin-card-row">
-                <div class="admin-card-main">
-                  <div class="admin-card-icon">
-                    <CreditCard :size="20" />
-                  </div>
-
-                  <div class="admin-card-details">
-                    <div class="admin-card-title-row">
-                      <strong>{{ card.maskedCardNumber }}</strong>
-
-                      <span :class="card.cardStatus.toLowerCase()" class="admin-card-status">
-                        <span class="status-dot"></span>
-                        {{ card.cardStatus }}
+                        {{ account.ownerEmail }}
                       </span>
-                    </div>
 
-                    <div class="admin-card-meta">
-                      <span>{{ card.holderName }}</span>
-                      <span>{{ card.cardType }}</span>
-                      <span>Account {{ card.accountNumber }}</span>
-                      <span>Card #{{ card.id }}</span>
+                      <span v-else> Account holder </span>
                     </div>
                   </div>
-                </div>
+                </td>
 
-                <div class="admin-card-actions">
-                  <template v-if="card.cardStatus === 'ACTIVE'">
-                    <button
-                      :disabled="cardActionLoadingId === card.id"
-                      class="card-control-button freeze"
-                      type="button"
-                      @click="handleCardAction(card, 'BLOCK')"
-                    >
-                      <Lock :size="15" />
-                      <span>{{ cardActionLoadingId === card.id ? 'Freezing...' : 'Freeze' }}</span>
-                    </button>
+                <!-- Type -->
+                <td>
+                  <span class="account-type">
+                    {{ formatAccountType(account.accountType) }}
+                  </span>
+                </td>
 
-                    <button
-                      :disabled="cardActionLoadingId === card.id"
-                      class="card-control-button cancel"
-                      type="button"
-                      @click="handleCardAction(card, 'CANCEL')"
-                    >
-                      <XCircle :size="15" />
-                      <span>Cancel</span>
-                    </button>
-                  </template>
+                <!-- Balance -->
+                <td>
+                  <div class="balance-cell">
+                    <strong>
+                      {{ formatMoney(account.balance, account.currency) }}
+                    </strong>
 
-                  <template v-else-if="card.cardStatus === 'BLOCKED'">
+                    <span>
+                      {{ account.currency }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  <span class="status-badge" :class="getStatusClass(account.accountStatus)">
+                    <span class="status-dot"></span>
+
+                    {{ formatStatus(account.accountStatus) }}
+                  </span>
+                </td>
+
+                <!-- Created -->
+                <td>
+                  <div class="created-cell">
+                    <CalendarDays :size="14" />
+
+                    <span>
+                      {{ formatDate(account.createdAt) }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Actions -->
+                <td class="actions-column">
+                  <div class="account-actions">
+                    <!-- Activate -->
                     <button
-                      :disabled="cardActionLoadingId === card.id"
-                      class="card-control-button activate"
+                      v-if="account.accountStatus?.toUpperCase() !== 'ACTIVE'"
                       type="button"
-                      @click="handleCardAction(card, 'ACTIVATE')"
+                      class="action-button activate-button"
+                      title="Activate account"
+                      :disabled="changingStatusAccount === account.accountNumber"
+                      @click="changeAccountStatus(account, 'ACTIVE')"
                     >
                       <Unlock :size="15" />
-                      <span>{{
-                        cardActionLoadingId === card.id ? 'Unfreezing...' : 'Unfreeze'
-                      }}</span>
+
+                      <span v-if="changingStatusAccount === account.accountNumber">
+                        Updating...
+                      </span>
+
+                      <span v-else> Activate </span>
                     </button>
 
+                    <!-- Freeze -->
                     <button
-                      :disabled="cardActionLoadingId === card.id"
-                      class="card-control-button cancel"
+                      v-if="account.accountStatus?.toUpperCase() === 'ACTIVE'"
                       type="button"
-                      @click="handleCardAction(card, 'CANCEL')"
+                      class="action-button freeze-button"
+                      title="Freeze account"
+                      :disabled="changingStatusAccount === account.accountNumber"
+                      @click="changeAccountStatus(account, 'FROZEN')"
                     >
-                      <XCircle :size="15" />
-                      <span>Cancel</span>
-                    </button>
-                  </template>
+                      <Lock :size="15" />
 
-                  <template v-else-if="card.cardStatus === 'EXPIRED'">
-                    <button
-                      :disabled="cardActionLoadingId === card.id"
-                      class="card-control-button cancel"
-                      type="button"
-                      @click="handleCardAction(card, 'CANCEL')"
-                    >
-                      <XCircle :size="15" />
-                      <span>Cancel</span>
-                    </button>
-                  </template>
+                      <span v-if="changingStatusAccount === account.accountNumber">
+                        Updating...
+                      </span>
 
-                  <span v-else class="card-no-actions">No actions available</span>
-                </div>
-              </article>
-            </div>
-          </section>
-        </template>
+                      <span v-else> Freeze </span>
+                    </button>
+
+                    <!-- More -->
+                    <details class="action-menu">
+                      <summary class="more-button" title="More account actions">
+                        <MoreHorizontal :size="17" />
+                      </summary>
+
+                      <div class="action-menu-content">
+                        <button
+                          v-if="account.accountStatus?.toUpperCase() !== 'INACTIVE'"
+                          type="button"
+                          @click="changeAccountStatus(account, 'INACTIVE')"
+                        >
+                          Set inactive
+                        </button>
+
+                        <button
+                          v-if="account.accountStatus?.toUpperCase() !== 'FROZEN'"
+                          type="button"
+                          @click="changeAccountStatus(account, 'FROZEN')"
+                        >
+                          Freeze account
+                        </button>
+
+                        <button
+                          v-if="account.accountStatus?.toUpperCase() !== 'ACTIVE'"
+                          type="button"
+                          @click="changeAccountStatus(account, 'ACTIVE')"
+                        >
+                          Activate account
+                        </button>
+                      </div>
+                    </details>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="pagination">
+          <div class="pagination-info">
+            Showing
+
+            <strong>
+              {{ totalElements === 0 ? 0 : currentPage * pageSize + 1 }}
+            </strong>
+
+            to
+
+            <strong>
+              {{ Math.min((currentPage + 1) * pageSize, totalElements) }}
+            </strong>
+
+            of
+
+            <strong>
+              {{ totalElements }}
+            </strong>
+
+            accounts
+          </div>
+
+          <div class="pagination-controls">
+            <button
+              type="button"
+              :disabled="currentPage === 0"
+              aria-label="Previous page"
+              @click="previousPage"
+            >
+              <ChevronLeft :size="17" />
+            </button>
+
+            <template v-for="(page, index) in visiblePages" :key="`${page}-${index}`">
+              <span v-if="page === -1" class="pagination-ellipsis">
+                <MoreHorizontal :size="16" />
+              </span>
+
+              <button
+                v-else
+                type="button"
+                :class="{
+                  active: page === currentPage,
+                }"
+                @click="goToPage(page)"
+              >
+                {{ page + 1 }}
+              </button>
+            </template>
+
+            <button
+              type="button"
+              :disabled="currentPage >= totalPages - 1"
+              aria-label="Next page"
+              @click="nextPage"
+            >
+              <ChevronRight :size="17" />
+            </button>
+          </div>
+        </div>
       </section>
-    </main>
-  </div>
+    </section>
+  </BankingShell>
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
-.admin-layout {
-  min-height: 100vh;
-  background: #f5f8fc;
-  color: #10243e;
-  display: flex;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-}
-
-/* ============================================
-   SIDEBAR
-============================================ */
-
-.admin-sidebar {
-  width: 258px;
-  min-width: 258px;
-  min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e6edf5;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 26px 18px 20px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
-}
-
-.sidebar-top {
+.admin-content {
   width: 100%;
 }
 
-.admin-logo {
+.page-introduction {
   display: flex;
-  align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  color: #0b2848;
-  margin-bottom: 43px;
-  padding: 0 7px;
-}
-
-.logo-mark {
-  width: 39px;
-  height: 39px;
-  border-radius: 11px;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-
-.logo-text strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-}
-
-.logo-text span {
-  color: #73859a;
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.mobile-close {
-  display: none;
-}
-
-.navigation-label {
-  padding: 0 12px;
-  margin: 0 0 11px;
-  color: #9aa9ba;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.second-label {
-  margin-top: 31px;
-}
-
-.admin-navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.admin-nav-link {
-  min-height: 47px;
-  padding: 0 13px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  text-decoration: none;
-  color: #6c7e91;
-  font-size: 13px;
-  font-weight: 650;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.admin-nav-link:hover {
-  background: #f2f7fc;
-  color: #07559b;
-}
-
-.admin-nav-link.active {
-  background: #eaf3fb;
-  color: #07559b;
-  font-weight: 750;
-}
-
-.nav-count-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  margin-left: auto;
-  border-radius: 10px;
-  background: #07559b;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.admin-support {
-  border: 1px solid #e5edf5;
-  border-radius: 13px;
-  padding: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fbfdff;
-}
-
-.support-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-support div:last-child {
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-support strong {
-  font-size: 11px;
-  color: #1d3652;
-}
-
-.admin-support span {
-  margin-top: 3px;
-  color: #91a0b0;
-  font-size: 9px;
-}
-
-.logout-button {
-  border: 0;
-  background: transparent;
-  min-height: 42px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #7d8d9e;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  border-radius: 10px;
-  text-align: left;
-}
-
-.logout-button:hover {
-  background: #f6f8fb;
-  color: #d14e4e;
-}
-
-/* ============================================
-   MAIN
-============================================ */
-
-.admin-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-header {
-  height: 84px;
-  background: #ffffff;
-  border-bottom: 1px solid #e7edf4;
-  padding: 0 39px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-overline {
-  color: #8b9bac;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.header-left h1 {
-  margin: 4px 0 0;
-  color: #12304f;
-  font-size: 25px;
-  font-weight: 750;
-  letter-spacing: -0.7px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.header-icon-button {
-  width: 39px;
-  height: 39px;
-  border: 1px solid #e4ebf3;
-  background: #ffffff;
-  color: #60748a;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.header-icon-button:hover {
-  color: #07559b;
-  background: #f7faff;
-}
-
-.notification-dot {
-  width: 6px;
-  height: 6px;
-  background: #e15757;
-  border: 1.5px solid #ffffff;
-  border-radius: 50%;
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-.header-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: 8px;
-}
-
-.profile-avatar {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.profile-info strong {
-  color: #213a55;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.profile-info span {
-  color: #8a9bad;
-  font-size: 9px;
-  margin-top: 3px;
-}
-
-.mobile-menu-button {
-  display: none;
-}
-
-/* ============================================
-   CONTENT
-============================================ */
-
-.admin-content {
-  padding: 34px 39px 55px;
-  max-width: 1500px;
-}
-
-.welcome-section {
-  display: flex;
-  justify-content: space-between;
   align-items: flex-end;
-  gap: 30px;
-  margin-bottom: 29px;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 28px;
 }
 
 .section-kicker,
 .panel-kicker {
-  color: #5680a7;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6b7280;
 }
 
-.welcome-section h2 {
-  margin: 7px 0 6px;
-  color: #12304f;
-  font-size: 27px;
-  line-height: 1.2;
-  letter-spacing: -0.7px;
-}
-
-.welcome-section p {
+.page-introduction h2 {
   margin: 0;
-  color: #77899d;
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #111827;
 }
 
-.system-status {
-  height: 36px;
-  padding: 0 13px;
-  border-radius: 18px;
-  background: #f0f9f5;
-  color: #398267;
+.page-introduction p {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+ * Summary
+ * -------------------------------------------------------------------------- */
+
+.account-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 700;
+  gap: 18px;
+  padding: 16px 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 70px;
+}
+
+.summary-item span {
+  font-size: 11px;
+  color: #6b7280;
   white-space: nowrap;
 }
 
-.status-pulse {
-  width: 7px;
-  height: 7px;
-  background: #48a47c;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(72, 164, 124, 0.1);
-}
-
-/* ============================================
-   STATISTICS
-============================================ */
-
-.statistics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 15px;
-  margin-bottom: 17px;
-}
-
-.stat-card {
-  min-height: 158px;
-  padding: 20px;
-  background: #ffffff;
-  border: 1px solid #e5edf5;
-  border-radius: 15px;
-  box-shadow: 0 4px 16px rgba(30, 64, 96, 0.025);
-}
-
-.stat-card.primary-stat {
-  background: #07559b;
-  border-color: #07559b;
-  color: #ffffff;
-}
-
-.stat-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.stat-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.primary-stat .stat-icon {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-}
-
-.green-icon {
-  color: #3d9472;
-  background: #edf8f4;
-}
-
-.orange-icon {
-  color: #bd7b35;
-  background: #fbf4e9;
-}
-
-.purple-icon {
-  color: #755da4;
-  background: #f3effa;
-}
-
-.stat-label {
-  color: #91a0b0;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
-}
-
-.primary-stat .stat-label {
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.stat-value {
-  margin-top: 20px;
-  color: #183652;
-  font-size: 27px;
+.summary-item strong {
+  font-size: 20px;
   line-height: 1;
-  font-weight: 780;
-  letter-spacing: -0.8px;
+  color: #111827;
 }
 
-.primary-stat .stat-value {
-  color: #ffffff;
+.summary-divider {
+  width: 1px;
+  height: 34px;
+  background: #e5e7eb;
 }
 
-.stat-footer {
-  margin-top: 15px;
-  color: #91a0b0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 9px;
-}
+/* --------------------------------------------------------------------------
+ * Messages
+ * -------------------------------------------------------------------------- */
 
-.primary-stat .stat-footer {
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.positive-value {
-  color: #4a9978;
-  font-weight: 700;
-}
-
-/* ============================================
-   PANELS
-============================================ */
-
-.dashboard-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 17px;
-  margin-bottom: 29px;
-}
-
-.dashboard-panel {
-  background: #ffffff;
-  border: 1px solid #e5edf5;
-  border-radius: 15px;
-  padding: 23px;
-  min-height: 286px;
-}
-
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  color: #71869c;
-}
-
-.panel-heading h3 {
-  margin: 5px 0 0;
-  color: #183652;
-  font-size: 16px;
-  font-weight: 750;
-  letter-spacing: -0.2px;
-}
-
-.activity-summary {
-  margin-top: 22px;
+.message-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid;
 }
 
-.activity-total {
-  display: flex;
-  flex-direction: column;
-}
-
-.activity-total strong {
-  color: #183652;
-  font-size: 27px;
-  letter-spacing: -0.7px;
-}
-
-.activity-total span {
-  margin-top: 5px;
-  color: #91a0b0;
-  font-size: 10px;
-}
-
-.activity-chart {
-  width: 91px;
-  height: 91px;
+.message-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.chart-ring {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  background: conic-gradient(#07559b 0% 65%, #e9eef4 65% 100%);
-  position: relative;
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
 }
 
-.chart-ring::after {
-  content: '';
-  position: absolute;
-  inset: 9px;
+.message-content strong {
+  font-size: 13px;
+}
+
+.message-content span {
+  font-size: 13px;
+}
+
+.message-banner button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.error-banner {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.success-banner {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+/* --------------------------------------------------------------------------
+ * Toolbar
+ * -------------------------------------------------------------------------- */
+
+.accounts-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, 100%);
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid #dfe3e8;
+  border-radius: 11px;
   background: #ffffff;
-  border-radius: 50%;
+  color: #6b7280;
 }
 
-.ring-content {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+.search-box:focus-within {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: #111827;
+}
+
+.search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.clear-search {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
 }
 
-.ring-content strong {
-  color: #173652;
-  font-size: 15px;
-}
-
-.ring-content span {
-  color: #91a0b0;
-  font-size: 8px;
-  margin-top: 2px;
-}
-
-.status-list {
-  margin-top: 22px;
-}
-
-.status-row {
+.toolbar-actions {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  color: #708399;
-  font-size: 10px;
+  gap: 10px;
 }
 
-.status-row strong {
-  color: #27445f;
-  font-size: 11px;
-}
-
-.status-row-label {
+.filter-control {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.status-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.filter-control span {
+  font-size: 12px;
+  color: #6b7280;
 }
 
-.status-indicator.active {
-  background: #4ba47c;
-}
-
-.status-indicator.inactive {
-  background: #b9c3cd;
-}
-
-.status-progress {
-  height: 5px;
-  background: #edf1f5;
-  border-radius: 5px;
-  overflow: hidden;
-  margin: 7px 0 13px;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 5px;
-}
-
-.active-fill {
-  background: #4ba47c;
-}
-
-.inactive-fill {
-  background: #b8c1ca;
-}
-
-.composition-list {
-  margin-top: 26px;
-}
-
-.composition-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.composition-icon {
-  width: 41px;
-  height: 41px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.composition-icon.customer {
-  background: #eaf3fb;
-  color: #07559b;
-}
-
-.composition-icon.admin {
-  background: #f3effa;
-  color: #755da4;
-}
-
-.composition-details {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.composition-details strong {
-  color: #29445e;
-  font-size: 11px;
-}
-
-.composition-details span {
-  color: #93a1af;
-  font-size: 9px;
-  margin-top: 4px;
-}
-
-.composition-number {
-  color: #173652;
-  font-size: 17px;
-}
-
-.composition-divider {
-  height: 1px;
-  background: #edf1f5;
-  margin: 18px 0;
-}
-
-.admin-notice {
-  margin-top: 20px;
-  border-radius: 10px;
-  background: #f6f9fc;
-  padding: 11px;
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  color: #07559b;
-}
-
-.admin-notice div {
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-notice strong {
-  color: #36536e;
-  font-size: 9px;
-}
-
-.admin-notice span {
-  color: #8b9aaa;
-  font-size: 8px;
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-/* ============================================
-   QUICK ACTIONS
-============================================ */
-
-.quick-section {
-  margin-top: 3px;
-}
-
-.section-heading-row {
-  margin-bottom: 13px;
-}
-
-.section-heading-row h3 {
-  margin: 5px 0 0;
-  color: #183652;
-  font-size: 17px;
-  font-weight: 750;
-}
-
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px;
-}
-
-.quick-action {
-  min-height: 82px;
-  padding: 14px 15px;
-  border: 1px solid #e5edf5;
+.filter-control select {
+  height: 40px;
+  padding: 0 34px 0 11px;
+  border: 1px solid #dfe3e8;
+  border-radius: 9px;
   background: #ffffff;
-  border-radius: 13px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  color: #111827;
+  cursor: pointer;
 }
 
-.quick-action:hover {
-  transform: translateY(-2px);
-  border-color: #cdddeb;
-  box-shadow: 0 7px 20px rgba(30, 64, 96, 0.06);
-}
-
-.quick-action-icon {
-  width: 39px;
-  height: 39px;
-  border-radius: 10px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.quick-action div:nth-child(2) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.quick-action strong {
-  color: #29445e;
-  font-size: 10px;
-}
-
-.quick-action span {
-  color: #91a0b0;
-  font-size: 8px;
-  margin-top: 4px;
-  line-height: 1.35;
-}
-
-.quick-action > svg {
-  color: #a3b1bf;
-  flex-shrink: 0;
-}
-
-.quick-action-count {
-  min-width: 23px;
-  height: 23px;
-  padding: 0 7px;
-  border-radius: 12px;
-  background: #eaf3fb;
-  color: #07559b;
+.refresh-button,
+.clear-filter-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
-  flex-shrink: 0;
+  gap: 7px;
+  height: 40px;
+  padding: 0 13px;
+  border: 1px solid #dfe3e8;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-/* ============================================
-   LOADING / ERROR
-============================================ */
-
-.loading-state,
-.error-state {
-  min-height: 520px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+.refresh-button:hover,
+.clear-filter-button:hover {
+  background: #f9fafb;
 }
 
-.loading-spinner {
-  width: 38px;
-  height: 38px;
-  border: 3px solid #e4edf5;
-  border-top-color: #07559b;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.spinning {
+  animation: spin 0.9s linear infinite;
 }
 
 @keyframes spin {
@@ -1828,501 +1426,553 @@ onMounted(() => {
   }
 }
 
-.loading-state h2,
-.error-state h2 {
-  margin: 20px 0 6px;
-  color: #183652;
-  font-size: 18px;
-}
+/* --------------------------------------------------------------------------
+ * Loading
+ * -------------------------------------------------------------------------- */
 
-.loading-state p,
-.error-state p {
-  margin: 0;
-  max-width: 430px;
-  color: #8a9bad;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.error-icon {
-  width: 53px;
-  height: 53px;
-  border-radius: 15px;
-  background: #fdf0f0;
-  color: #d15b5b;
+.table-loading {
+  min-height: 340px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 50px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
 }
 
-.retry-button {
-  margin-top: 20px;
-  border: 0;
-  background: #07559b;
-  color: #ffffff;
-  border-radius: 9px;
-  padding: 11px 19px;
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 18px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #111827;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.table-loading h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.table-loading p {
+  margin: 7px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------
+ * Accounts panel
+ * -------------------------------------------------------------------------- */
+
+.accounts-panel {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 24px rgba(15, 23, 42, 0.035);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #eef0f2;
+}
+
+.table-header h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #111827;
+}
+
+.result-count {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+ * Table
+ * -------------------------------------------------------------------------- */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.accounts-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.accounts-table th {
+  padding: 12px 18px;
+  border-bottom: 1px solid #eef0f2;
+  background: #fafafa;
+  color: #6b7280;
   font-size: 10px;
   font-weight: 700;
-  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-/* ============================================
-   MOBILE
-============================================ */
-
-.mobile-overlay {
-  display: none;
+.accounts-table td {
+  padding: 15px 18px;
+  border-bottom: 1px solid #f0f1f3;
+  vertical-align: middle;
 }
 
-@media (max-width: 1100px) {
-  .statistics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .quick-actions {
-    grid-template-columns: 1fr;
-  }
+.accounts-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
-@media (max-width: 850px) {
-  .admin-sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    transition: left 0.25s ease;
-    box-shadow: 12px 0 30px rgba(20, 48, 78, 0.1);
-  }
-
-  .admin-sidebar.sidebar-open {
-    left: 0;
-  }
-
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 36, 59, 0.35);
-    z-index: 90;
-  }
-
-  .mobile-close {
-    position: absolute;
-    top: 24px;
-    right: 17px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 9px;
-    background: #f4f7fa;
-    color: #6c7e91;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .mobile-menu-button {
-    width: 39px;
-    height: 39px;
-    border: 1px solid #e4ebf3;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #526b83;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .admin-header {
-    padding: 0 22px;
-  }
-
-  .admin-content {
-    padding: 29px 22px 45px;
-  }
-
-  .dashboard-columns {
-    grid-template-columns: 1fr;
-  }
+.accounts-table tbody tr:hover {
+  background: #fafbfc;
 }
 
-@media (max-width: 600px) {
-  .admin-header {
-    height: 74px;
-    padding: 0 15px;
-  }
+/* --------------------------------------------------------------------------
+ * Account / Owner
+ * -------------------------------------------------------------------------- */
 
-  .admin-header h1 {
-    font-size: 20px;
-  }
-
-  .header-right {
-    gap: 6px;
-  }
-
-  .header-profile {
-    margin-left: 2px;
-  }
-
-  .profile-info {
-    display: none;
-  }
-
-  .header-icon-button {
-    width: 35px;
-    height: 35px;
-  }
-
-  .profile-avatar {
-    width: 35px;
-    height: 35px;
-  }
-
-  .admin-content {
-    padding: 24px 15px 40px;
-  }
-
-  .welcome-section {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .welcome-section h2 {
-    font-size: 23px;
-  }
-
-  .statistics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-card {
-    min-height: 145px;
-  }
-
-  .dashboard-panel {
-    padding: 19px;
-  }
-
-  .system-status {
-    height: 33px;
-  }
-}
-
-/* ============================================
-   CARD MANAGEMENT
-============================================ */
-
-.card-management-section {
-  margin-top: 26px;
-  padding: 26px;
-  background: #ffffff;
-  border: 1px solid #e4ebf3;
-  border-radius: 16px;
-}
-
-.section-description {
-  margin: 6px 0 0;
-  color: #8191a3;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.refresh-cards-button {
-  min-height: 38px;
-  padding: 0 13px;
-  border: 1px solid #dfe7ef;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #526a82;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.refresh-cards-button:hover {
-  background: #f5f9fd;
-  color: #07559b;
-}
-
-.refresh-cards-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.spinning {
-  animation: card-refresh-spin 0.9s linear infinite;
-}
-
-@keyframes card-refresh-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.card-action-error {
-  margin-top: 18px;
-  padding: 12px 14px;
-  border: 1px solid #f2caca;
-  border-radius: 10px;
-  background: #fff6f6;
-  color: #b74343;
+.account-cell,
+.owner-cell {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 11px;
+  gap: 11px;
 }
 
-.card-action-error span {
-  flex: 1;
-}
-
-.card-action-error button {
-  width: 25px;
-  height: 25px;
-  border: 0;
-  background: transparent;
-  color: #b74343;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.cards-management-loading,
-.cards-management-empty {
-  margin-top: 18px;
-  min-height: 90px;
-  border: 1px dashed #dce5ee;
-  border-radius: 12px;
+.account-icon,
+.owner-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 11px;
-  color: #8191a3;
-  font-size: 12px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #374151;
 }
 
-.cards-management-empty {
-  justify-content: flex-start;
-  padding: 18px;
+.owner-avatar {
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.cards-management-empty > div:last-child {
+.account-details,
+.owner-details,
+.balance-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.cards-management-empty strong {
-  color: #314b65;
-  font-size: 12px;
+.account-details strong,
+.owner-details strong,
+.balance-cell strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 650;
 }
-.cards-management-empty span {
-  color: #8797a8;
+
+.owner-details strong {
+  white-space: nowrap;
+}
+
+.account-details span,
+.owner-details span,
+.balance-cell span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #9ca3af;
   font-size: 11px;
 }
 
-.admin-card-list {
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.owner-details span {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-card-row {
-  padding: 16px;
-  border: 1px solid #e5ecf3;
-  border-radius: 12px;
-  background: #fbfdff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.admin-card-main {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.admin-card-icon {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 10px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-card-details {
-  min-width: 0;
-}
-
-.admin-card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.admin-card-title-row strong {
-  color: #203b57;
+.account-type {
+  color: #374151;
   font-size: 13px;
-  letter-spacing: 0.2px;
+  font-weight: 550;
+  white-space: nowrap;
 }
 
-.admin-card-status {
+.balance-cell strong {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.balance-cell span {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+ * Status
+ * -------------------------------------------------------------------------- */
+
+.status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-}
-
-.admin-card-status.active {
-  background: #eaf8f0;
-  color: #278152;
-}
-.admin-card-status.blocked {
-  background: #fff5e8;
-  color: #b56a18;
-}
-.admin-card-status.expired {
-  background: #f1f3f6;
-  color: #7a8795;
-}
-.admin-card-status.cancelled {
-  background: #fff0f0;
-  color: #b44b4b;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
 }
 
-.admin-card-meta {
-  margin-top: 7px;
-  display: flex;
+.status-active {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.status-active .status-dot {
+  background: #22c55e;
+}
+
+.status-frozen {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.status-frozen .status-dot {
+  background: #f97316;
+}
+
+.status-inactive {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.status-inactive .status-dot {
+  background: #9ca3af;
+}
+
+.status-unknown {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-unknown .status-dot {
+  background: #9ca3af;
+}
+
+/* --------------------------------------------------------------------------
+ * Created
+ * -------------------------------------------------------------------------- */
+
+.created-cell {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 14px;
-  color: #8292a4;
-  font-size: 10px;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.admin-card-meta span:not(:last-child)::after {
-  content: '•';
-  margin-left: 14px;
-  color: #c2ccd6;
+/* --------------------------------------------------------------------------
+ * Actions
+ * -------------------------------------------------------------------------- */
+
+.actions-column {
+  text-align: right !important;
 }
 
-.admin-card-actions {
+.account-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 7px;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
-.card-control-button {
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
+.action-button,
+.more-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 750;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
   cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
-.card-control-button:disabled {
+.action-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
-.card-control-button.freeze {
-  border: 1px solid #e7cfae;
-  background: #fffaf3;
-  color: #9a651f;
+
+.activate-button:hover {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
 }
-.card-control-button.freeze:hover:not(:disabled) {
-  background: #fff1dc;
+
+.freeze-button:hover {
+  border-color: #fdba74;
+  background: #fff7ed;
+  color: #9a3412;
 }
-.card-control-button.activate {
-  border: 1px solid #bfe3cd;
-  background: #f2fbf6;
-  color: #287c50;
+
+.action-menu {
+  position: relative;
 }
-.card-control-button.activate:hover:not(:disabled) {
-  background: #e5f7ed;
+
+.action-menu summary {
+  list-style: none;
 }
-.card-control-button.cancel {
-  border: 1px solid #efc9c9;
-  background: #fff7f7;
-  color: #b34a4a;
+
+.action-menu summary::-webkit-details-marker {
+  display: none;
 }
-.card-control-button.cancel:hover:not(:disabled) {
-  background: #ffeded;
+
+.more-button {
+  width: 32px;
+  padding: 0;
 }
-.card-no-actions {
-  color: #9aa7b4;
-  font-size: 10px;
+
+.action-menu-content {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 160px;
+  padding: 5px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+}
+
+.action-menu-content button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #374151;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.action-menu-content button:hover {
+  background: #f3f4f6;
+}
+
+/* --------------------------------------------------------------------------
+ * Empty
+ * -------------------------------------------------------------------------- */
+
+.empty-state {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.empty-state h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+}
+
+.empty-state p {
+  margin: 7px 0 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.empty-state button {
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
   font-weight: 650;
 }
 
-@media (max-width: 900px) {
-  .admin-card-row {
+/* --------------------------------------------------------------------------
+ * Pagination
+ * -------------------------------------------------------------------------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 20px;
+  border-top: 1px solid #eef0f2;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.pagination-info strong {
+  color: #374151;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-controls button,
+.pagination-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.pagination-controls button.active {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  border-color: transparent;
+  cursor: default;
+}
+
+/* --------------------------------------------------------------------------
+ * Responsive
+ * -------------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .page-introduction {
     align-items: flex-start;
     flex-direction: column;
   }
-  .admin-card-actions {
+
+  .account-summary {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: space-between;
+  }
+
+  .accounts-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-end;
   }
 }
 
-@media (max-width: 600px) {
-  .card-management-section {
-    padding: 18px;
+@media (max-width: 700px) {
+  .page-introduction h2 {
+    font-size: 23px;
   }
-  .card-management-section .section-heading-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
+
+  .account-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
-  .admin-card-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .admin-card-meta span:not(:last-child)::after {
+
+  .summary-divider {
     display: none;
   }
-  .admin-card-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
-  .card-control-button {
+
+  .filter-control {
     width: 100%;
+  }
+
+  .filter-control select {
+    flex: 1;
+  }
+
+  .pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>
-
-

@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import BankingShell from '../components/BankingShell.vue'
 import {
-  LayoutDashboard,
   Users,
-  WalletCards,
-  ArrowLeftRight,
-  Settings,
-  LogOut,
-  Menu,
   X,
   Search,
   UserCheck,
@@ -70,7 +65,6 @@ const loading = ref(true)
 const refreshing = ref(false)
 const errorMessage = ref('')
 
-const mobileMenuOpen = ref(false)
 
 const searchQuery = ref(
   typeof route.query.search === 'string'
@@ -95,24 +89,6 @@ const changingStatusId = ref<number | null>(null)
 
 const currentUser = ref<User | null>(null)
 
-const fullName = computed(() => {
-  if (!currentUser.value) {
-    return 'Administrator'
-  }
-
-  return `${currentUser.value.firstName} ${currentUser.value.lastName}`
-})
-
-const initials = computed(() => {
-  if (!currentUser.value) {
-    return 'A'
-  }
-
-  const first = currentUser.value.firstName?.charAt(0) || ''
-  const last = currentUser.value.lastName?.charAt(0) || ''
-
-  return `${first}${last}`.toUpperCase()
-})
 
 /*
 |--------------------------------------------------------------------------
@@ -124,9 +100,6 @@ const activeUsersOnPage = computed(() => {
   return users.value.filter((user) => user.enabled).length
 })
 
-const inactiveUsersOnPage = computed(() => {
-  return users.value.filter((user) => !user.enabled).length
-})
 
 /*
 |--------------------------------------------------------------------------
@@ -144,9 +117,11 @@ function getAccessToken(): string | null {
 function logout() {
   localStorage.removeItem('adminAccessToken')
   localStorage.removeItem('user')
+  localStorage.removeItem('adminUser')
 
   sessionStorage.removeItem('adminAccessToken')
   sessionStorage.removeItem('user')
+  sessionStorage.removeItem('adminUser')
 
   router.push('/admin/login')
 }
@@ -682,388 +657,231 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="admin-layout">
-    <!-- Mobile overlay -->
-    <div
-      v-if="mobileMenuOpen"
-      class="mobile-overlay"
-      @click="mobileMenuOpen = false"
-    ></div>
+  <BankingShell
+    :admin="true"
+    :user="currentUser || undefined"
+    page-title="Users"
+    page-section="ADMINISTRATION"
+  >
+    <section class="admin-content">
+      <!-- Page introduction -->
+      <section class="page-introduction">
+        <div>
+          <span class="section-kicker">USER MANAGEMENT</span>
 
-    <!-- Sidebar -->
-    <aside
-      class="admin-sidebar"
-      :class="{ 'sidebar-open': mobileMenuOpen }"
-    >
-      <div class="sidebar-top">
-        <!-- Logo -->
-        <RouterLink
-          to="/"
-          class="admin-logo"
-          @click="mobileMenuOpen = false"
-        >
-          <span class="logo-mark">B</span>
+          <h2>Manage users</h2>
 
-          <div class="logo-text">
-            <strong>Buuchezo</strong>
-            <span>Bank</span>
-          </div>
-        </RouterLink>
+          <p>
+            Review registered users, account access and
+            administrative roles.
+          </p>
+        </div>
 
-        <!-- Mobile close -->
-        <button
-          type="button"
-          class="mobile-close"
-          aria-label="Close navigation"
-          @click="mobileMenuOpen = false"
-        >
-          <X :size="22" />
-        </button>
-
-        <!-- Navigation -->
-        <nav class="admin-navigation">
-          <p class="navigation-label">ADMINISTRATION</p>
-
-          <RouterLink
-            to="/admin/dashboard"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
-            <LayoutDashboard :size="19" />
-            <span>Overview</span>
-          </RouterLink>
-
-          <RouterLink
-            to="/admin/users"
-            class="admin-nav-link active"
-            @click="mobileMenuOpen = false"
-          >
-            <Users :size="19" />
-            <span>Users</span>
-          </RouterLink>
-
-          <RouterLink
-            to="/admin/accounts"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
-            <WalletCards :size="19" />
-            <span>Accounts</span>
-          </RouterLink>
-
-          <RouterLink
-            to="/admin/transactions"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
-            <ArrowLeftRight :size="19" />
-            <span>Transactions</span>
-          </RouterLink>
-
-          <p class="navigation-label second-label">SYSTEM</p>
-
-          <RouterLink
-            to="/settings"
-            class="admin-nav-link"
-            @click="mobileMenuOpen = false"
-          >
-            <Settings :size="19" />
-            <span>Settings</span>
-          </RouterLink>
-        </nav>
-      </div>
-
-      <!-- Sidebar bottom -->
-      <div class="sidebar-bottom">
-        <div class="admin-support">
-          <div class="support-icon">
-            <ShieldCheck :size="18" />
+        <div class="user-summary">
+          <div class="summary-item">
+            <span>Total users</span>
+            <strong>{{ totalElements }}</strong>
           </div>
 
-          <div>
-            <strong>Admin Area</strong>
-            <span>Secure access</span>
+          <div class="summary-divider"></div>
+
+          <div class="summary-item">
+            <span>On this page</span>
+            <strong>{{ users.length }}</strong>
           </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-item">
+            <span>Active</span>
+            <strong>{{ activeUsersOnPage }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error -->
+      <div
+        v-if="errorMessage && !loading"
+        class="error-banner"
+      >
+        <div class="error-banner-icon">
+          <ShieldCheck :size="18" />
+        </div>
+
+        <div>
+          <strong>Something went wrong</strong>
+          <span>{{ errorMessage }}</span>
         </div>
 
         <button
           type="button"
-          class="logout-button"
-          @click="logout"
+          @click="loadUsers"
         >
-          <LogOut :size="18" />
-          <span>Logout</span>
+          Try again
         </button>
       </div>
-    </aside>
 
-    <!-- Main -->
-    <main class="admin-main">
-      <!-- Header -->
-      <header class="admin-header">
-        <div class="header-left">
+      <!-- Toolbar -->
+      <section class="users-toolbar">
+        <form
+          class="search-box"
+          @submit.prevent="searchUsers"
+        >
+          <Search :size="18" />
+
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search by email..."
+            aria-label="Search users by email"
+          />
+
           <button
+            v-if="searchQuery"
             type="button"
-            class="mobile-menu-button"
-            aria-label="Open navigation"
-            @click="mobileMenuOpen = true"
+            class="clear-search"
+            aria-label="Clear search"
+            @click="clearSearch"
           >
-            <Menu :size="23" />
+            <X :size="15" />
           </button>
+        </form>
 
-          <div>
-            <span class="page-overline">ADMINISTRATION</span>
-            <h1>Users</h1>
-          </div>
-        </div>
+        <div class="toolbar-actions">
+          <label class="filter-control">
+            <span>Role</span>
 
-        <div class="header-right">
+            <select
+              v-model="roleFilter"
+              @change="handleRoleFilterChange"
+            >
+              <option value="">All roles</option>
+              <option value="CUSTOMER">Customer</option>
+              <option value="ADMIN">Administrator</option>
+            </select>
+          </label>
+
           <button
             type="button"
-            class="header-icon-button"
-            title="Refresh users"
+            class="refresh-button"
             :disabled="refreshing"
             @click="refreshUsers"
           >
             <RefreshCw
-              :size="18"
+              :size="16"
               :class="{ spinning: refreshing }"
             />
-          </button>
-
-          <div class="header-profile">
-            <div class="profile-avatar">
-              {{ initials }}
-            </div>
-
-            <div class="profile-info">
-              <strong>{{ fullName }}</strong>
-              <span>Administrator</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <section class="admin-content">
-        <!-- Page introduction -->
-        <section class="page-introduction">
-          <div>
-            <span class="section-kicker">USER MANAGEMENT</span>
-
-            <h2>Manage users</h2>
-
-            <p>
-              Review registered users, account access and
-              administrative roles.
-            </p>
-          </div>
-
-          <div class="user-summary">
-            <div class="summary-item">
-              <span>Total users</span>
-              <strong>{{ totalElements }}</strong>
-            </div>
-
-            <div class="summary-divider"></div>
-
-            <div class="summary-item">
-              <span>On this page</span>
-              <strong>{{ users.length }}</strong>
-            </div>
-
-            <div class="summary-divider"></div>
-
-            <div class="summary-item">
-              <span>Active</span>
-              <strong>{{ activeUsersOnPage }}</strong>
-            </div>
-          </div>
-        </section>
-
-        <!-- Error -->
-        <div
-          v-if="errorMessage && !loading"
-          class="error-banner"
-        >
-          <div class="error-banner-icon">
-            <ShieldCheck :size="18" />
-          </div>
-
-          <div>
-            <strong>Something went wrong</strong>
-            <span>{{ errorMessage }}</span>
-          </div>
-
-          <button
-            type="button"
-            @click="loadUsers"
-          >
-            Try again
+            <span>Refresh</span>
           </button>
         </div>
+      </section>
 
-        <!-- Toolbar -->
-        <section class="users-toolbar">
-          <form
-            class="search-box"
-            @submit.prevent="searchUsers"
-          >
-            <Search :size="18" />
+      <!-- Loading -->
+      <section
+        v-if="loading"
+        class="table-loading"
+      >
+        <div class="loading-spinner"></div>
 
-            <input
-              v-model="searchQuery"
-              type="search"
-              placeholder="Search by email..."
-              aria-label="Search users by email"
-            />
+        <h3>Loading users</h3>
 
-            <button
-              v-if="searchQuery"
-              type="button"
-              class="clear-search"
-              aria-label="Clear search"
-              @click="clearSearch"
-            >
-              <X :size="15" />
-            </button>
-          </form>
+        <p>
+          Retrieving the latest user information...
+        </p>
+      </section>
 
-          <div class="toolbar-actions">
-            <label class="filter-control">
-              <span>Role</span>
-
-              <select
-                v-model="roleFilter"
-                @change="handleRoleFilterChange"
-              >
-                <option value="">All roles</option>
-                <option value="CUSTOMER">Customer</option>
-                <option value="ADMIN">Administrator</option>
-              </select>
-            </label>
-
-            <button
-              type="button"
-              class="refresh-button"
-              :disabled="refreshing"
-              @click="refreshUsers"
-            >
-              <RefreshCw
-                :size="16"
-                :class="{ spinning: refreshing }"
-              />
-              <span>Refresh</span>
-            </button>
+      <!-- Users table -->
+      <section
+        v-else
+        class="users-panel"
+      >
+        <div class="table-header">
+          <div>
+            <span class="panel-kicker">REGISTERED USERS</span>
+            <h3>User directory</h3>
           </div>
-        </section>
 
-        <!-- Loading -->
-        <section
-          v-if="loading"
-          class="table-loading"
-        >
-          <div class="loading-spinner"></div>
-
-          <h3>Loading users</h3>
-
-          <p>
-            Retrieving the latest user information...
-          </p>
-        </section>
-
-        <!-- Users table -->
-        <section
-          v-else
-          class="users-panel"
-        >
-          <div class="table-header">
-            <div>
-              <span class="panel-kicker">REGISTERED USERS</span>
-              <h3>User directory</h3>
-            </div>
-
-            <span class="result-count">
+          <span class="result-count">
               {{ totalElements }}
               {{ totalElements === 1 ? 'user' : 'users' }}
             </span>
+        </div>
+
+        <!-- Empty -->
+        <div
+          v-if="users.length === 0"
+          class="empty-state"
+        >
+          <div class="empty-icon">
+            <Users :size="25" />
           </div>
 
-          <!-- Empty -->
-          <div
-            v-if="users.length === 0"
-            class="empty-state"
-          >
-            <div class="empty-icon">
-              <Users :size="25" />
-            </div>
+          <h3>No users found</h3>
 
-            <h3>No users found</h3>
+          <p>
+            No users match the current search or filter.
+          </p>
 
-            <p>
-              No users match the current search or filter.
-            </p>
-
-            <button
-              v-if="searchQuery || roleFilter"
-              type="button"
-              @click="
+          <button
+            v-if="searchQuery || roleFilter"
+            type="button"
+            @click="
                 searchQuery = '';
                 roleFilter = '';
                 currentPage = 0;
                 loadUsers()
               "
-            >
-              Clear filters
-            </button>
-          </div>
-
-          <!-- Desktop table -->
-          <div
-            v-else
-            class="table-wrapper"
           >
-            <table class="users-table">
-              <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th class="actions-column">Action</th>
-              </tr>
-              </thead>
+            Clear filters
+          </button>
+        </div>
 
-              <tbody>
-              <tr
-                v-for="user in users"
-                :key="user.id"
-              >
-                <!-- User -->
-                <td>
-                  <div class="user-cell">
-                    <div class="user-avatar">
-                      {{
-                        `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
-                          .toUpperCase()
-                      }}
-                    </div>
+        <!-- Desktop table -->
+        <div
+          v-else
+          class="table-wrapper"
+        >
+          <table class="users-table">
+            <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th class="actions-column">Action</th>
+            </tr>
+            </thead>
 
-                    <div class="user-details">
-                      <strong>
-                        {{ user.firstName }} {{ user.lastName }}
-                      </strong>
+            <tbody>
+            <tr
+              v-for="user in users"
+              :key="user.id"
+            >
+              <!-- User -->
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">
+                    {{
+                      `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
+                        .toUpperCase()
+                    }}
+                  </div>
 
-                      <span>
+                  <div class="user-details">
+                    <strong>
+                      {{ user.firstName }} {{ user.lastName }}
+                    </strong>
+
+                    <span>
                           <Mail :size="12" />
                           {{ user.email }}
                         </span>
-                    </div>
                   </div>
-                </td>
+                </div>
+              </td>
 
-                <!-- Role -->
-                <td>
+              <!-- Role -->
+              <td>
                     <span
                       class="role-badge"
                       :class="{
@@ -1082,10 +900,10 @@ onMounted(async () => {
 
                       {{ getUserRole(user) }}
                     </span>
-                </td>
+              </td>
 
-                <!-- Status -->
-                <td>
+              <!-- Status -->
+              <td>
                     <span
                       class="status-badge"
                       :class="{
@@ -1101,97 +919,97 @@ onMounted(async () => {
                           : 'Inactive'
                       }}
                     </span>
-                </td>
+              </td>
 
-                <!-- Created -->
-                <td>
-                  <div class="date-cell">
-                    <CalendarDays :size="14" />
-                    <span>{{ formatDate(user.createdAt) }}</span>
-                  </div>
-                </td>
+              <!-- Created -->
+              <td>
+                <div class="date-cell">
+                  <CalendarDays :size="14" />
+                  <span>{{ formatDate(user.createdAt) }}</span>
+                </div>
+              </td>
 
-                <!-- Action -->
-                <td class="actions-column">
-                  <button
-                    type="button"
-                    class="status-action"
-                    :class="{
+              <!-- Action -->
+              <td class="actions-column">
+                <button
+                  type="button"
+                  class="status-action"
+                  :class="{
                         deactivate: user.enabled,
                         activate: !user.enabled,
                       }"
-                    :disabled="changingStatusId === user.id"
-                    @click="toggleUserStatus(user)"
-                  >
-                    <RefreshCw
-                      v-if="changingStatusId === user.id"
-                      :size="14"
-                      class="spinning"
-                    />
+                  :disabled="changingStatusId === user.id"
+                  @click="toggleUserStatus(user)"
+                >
+                  <RefreshCw
+                    v-if="changingStatusId === user.id"
+                    :size="14"
+                    class="spinning"
+                  />
 
-                    <UserX
-                      v-else-if="user.enabled"
-                      :size="14"
-                    />
+                  <UserX
+                    v-else-if="user.enabled"
+                    :size="14"
+                  />
 
-                    <UserCheck
-                      v-else
-                      :size="14"
-                    />
+                  <UserCheck
+                    v-else
+                    :size="14"
+                  />
 
-                    <span>
+                  <span>
                         {{
-                        changingStatusId === user.id
-                          ? 'Updating...'
-                          : user.enabled
-                            ? 'Deactivate'
-                            : 'Activate'
-                      }}
+                      changingStatusId === user.id
+                        ? 'Updating...'
+                        : user.enabled
+                          ? 'Deactivate'
+                          : 'Activate'
+                    }}
                       </span>
-                  </button>
-                </td>
-              </tr>
-              </tbody>
-            </table>
+                </button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="users.length > 0 && totalPages > 1 && !searchQuery"
+          class="pagination"
+        >
+          <div class="pagination-info">
+            Showing
+            <strong>
+              {{ currentPage * pageSize + 1 }}
+            </strong>
+            –
+            <strong>
+              {{
+                Math.min(
+                  (currentPage + 1) * pageSize,
+                  totalElements,
+                )
+              }}
+            </strong>
+            of
+            <strong>{{ totalElements }}</strong>
           </div>
 
-          <!-- Pagination -->
-          <div
-            v-if="users.length > 0 && totalPages > 1 && !searchQuery"
-            class="pagination"
-          >
-            <div class="pagination-info">
-              Showing
-              <strong>
-                {{ currentPage * pageSize + 1 }}
-              </strong>
-              –
-              <strong>
-                {{
-                  Math.min(
-                    (currentPage + 1) * pageSize,
-                    totalElements,
-                  )
-                }}
-              </strong>
-              of
-              <strong>{{ totalElements }}</strong>
-            </div>
+          <div class="pagination-controls">
+            <button
+              type="button"
+              :disabled="currentPage === 0"
+              aria-label="Previous page"
+              @click="previousPage"
+            >
+              <ChevronLeft :size="17" />
+            </button>
 
-            <div class="pagination-controls">
-              <button
-                type="button"
-                :disabled="currentPage === 0"
-                aria-label="Previous page"
-                @click="previousPage"
-              >
-                <ChevronLeft :size="17" />
-              </button>
-
-              <template
-                v-for="(page, index) in visiblePages"
-                :key="`${page}-${index}`"
-              >
+            <template
+              v-for="(page, index) in visiblePages"
+              :key="`${page}-${index}`"
+            >
                 <span
                   v-if="page === -1"
                   class="pagination-ellipsis"
@@ -1199,46 +1017,45 @@ onMounted(async () => {
                   <MoreHorizontal :size="16" />
                 </span>
 
-                <button
-                  v-else
-                  type="button"
-                  :class="{
+              <button
+                v-else
+                type="button"
+                :class="{
                     active: page === currentPage,
                   }"
-                  @click="goToPage(page)"
-                >
-                  {{ page + 1 }}
-                </button>
-              </template>
-
-              <button
-                type="button"
-                :disabled="currentPage >= totalPages - 1"
-                aria-label="Next page"
-                @click="nextPage"
+                @click="goToPage(page)"
               >
-                <ChevronRight :size="17" />
+                {{ page + 1 }}
               </button>
-            </div>
-          </div>
-        </section>
+            </template>
 
-        <!-- Information note -->
-        <div class="management-note">
-          <ShieldCheck :size="17" />
-
-          <div>
-            <strong>Administrative access</strong>
-
-            <span>
-              User status changes are performed through the
-              protected administration API.
-            </span>
+            <button
+              type="button"
+              :disabled="currentPage >= totalPages - 1"
+              aria-label="Next page"
+              @click="nextPage"
+            >
+              <ChevronRight :size="17" />
+            </button>
           </div>
         </div>
       </section>
-    </main>
-  </div>
+
+      <!-- Information note -->
+      <div class="management-note">
+        <ShieldCheck :size="17" />
+
+        <div>
+          <strong>Administrative access</strong>
+
+          <span>
+              User status changes are performed through the
+              protected administration API.
+            </span>
+        </div>
+      </div>
+    </section>
+  </BankingShell>
 </template>
 
 <style scoped>
@@ -1246,71 +1063,12 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-.admin-layout {
-  min-height: 100vh;
-  background: #f5f8fc;
-  color: #10243e;
-  display: flex;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
 
 /* ============================================
    SIDEBAR
 ============================================ */
 
-.admin-sidebar {
-  width: 258px;
-  min-width: 258px;
-  min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e6edf5;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 26px 18px 20px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
-}
 
-.sidebar-top {
-  width: 100%;
-}
-
-.admin-logo {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  color: #0b2848;
-  margin-bottom: 43px;
-  padding: 0 7px;
-}
-
-.logo-mark {
-  width: 39px;
-  height: 39px;
-  border-radius: 11px;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
 
 .logo-text strong {
   font-size: 15px;
@@ -1322,83 +1080,6 @@ onMounted(async () => {
   color: #73859a;
   font-size: 11px;
   margin-top: 4px;
-}
-
-.mobile-close {
-  display: none;
-}
-
-.navigation-label {
-  padding: 0 12px;
-  margin: 0 0 11px;
-  color: #9aa9ba;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.second-label {
-  margin-top: 31px;
-}
-
-.admin-navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.admin-nav-link {
-  min-height: 47px;
-  padding: 0 13px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  text-decoration: none;
-  color: #6c7e91;
-  font-size: 13px;
-  font-weight: 650;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.admin-nav-link:hover {
-  background: #f2f7fc;
-  color: #07559b;
-}
-
-.admin-nav-link.active {
-  background: #eaf3fb;
-  color: #07559b;
-  font-weight: 750;
-}
-
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.admin-support {
-  border: 1px solid #e5edf5;
-  border-radius: 13px;
-  padding: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fbfdff;
-}
-
-.support-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .admin-support div:last-child {
@@ -1417,123 +1098,12 @@ onMounted(async () => {
   font-size: 9px;
 }
 
-.logout-button {
-  border: 0;
-  background: transparent;
-  min-height: 42px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #7d8d9e;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  border-radius: 10px;
-  text-align: left;
-}
-
-.logout-button:hover {
-  background: #f6f8fb;
-  color: #d14e4e;
-}
 
 /* ============================================
    MAIN
 ============================================ */
 
-.admin-main {
-  flex: 1;
-  min-width: 0;
-}
 
-.admin-header {
-  height: 84px;
-  background: #ffffff;
-  border-bottom: 1px solid #e7edf4;
-  padding: 0 39px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-overline {
-  color: #8b9bac;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.header-left h1 {
-  margin: 4px 0 0;
-  color: #12304f;
-  font-size: 25px;
-  font-weight: 750;
-  letter-spacing: -0.7px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.header-icon-button {
-  width: 39px;
-  height: 39px;
-  border: 1px solid #e4ebf3;
-  background: #ffffff;
-  color: #60748a;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
-}
-
-.header-icon-button:hover {
-  color: #07559b;
-  background: #f7faff;
-}
-
-.header-icon-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.header-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: 8px;
-}
-
-.profile-avatar {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-}
 
 .profile-info strong {
   color: #213a55;
@@ -1547,9 +1117,6 @@ onMounted(async () => {
   margin-top: 3px;
 }
 
-.mobile-menu-button {
-  display: none;
-}
 
 /* ============================================
    CONTENT
@@ -2266,58 +1833,6 @@ onMounted(async () => {
 ============================================ */
 
 @media (max-width: 850px) {
-  .admin-sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    transition: left 0.25s ease;
-    box-shadow: 12px 0 30px rgba(20, 48, 78, 0.1);
-  }
-
-  .admin-sidebar.sidebar-open {
-    left: 0;
-  }
-
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 36, 59, 0.35);
-    z-index: 90;
-  }
-
-  .mobile-close {
-    position: absolute;
-    top: 24px;
-    right: 17px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 9px;
-    background: #f4f7fa;
-    color: #6c7e91;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .mobile-menu-button {
-    width: 39px;
-    height: 39px;
-    border: 1px solid #e4ebf3;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #526b83;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .admin-header {
-    padding: 0 22px;
-  }
 
   .admin-content {
     padding: 29px 22px 45px;
@@ -2329,36 +1844,11 @@ onMounted(async () => {
 ============================================ */
 
 @media (max-width: 600px) {
-  .admin-header {
-    height: 74px;
-    padding: 0 15px;
-  }
 
   .admin-header h1 {
     font-size: 20px;
   }
 
-  .header-right {
-    gap: 6px;
-  }
-
-  .header-profile {
-    margin-left: 2px;
-  }
-
-  .profile-info {
-    display: none;
-  }
-
-  .header-icon-button {
-    width: 35px;
-    height: 35px;
-  }
-
-  .profile-avatar {
-    width: 35px;
-    height: 35px;
-  }
 
   .admin-content {
     padding: 24px 15px 40px;
@@ -2430,11 +1920,10 @@ onMounted(async () => {
 }
 
 @media (min-width: 851px) {
-  .mobile-overlay {
-    display: none;
-  }
+
 }
 </style>
+
 
 
 

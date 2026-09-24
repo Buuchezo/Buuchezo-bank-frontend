@@ -1,27 +1,21 @@
 <script lang="ts" setup>
+import BankingShell from '../components/BankingShell.vue'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
 import {
   Activity,
   ArrowLeftRight,
-
   ChevronRight,
   CreditCard,
-  LayoutDashboard,
   Lock,
-  LogOut,
-  Menu,
   RefreshCw,
   Search,
-  Settings,
   ShieldCheck,
   Unlock,
   UserCheck,
   UserRound,
   Users,
   WalletCards,
-  X,
   XCircle
 } from 'lucide-vue-next'
 import { getPendingCardApplications } from '../service/cardApplicationService'
@@ -68,36 +62,15 @@ const currentUser = ref<User | null>(null)
 
 const loading = ref(true)
 const errorMessage = ref('')
-const mobileMenuOpen = ref(false)
-
 const searchOpen = ref(false)
 const searchQuery = ref('')
 
 const pendingCardApplications = ref(0)
-const loadingCardApplications = ref(false)
 const adminCards = ref<Card[]>([])
 const loadingCards = ref(false)
 const cardActionLoadingId = ref<number | null>(null)
 const cardActionError = ref('')
 
-const fullName = computed(() => {
-  if (!currentUser.value) {
-    return 'Administrator'
-  }
-
-  return `${currentUser.value.firstName} ${currentUser.value.lastName}`
-})
-
-const initials = computed(() => {
-  if (!currentUser.value) {
-    return 'A'
-  }
-
-  const first = currentUser.value.firstName?.charAt(0) || ''
-  const last = currentUser.value.lastName?.charAt(0) || ''
-
-  return `${first}${last}`.toUpperCase()
-})
 
 const activePercentage = computed(() => {
   if (statistics.value.totalUsers === 0) {
@@ -260,16 +233,12 @@ async function loadStatistics() {
 }
 
 async function loadPendingCardApplications() {
-  loadingCardApplications.value = true
-
   try {
     const applications = await getPendingCardApplications()
     pendingCardApplications.value = applications.length
   } catch (error) {
     console.error('Failed to load pending card applications:', error)
     pendingCardApplications.value = 0
-  } finally {
-    loadingCardApplications.value = false
   }
 }
 
@@ -369,165 +338,41 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="admin-layout">
-    <!-- Mobile Overlay -->
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
-
-    <!-- Sidebar -->
-    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="admin-sidebar">
-      <div class="sidebar-top">
-        <!-- Logo -->
-        <RouterLink class="admin-logo" to="/">
-          <span class="logo-mark">B</span>
-
-          <div class="logo-text">
-            <strong>Buuchezo</strong>
-            <span>Bank</span>
-          </div>
-        </RouterLink>
-
-        <!-- Mobile Close -->
-        <button class="mobile-close" type="button" @click="mobileMenuOpen = false">
-          <X :size="22" />
-        </button>
-
-        <!-- Navigation -->
-        <nav class="admin-navigation">
-          <p class="navigation-label">ADMINISTRATION</p>
-
-          <RouterLink
-            class="admin-nav-link active"
-            to="/admin/dashboard"
-            @click="mobileMenuOpen = false"
-          >
-            <LayoutDashboard :size="19" />
-            <span>Overview</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/users" @click="mobileMenuOpen = false">
-            <Users :size="19" />
-            <span>Users</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/accounts" @click="mobileMenuOpen = false">
-            <WalletCards :size="19" />
-            <span>Accounts</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link"
-            to="/admin/transactions"
-            @click="mobileMenuOpen = false"
-          >
-            <ArrowLeftRight :size="19" />
-            <span>Transactions</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link"
-            to="/admin/card-applications"
-            @click="mobileMenuOpen = false"
-          >
-            <CreditCard :size="19" />
-            <span>Card Applications</span>
-            <span v-if="pendingCardApplications > 0" class="nav-count-badge">
-              {{ pendingCardApplications }}
-            </span>
-          </RouterLink>
-
-          <p class="navigation-label second-label">SYSTEM</p>
-
-          <RouterLink class="admin-nav-link" to="/settings" @click="mobileMenuOpen = false">
-            <Settings :size="19" />
-            <span>Settings</span>
-          </RouterLink>
-        </nav>
-      </div>
-
-      <!-- Sidebar Bottom -->
-      <div class="sidebar-bottom">
-        <div class="admin-support">
-          <div class="support-icon">
-            <ShieldCheck :size="18" />
-          </div>
-
-          <div>
-            <strong>Admin Area</strong>
-            <span>Secure access</span>
-          </div>
-        </div>
-
-        <button class="logout-button" type="button" @click="logout">
-          <LogOut :size="18" />
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="admin-main">
-      <!-- Header -->
-      <header class="admin-header">
-        <div class="header-left">
-          <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = true">
-            <Menu :size="23" />
-          </button>
-
-          <div>
-            <span class="page-overline">ADMINISTRATION</span>
-            <h1>Overview</h1>
-          </div>
-        </div>
-
-        <div class="header-right">
-          <div v-if="searchOpen" class="admin-header-search">
-            <Search :size="17" />
-
-            <input
-              v-model="searchQuery"
-              type="search"
-              placeholder="Search users, email or account..."
-              autocomplete="off"
-              @keydown="handleSearchKeydown"
-              @keyup.enter="executeSearch"
-            />
-
-            <button
-              class="search-close-button"
-              title="Close search"
-              type="button"
-              @click="closeSearch"
-            >
-              
-            </button>
-          </div>
-
+  <BankingShell
+    :admin="true"
+    :user="currentUser || undefined"
+    page-title="Overview"
+    page-section="ADMINISTRATION"
+  >
+    <div class="admin-dashboard-page">
+      <div class="admin-dashboard-toolbar">
+        <div v-if="searchOpen" class="admin-header-search">
+          <Search :size="17" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Search users, email or account..."
+            autocomplete="off"
+            @keydown="handleSearchKeydown"
+            @keyup.enter="executeSearch"
+          />
           <button
-            v-else
-            class="header-icon-button"
-            title="Search"
+            class="search-close-button"
+            title="Close search"
             type="button"
-            @click="openSearch"
-          >
-            <Search :size="19" />
-          </button>
-
-          <NotificationDropdown />
-
-          <div class="header-profile">
-            <div class="profile-avatar">
-              {{ initials }}
-            </div>
-
-            <div class="profile-info">
-              <strong>{{ fullName }}</strong>
-              <span>Administrator</span>
-            </div>
-          </div>
+            @click="closeSearch"
+          >×</button>
         </div>
-      </header>
-
-      <!-- Content -->
+        <button
+          v-else
+          class="header-icon-button"
+          title="Search users"
+          type="button"
+          @click="openSearch"
+        >
+          <Search :size="19" />
+        </button>
+      </div>
       <section class="admin-content">
         <!-- Loading -->
         <div v-if="loading" class="loading-state">
@@ -951,8 +796,8 @@ onMounted(() => {
                     >
                       <Unlock :size="15" />
                       <span>{{
-                        cardActionLoadingId === card.id ? 'Unfreezing...' : 'Unfreeze'
-                      }}</span>
+                          cardActionLoadingId === card.id ? 'Unfreezing...' : 'Unfreeze'
+                        }}</span>
                     </button>
 
                     <button
@@ -985,8 +830,8 @@ onMounted(() => {
           </section>
         </template>
       </section>
-    </main>
-  </div>
+    </div>
+  </BankingShell>
 </template>
 
 <style scoped>
@@ -994,292 +839,20 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-.admin-layout {
-  min-height: 100vh;
-  background: #f5f8fc;
-  color: #10243e;
-  display: flex;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-}
-
-/* ============================================
-   SIDEBAR
-============================================ */
-
-.admin-sidebar {
-  width: 258px;
-  min-width: 258px;
-  min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e6edf5;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 26px 18px 20px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
-}
-
-.sidebar-top {
+/* Shared BankingShell owns the application shell. This page owns only dashboard content. */
+.admin-dashboard-page {
   width: 100%;
 }
 
-.admin-logo {
+.admin-dashboard-toolbar {
   display: flex;
-  align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  color: #0b2848;
-  margin-bottom: 43px;
-  padding: 0 7px;
-}
-
-.logo-mark {
-  width: 39px;
-  height: 39px;
-  border-radius: 11px;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-
-.logo-text strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.2px;
-}
-
-.logo-text span {
-  color: #73859a;
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.mobile-close {
-  display: none;
-}
-
-.navigation-label {
-  padding: 0 12px;
-  margin: 0 0 11px;
-  color: #9aa9ba;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.second-label {
-  margin-top: 31px;
-}
-
-.admin-navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.admin-nav-link {
-  min-height: 47px;
-  padding: 0 13px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  text-decoration: none;
-  color: #6c7e91;
-  font-size: 13px;
-  font-weight: 650;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.admin-nav-link:hover {
-  background: #f2f7fc;
-  color: #07559b;
-}
-
-.admin-nav-link.active {
-  background: #eaf3fb;
-  color: #07559b;
-  font-weight: 750;
-}
-
-.nav-count-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  margin-left: auto;
-  border-radius: 10px;
-  background: #07559b;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.admin-support {
-  border: 1px solid #e5edf5;
-  border-radius: 13px;
-  padding: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fbfdff;
-}
-
-.support-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-support div:last-child {
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-support strong {
-  font-size: 11px;
-  color: #1d3652;
-}
-
-.admin-support span {
-  margin-top: 3px;
-  color: #91a0b0;
-  font-size: 9px;
-}
-
-.logout-button {
-  border: 0;
-  background: transparent;
-  min-height: 42px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #7d8d9e;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  border-radius: 10px;
-  text-align: left;
-}
-
-.logout-button:hover {
-  background: #f6f8fb;
-  color: #d14e4e;
-}
-
-/* ============================================
-   MAIN
-============================================ */
-
-.admin-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-header {
-  height: 84px;
-  background: #ffffff;
-  border-bottom: 1px solid #e7edf4;
-  padding: 0 39px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-overline {
-  color: #8b9bac;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.header-left h1 {
-  margin: 4px 0 0;
-  color: #12304f;
-  font-size: 25px;
-  font-weight: 750;
-  letter-spacing: -0.7px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.header-icon-button {
-  width: 39px;
-  height: 39px;
-  border: 1px solid #e4ebf3;
-  background: #ffffff;
-  color: #60748a;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.header-icon-button:hover {
-  color: #07559b;
-  background: #f7faff;
-}
-
-.notification-dot {
-  width: 6px;
-  height: 6px;
-  background: #e15757;
-  border: 1.5px solid #ffffff;
-  border-radius: 50%;
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  justify-content: flex-end;
+  margin: 0 0 14px;
 }
 
 .admin-header-search {
   height: 38px;
-  min-width: 280px;
+  width: min(360px, 100%);
   padding: 0 8px 0 12px;
   display: flex;
   align-items: center;
@@ -1327,51 +900,6 @@ onMounted(() => {
   background: #f1f5f8;
   color: #17324d;
 }
-
-.header-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: 8px;
-}
-
-.profile-avatar {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.profile-info strong {
-  color: #213a55;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.profile-info span {
-  color: #8a9bad;
-  font-size: 9px;
-  margin-top: 3px;
-}
-
-.mobile-menu-button {
-  display: none;
-}
-
-/* ============================================
-   CONTENT
-============================================ */
 
 .admin-content {
   padding: 34px 39px 55px;
@@ -1948,12 +1476,8 @@ onMounted(() => {
 }
 
 /* ============================================
-   MOBILE
+   RESPONSIVE
 ============================================ */
-
-.mobile-overlay {
-  display: none;
-}
 
 @media (max-width: 1100px) {
   .statistics-grid {
@@ -1966,59 +1490,6 @@ onMounted(() => {
 }
 
 @media (max-width: 850px) {
-  .admin-sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    transition: left 0.25s ease;
-    box-shadow: 12px 0 30px rgba(20, 48, 78, 0.1);
-  }
-
-  .admin-sidebar.sidebar-open {
-    left: 0;
-  }
-
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 36, 59, 0.35);
-    z-index: 90;
-  }
-
-  .mobile-close {
-    position: absolute;
-    top: 24px;
-    right: 17px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 9px;
-    background: #f4f7fa;
-    color: #6c7e91;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .mobile-menu-button {
-    width: 39px;
-    height: 39px;
-    border: 1px solid #e4ebf3;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #526b83;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .admin-header {
-    padding: 0 22px;
-  }
-
   .admin-content {
     padding: 29px 22px 45px;
   }
@@ -2029,90 +1500,16 @@ onMounted(() => {
 }
 
 @media (max-width: 600px) {
-  .admin-header {
-    height: 74px;
-    padding: 0 15px;
+  .admin-content {
+    padding: 24px 15px 40px;
   }
 
-  .admin-header h1 {
-    font-size: 20px;
-  }
-
-  .header-right {
-    gap: 6px;
+  .admin-dashboard-toolbar {
+    justify-content: stretch;
   }
 
   .admin-header-search {
-  height: 38px;
-  min-width: 280px;
-  padding: 0 8px 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #dce4ec;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 5px 18px rgba(15, 35, 55, 0.08);
-}
-
-.admin-header-search svg {
-  flex-shrink: 0;
-  color: #7c8b9b;
-}
-
-.admin-header-search input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #17324d;
-  font-family: inherit;
-  font-size: 12px;
-}
-
-.admin-header-search input::placeholder {
-  color: #9aa7b4;
-}
-
-.search-close-button {
-  width: 25px;
-  height: 25px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #7c8b9b;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.search-close-button:hover {
-  background: #f1f5f8;
-  color: #17324d;
-}
-
-.header-profile {
-    margin-left: 2px;
-  }
-
-  .profile-info {
-    display: none;
-  }
-
-  .header-icon-button {
-    width: 35px;
-    height: 35px;
-  }
-
-  .profile-avatar {
-    width: 35px;
-    height: 35px;
-  }
-
-  .admin-content {
-    padding: 24px 15px 40px;
+    width: 100%;
   }
 
   .welcome-section {

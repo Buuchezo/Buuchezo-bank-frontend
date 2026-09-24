@@ -1,4 +1,4 @@
-
+```
 <template>
   <main class="auth-page">
     <!-- =====================================================
@@ -6,9 +6,32 @@
     ====================================================== -->
     <div class="auth-visual">
       <div class="auth-visual-glow"></div>
+      <!-- =====================================================
+       FADED CURRENCY BACKGROUND
+  ====================================================== -->
+      <div class="currency-background" aria-hidden="true">
+        <div class="global-globe">
+          <div class="globe-grid globe-grid-horizontal"></div>
+          <div class="globe-grid globe-grid-vertical"></div>
+
+          <span class="globe-node node-1"></span>
+          <span class="globe-node node-2"></span>
+          <span class="globe-node node-3"></span>
+          <span class="globe-node node-4"></span>
+          <span class="globe-node node-5"></span>
+          <span class="globe-node node-6"></span>
+        </div>
+        <span class="currency-symbol currency-euro">€</span>
+        <span class="currency-symbol currency-dollar">$</span>
+        <span class="currency-symbol currency-pound">£</span>
+        <span class="currency-symbol currency-yen">¥</span>
+        <span class="currency-symbol currency-euro-small">€</span>
+        <span class="currency-symbol currency-dollar-small">$</span>
+        <span class="currency-symbol currency-yen-small">¥</span>
+      </div>
 
       <RouterLink to="/" class="auth-brand">
-        <span class="auth-brand-mark">B</span>
+        <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
         <span>Buuchezo Bank</span>
       </RouterLink>
 
@@ -24,10 +47,16 @@
 
         <div class="auth-card-preview">
           <div class="preview-top">
-            <span>Buuchezo Bank</span>
-            <span>◉</span>
+            <div class="preview-brand">
+              <img
+                src="@/assets/images/buuchezobank-logo.png"
+                alt="Buuchezo Bank"
+                class="preview-logo"
+              />
+              <span>Buuchezo Bank</span>
+            </div>
+            <span class="preview-contactless" aria-label="Contactless payment">◉</span>
           </div>
-
           <div class="preview-chip"></div>
 
           <div class="preview-number">5432&nbsp;&nbsp;7512&nbsp;&nbsp;3412&nbsp;&nbsp;3456</div>
@@ -103,11 +132,7 @@
                   required
                 />
 
-                <button
-                  type="button"
-                  class="password-toggle"
-                  @click="showPassword = !showPassword"
-                >
+                <button type="button" class="password-toggle" @click="showPassword = !showPassword">
                   {{ showPassword ? 'Hide' : 'Show' }}
                 </button>
               </div>
@@ -170,9 +195,7 @@
 
             <h2>Verify your identity.</h2>
 
-            <p>
-              Open your authenticator app and enter the 6-digit verification code to continue.
-            </p>
+            <p>Open your authenticator app and enter the 6-digit verification code to continue.</p>
           </div>
 
           <form class="auth-form" @submit.prevent="handleTwoFactorLogin">
@@ -231,6 +254,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-vue-next'
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
 
 interface LoginUser {
   id: number
@@ -562,6 +586,48 @@ const handleForgotPassword = () => {
   border-radius: 50%;
 }
 
+.preview-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.preview-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.preview-brand span {
+  margin: 0;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.preview-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  flex: 0 0 34px;
+}
+
+.preview-contactless {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 16px;
+  font-size: 21px;
+  line-height: 1;
+  opacity: 0.9;
+  flex: 0 0 30px;
+}
+
 .auth-visual-glow {
   position: absolute;
 
@@ -576,6 +642,299 @@ const handleForgotPassword = () => {
   border-radius: 50%;
 
   filter: blur(70px);
+}
+/* =========================================================
+   FADED CURRENCY BACKGROUND
+========================================================= */
+
+.currency-background {
+  position: absolute;
+
+  inset: 0;
+
+  z-index: 0;
+
+  overflow: hidden;
+
+  pointer-events: none;
+
+  user-select: none;
+}
+
+.currency-symbol {
+  position: absolute;
+
+  display: block;
+
+  color: rgba(255, 255, 255, 0.1);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  pointer-events: none;
+
+  filter: blur(0.2px);
+
+  transform-origin: center;
+
+  text-shadow: 0 0 35px rgba(139, 231, 255, 0.08);
+}
+/* =========================================================
+   DIGITAL GLOBAL NETWORK
+========================================================= */
+
+.global-globe {
+  position: absolute;
+
+  width: 520px;
+  height: 520px;
+
+  right: -70px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  border-radius: 50%;
+
+  opacity: 0.55;
+
+  pointer-events: none;
+}
+
+/* Main globe outline */
+
+.global-globe::before {
+  content: '';
+
+  position: absolute;
+
+  inset: 0;
+
+  border: 1px solid rgba(139, 231, 255, 0.12);
+
+  border-radius: 50%;
+
+  box-shadow:
+    0 0 60px rgba(139, 231, 255, 0.04),
+    inset 0 0 70px rgba(139, 231, 255, 0.03);
+}
+
+/* Latitude / longitude arcs */
+
+.globe-grid {
+  position: absolute;
+
+  border: 1px solid rgba(139, 231, 255, 0.1);
+
+  border-radius: 50%;
+}
+
+/* Horizontal latitude */
+
+.globe-grid-horizontal {
+  width: 100%;
+  height: 46%;
+
+  left: 0;
+  top: 27%;
+
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+/* Vertical longitude */
+
+.globe-grid-vertical {
+  width: 46%;
+  height: 100%;
+
+  left: 27%;
+  top: 0;
+
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* Additional curved longitude */
+
+.global-globe::after {
+  content: '';
+
+  position: absolute;
+
+  width: 30%;
+  height: 100%;
+
+  left: 35%;
+  top: 0;
+
+  border-left: 1px solid rgba(139, 231, 255, 0.07);
+  border-right: 1px solid rgba(139, 231, 255, 0.07);
+
+  border-radius: 50%;
+}
+
+/* =========================================================
+   NETWORK NODES
+========================================================= */
+.global-globe {
+  background-image: radial-gradient(circle, rgba(139, 231, 255, 0.22) 1px, transparent 1.5px);
+
+  background-size: 12px 12px;
+
+  mask-image: radial-gradient(ellipse at center, black 0%, rgba(0, 0, 0, 0.8) 45%, transparent 72%);
+
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    black 0%,
+    rgba(0, 0, 0, 0.8) 45%,
+    transparent 72%
+  );
+}
+.globe-node {
+  position: absolute;
+
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #8be7ff;
+
+  box-shadow:
+    0 0 10px rgba(139, 231, 255, 0.7),
+    0 0 22px rgba(139, 231, 255, 0.25);
+
+  opacity: 0.65;
+}
+
+.node-1 {
+  top: 18%;
+  left: 36%;
+}
+
+.node-2 {
+  top: 32%;
+  left: 72%;
+}
+
+.node-3 {
+  top: 51%;
+  left: 22%;
+}
+
+.node-4 {
+  top: 61%;
+  left: 67%;
+}
+
+.node-5 {
+  top: 77%;
+  left: 42%;
+}
+
+.node-6 {
+  top: 40%;
+  left: 49%;
+}
+
+/* Large € */
+
+.currency-euro {
+  top: 7%;
+  right: 18%;
+
+  font-size: 180px;
+
+  opacity: 0.55;
+
+  transform: rotate(-8deg);
+}
+
+/* Large $ */
+
+.currency-dollar {
+  top: 13%;
+  right: -3%;
+
+  font-size: 210px;
+
+  opacity: 0.45;
+
+  transform: rotate(7deg);
+}
+
+/* Large £ */
+
+.currency-pound {
+  top: 43%;
+  right: 25%;
+
+  font-size: 165px;
+
+  opacity: 0.38;
+
+  transform: rotate(-12deg);
+}
+
+/* Large ¥ */
+
+.currency-yen {
+  bottom: 7%;
+  right: 12%;
+
+  font-size: 190px;
+
+  opacity: 0.3;
+
+  transform: rotate(9deg);
+}
+
+/* Smaller € */
+
+.currency-euro-small {
+  bottom: 4%;
+  left: 44%;
+
+  font-size: 110px;
+
+  opacity: 0.2;
+
+  transform: rotate(-15deg);
+}
+
+/* Smaller $ */
+
+.currency-dollar-small {
+  top: 35%;
+  left: 45%;
+
+  font-size: 95px;
+
+  opacity: 0.18;
+
+  transform: rotate(10deg);
+}
+
+/* Smaller ¥ */
+
+.currency-yen-small {
+  bottom: 23%;
+  right: 48%;
+
+  font-size: 85px;
+
+  opacity: 0.16;
+
+  transform: rotate(-6deg);
 }
 
 /* =========================================================
@@ -679,21 +1038,27 @@ const handleForgotPassword = () => {
 
   margin-top: 48px;
 
-  padding: 24px;
+  padding: 22px 24px 24px;
 
   border-radius: 22px;
 
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.18),
-    rgba(255, 255, 255, 0.07)
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07));
 
   border: 1px solid rgba(255, 255, 255, 0.18);
 
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.18);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 
   backdrop-filter: blur(20px);
+}
+
+.banking-logo-image {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .preview-top,
@@ -712,7 +1077,7 @@ const handleForgotPassword = () => {
   width: 42px;
   height: 32px;
 
-  margin-top: 36px;
+  margin-top: 32px;
 
   border-radius: 7px;
 
@@ -720,22 +1085,39 @@ const handleForgotPassword = () => {
 }
 
 .preview-number {
-  margin-top: 26px;
+  margin-top: 24px;
 
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  font-size: 18px;
-  letter-spacing: 0.08em;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.075em;
+  white-space: nowrap;
 }
 
 .preview-bottom {
-  margin-top: 28px;
+  margin-top: 24px;
 
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
 
   color: rgba(255, 255, 255, 0.7);
+}
+
+.preview-bottom span {
+  line-height: 1;
+}
+
+@media (max-width: 1100px) and (min-width: 901px) {
+  .auth-card-preview {
+    width: min(360px, 100%);
+  }
+
+  .preview-number {
+    font-size: 15px;
+    letter-spacing: 0.055em;
+  }
 }
 
 /* =========================================================
@@ -1214,6 +1596,6 @@ const handleForgotPassword = () => {
     letter-spacing: 0.25em;
   }
 }
-
 </style>
 
+```

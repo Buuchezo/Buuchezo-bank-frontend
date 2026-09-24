@@ -1,22 +1,13 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
 import {
-  ArrowLeftRight,
   CheckCircle2,
   ChevronRight,
   Clock3,
   CreditCard,
-  LayoutDashboard,
   Lock,
-  LogOut,
-  Menu,
-  RefreshCw,
   Search,
-  Settings,
   ShieldCheck,
-  Users,
-  WalletCards,
   X,
   XCircle
 } from 'lucide-vue-next'
@@ -28,13 +19,11 @@ import {
   rejectCardApplication
 } from '../service/cardApplicationService'
 import { activateCard, blockCard, cancelCard, type Card, getAllCards } from '../service/cardService'
-
-const router = useRouter()
+import BankingShell from '../components/BankingShell.vue'
 
 const applications = ref<CardApplication[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
-const mobileMenuOpen = ref(false)
 
 const actionLoadingId = ref<number | null>(null)
 
@@ -57,48 +46,8 @@ function getAccessToken(): string | null {
   return localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
 }
 
-function logout() {
-  localStorage.removeItem('adminAccessToken')
-  localStorage.removeItem('user')
 
-  sessionStorage.removeItem('adminAccessToken')
-  sessionStorage.removeItem('user')
 
-  router.push('/admin/login')
-}
-
-const currentUser = computed(() => {
-  const storedUser = localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser')
-
-  if (!storedUser) {
-    return null
-  }
-
-  try {
-    return JSON.parse(storedUser)
-  } catch {
-    return null
-  }
-})
-
-const fullName = computed(() => {
-  if (!currentUser.value) {
-    return 'Administrator'
-  }
-
-  return `${currentUser.value.firstName || ''} ${currentUser.value.lastName || ''}`.trim()
-})
-
-const initials = computed(() => {
-  if (!currentUser.value) {
-    return 'A'
-  }
-
-  const first = currentUser.value.firstName?.charAt(0) || ''
-  const last = currentUser.value.lastName?.charAt(0) || ''
-
-  return `${first}${last}`.toUpperCase() || 'A'
-})
 
 const filteredApplications = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -146,7 +95,6 @@ async function loadApplications() {
   const token = getAccessToken()
 
   if (!token) {
-    router.push('/admin/login')
     return
   }
 
@@ -444,504 +392,390 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="admin-layout">
-    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+  <BankingShell
+    :admin="true"
+    page-title="Card Applications"
+    page-section="ADMINISTRATION"
+    :show-refresh="true"
+    :refreshing="loading"
+    @refresh="loadApplications"
+  >
+    <section class="admin-content">
+      <section class="welcome-section">
+        <div>
+          <span class="section-kicker">CARD MANAGEMENT</span>
 
-    <aside :class="{ 'sidebar-open': mobileMenuOpen }" class="admin-sidebar">
-      <div class="sidebar-top">
-        <RouterLink class="admin-logo" to="/">
-          <span class="logo-mark">B</span>
+          <h2>Customer card applications</h2>
 
-          <div class="logo-text">
-            <strong>Buuchezo</strong>
-            <span>Bank</span>
-          </div>
-        </RouterLink>
+          <p>Review customer requests and approve or reject card applications.</p>
+        </div>
 
-        <button class="mobile-close" type="button" @click="mobileMenuOpen = false">
-          <X :size="22" />
-        </button>
+        <div class="system-status">
+          <span class="status-pulse"></span>
+          <span>Secure administration</span>
+        </div>
+      </section>
 
-        <nav class="admin-navigation">
-          <p class="navigation-label">ADMINISTRATION</p>
+      <section class="statistics-grid">
+        <article class="stat-card primary-stat">
+          <div class="stat-card-top">
+            <div class="stat-icon">
+              <Clock3 :size="21" />
+            </div>
 
-          <RouterLink class="admin-nav-link" to="/admin/dashboard" @click="mobileMenuOpen = false">
-            <LayoutDashboard :size="19" />
-            <span>Overview</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/users" @click="mobileMenuOpen = false">
-            <Users :size="19" />
-            <span>Users</span>
-          </RouterLink>
-
-          <RouterLink class="admin-nav-link" to="/admin/accounts" @click="mobileMenuOpen = false">
-            <WalletCards :size="19" />
-            <span>Accounts</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link"
-            to="/admin/transactions"
-            @click="mobileMenuOpen = false"
-          >
-            <ArrowLeftRight :size="19" />
-            <span>Transactions</span>
-          </RouterLink>
-
-          <RouterLink
-            class="admin-nav-link active"
-            to="/admin/card-applications"
-            @click="mobileMenuOpen = false"
-          >
-            <CreditCard :size="19" />
-            <span>Card Applications</span>
-
-            <span v-if="pendingCount > 0" class="nav-count-badge">
-              {{ pendingCount }}
-            </span>
-          </RouterLink>
-
-          <p class="navigation-label second-label">SYSTEM</p>
-
-          <RouterLink class="admin-nav-link" to="/settings" @click="mobileMenuOpen = false">
-            <Settings :size="19" />
-            <span>Settings</span>
-          </RouterLink>
-        </nav>
-      </div>
-
-      <div class="sidebar-bottom">
-        <div class="admin-support">
-          <div class="support-icon">
-            <ShieldCheck :size="18" />
+            <span class="stat-label">PENDING</span>
           </div>
 
+          <div class="stat-value">
+            {{ pendingCount }}
+          </div>
+
+          <div class="stat-footer">
+            <span>Awaiting review</span>
+            <Clock3 :size="15" />
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-card-top">
+            <div class="stat-icon green-icon">
+              <CheckCircle2 :size="21" />
+            </div>
+
+            <span class="stat-label">APPROVED</span>
+          </div>
+
+          <div class="stat-value">
+            {{ approvedCount }}
+          </div>
+
+          <div class="stat-footer">
+            <span>Approved applications</span>
+            <CheckCircle2 :size="15" />
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-card-top">
+            <div class="stat-icon red-icon">
+              <XCircle :size="21" />
+            </div>
+
+            <span class="stat-label">REJECTED</span>
+          </div>
+
+          <div class="stat-value">
+            {{ rejectedCount }}
+          </div>
+
+          <div class="stat-footer">
+            <span>Rejected applications</span>
+            <XCircle :size="15" />
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-card-top">
+            <div class="stat-icon purple-icon">
+              <CreditCard :size="21" />
+            </div>
+
+            <span class="stat-label">TOTAL</span>
+          </div>
+
+          <div class="stat-value">
+            {{ applications.length }}
+          </div>
+
+          <div class="stat-footer">
+            <span>All applications</span>
+            <CreditCard :size="15" />
+          </div>
+        </article>
+      </section>
+
+      <section class="applications-panel">
+        <div class="panel-heading">
           <div>
-            <strong>Admin Area</strong>
-            <span>Secure access</span>
+            <span class="panel-kicker">APPLICATION REVIEW</span>
+            <h3>Card applications</h3>
+          </div>
+
+          <CreditCard :size="20" />
+        </div>
+
+        <div class="toolbar">
+          <div class="search-wrapper">
+            <Search :size="17" />
+
+            <input
+              v-model="searchQuery"
+              placeholder="Search applicant, account or card type..."
+              type="search"
+            />
+          </div>
+
+          <div class="filter-buttons">
+            <button
+              :class="{ selected: statusFilter === 'ALL' }"
+              type="button"
+              @click="statusFilter = 'ALL'"
+            >
+              All
+            </button>
+
+            <button
+              :class="{ selected: statusFilter === 'PENDING' }"
+              type="button"
+              @click="statusFilter = 'PENDING'"
+            >
+              Pending
+            </button>
+
+            <button
+              :class="{ selected: statusFilter === 'APPROVED' }"
+              type="button"
+              @click="statusFilter = 'APPROVED'"
+            >
+              Approved
+            </button>
+
+            <button
+              :class="{ selected: statusFilter === 'REJECTED' }"
+              type="button"
+              @click="statusFilter = 'REJECTED'"
+            >
+              Rejected
+            </button>
           </div>
         </div>
 
-        <button class="logout-button" type="button" @click="logout">
-          <LogOut :size="18" />
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
+        <div v-if="loading" class="loading-state">
+          <div class="loading-spinner"></div>
 
-    <main class="admin-main">
-      <header class="admin-header">
-        <div class="header-left">
-          <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = true">
-            <Menu :size="23" />
-          </button>
+          <h2>Loading applications</h2>
 
-          <div>
-            <span class="page-overline">ADMINISTRATION</span>
-            <h1>Card Applications</h1>
-          </div>
+          <p>Retrieving customer card applications...</p>
         </div>
 
-        <div class="header-right">
-          <button
-            class="header-icon-button"
-            title="Refresh"
-            type="button"
-            @click="loadApplications"
-          >
-            <RefreshCw :size="18" />
-          </button>
-
-          <div class="header-profile">
-            <div class="profile-avatar">
-              {{ initials }}
-            </div>
-
-            <div class="profile-info">
-              <strong>{{ fullName }}</strong>
-              <span>Administrator</span>
-            </div>
+        <div v-else-if="errorMessage" class="error-state">
+          <div class="error-icon">
+            <ShieldCheck :size="25" />
           </div>
+
+          <h2>Unable to load applications</h2>
+
+          <p>{{ errorMessage }}</p>
+
+          <button class="retry-button" type="button" @click="loadApplications">Try again</button>
         </div>
-      </header>
 
-      <section class="admin-content">
-        <section class="welcome-section">
-          <div>
-            <span class="section-kicker">CARD MANAGEMENT</span>
-
-            <h2>Customer card applications</h2>
-
-            <p>Review customer requests and approve or reject card applications.</p>
+        <div v-else-if="filteredApplications.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <CreditCard :size="27" />
           </div>
 
-          <div class="system-status">
-            <span class="status-pulse"></span>
-            <span>Secure administration</span>
-          </div>
-        </section>
+          <h2>No applications found</h2>
 
-        <section class="statistics-grid">
-          <article class="stat-card primary-stat">
-            <div class="stat-card-top">
-              <div class="stat-icon">
-                <Clock3 :size="21" />
-              </div>
+          <p>
+            {{
+              searchQuery || statusFilter !== 'ALL'
+                ? 'No applications match your current search or filter.'
+                : 'There are currently no card applications.'
+            }}
+          </p>
+        </div>
 
-              <span class="stat-label">PENDING</span>
-            </div>
+        <div v-else class="applications-table-wrapper">
+          <table class="applications-table">
+            <thead>
+            <tr>
+              <th>Applicant</th>
+              <th>Account</th>
+              <th>Card</th>
+              <th>Holder</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+            </thead>
 
-            <div class="stat-value">
-              {{ pendingCount }}
-            </div>
+            <tbody>
+            <tr v-for="application in filteredApplications" :key="application.id">
+              <td>
+                <div class="applicant-cell">
+                  <div class="applicant-avatar">
+                    {{
+                      application.holderName
+                        .split(' ')
+                        .map((part) => part.charAt(0))
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()
+                    }}
+                  </div>
 
-            <div class="stat-footer">
-              <span>Awaiting review</span>
-              <Clock3 :size="15" />
-            </div>
-          </article>
+                  <div class="applicant-info">
+                    <strong>{{ application.holderName }}</strong>
+                    <span>{{ application.applicantEmail }}</span>
+                  </div>
+                </div>
+              </td>
 
-          <article class="stat-card">
-            <div class="stat-card-top">
-              <div class="stat-icon green-icon">
-                <CheckCircle2 :size="21" />
-              </div>
-
-              <span class="stat-label">APPROVED</span>
-            </div>
-
-            <div class="stat-value">
-              {{ approvedCount }}
-            </div>
-
-            <div class="stat-footer">
-              <span>Approved applications</span>
-              <CheckCircle2 :size="15" />
-            </div>
-          </article>
-
-          <article class="stat-card">
-            <div class="stat-card-top">
-              <div class="stat-icon red-icon">
-                <XCircle :size="21" />
-              </div>
-
-              <span class="stat-label">REJECTED</span>
-            </div>
-
-            <div class="stat-value">
-              {{ rejectedCount }}
-            </div>
-
-            <div class="stat-footer">
-              <span>Rejected applications</span>
-              <XCircle :size="15" />
-            </div>
-          </article>
-
-          <article class="stat-card">
-            <div class="stat-card-top">
-              <div class="stat-icon purple-icon">
-                <CreditCard :size="21" />
-              </div>
-
-              <span class="stat-label">TOTAL</span>
-            </div>
-
-            <div class="stat-value">
-              {{ applications.length }}
-            </div>
-
-            <div class="stat-footer">
-              <span>All applications</span>
-              <CreditCard :size="15" />
-            </div>
-          </article>
-        </section>
-
-        <section class="applications-panel">
-          <div class="panel-heading">
-            <div>
-              <span class="panel-kicker">APPLICATION REVIEW</span>
-              <h3>Card applications</h3>
-            </div>
-
-            <CreditCard :size="20" />
-          </div>
-
-          <div class="toolbar">
-            <div class="search-wrapper">
-              <Search :size="17" />
-
-              <input
-                v-model="searchQuery"
-                placeholder="Search applicant, account or card type..."
-                type="search"
-              />
-            </div>
-
-            <div class="filter-buttons">
-              <button
-                :class="{ selected: statusFilter === 'ALL' }"
-                type="button"
-                @click="statusFilter = 'ALL'"
-              >
-                All
-              </button>
-
-              <button
-                :class="{ selected: statusFilter === 'PENDING' }"
-                type="button"
-                @click="statusFilter = 'PENDING'"
-              >
-                Pending
-              </button>
-
-              <button
-                :class="{ selected: statusFilter === 'APPROVED' }"
-                type="button"
-                @click="statusFilter = 'APPROVED'"
-              >
-                Approved
-              </button>
-
-              <button
-                :class="{ selected: statusFilter === 'REJECTED' }"
-                type="button"
-                @click="statusFilter = 'REJECTED'"
-              >
-                Rejected
-              </button>
-            </div>
-          </div>
-
-          <div v-if="loading" class="loading-state">
-            <div class="loading-spinner"></div>
-
-            <h2>Loading applications</h2>
-
-            <p>Retrieving customer card applications...</p>
-          </div>
-
-          <div v-else-if="errorMessage" class="error-state">
-            <div class="error-icon">
-              <ShieldCheck :size="25" />
-            </div>
-
-            <h2>Unable to load applications</h2>
-
-            <p>{{ errorMessage }}</p>
-
-            <button class="retry-button" type="button" @click="loadApplications">Try again</button>
-          </div>
-
-          <div v-else-if="filteredApplications.length === 0" class="empty-state">
-            <div class="empty-icon">
-              <CreditCard :size="27" />
-            </div>
-
-            <h2>No applications found</h2>
-
-            <p>
-              {{
-                searchQuery || statusFilter !== 'ALL'
-                  ? 'No applications match your current search or filter.'
-                  : 'There are currently no card applications.'
-              }}
-            </p>
-          </div>
-
-          <div v-else class="applications-table-wrapper">
-            <table class="applications-table">
-              <thead>
-                <tr>
-                  <th>Applicant</th>
-                  <th>Account</th>
-                  <th>Card</th>
-                  <th>Holder</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr v-for="application in filteredApplications" :key="application.id">
-                  <td>
-                    <div class="applicant-cell">
-                      <div class="applicant-avatar">
-                        {{
-                          application.holderName
-                            .split(' ')
-                            .map((part) => part.charAt(0))
-                            .slice(0, 2)
-                            .join('')
-                            .toUpperCase()
-                        }}
-                      </div>
-
-                      <div class="applicant-info">
-                        <strong>{{ application.holderName }}</strong>
-                        <span>{{ application.applicantEmail }}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td>
+              <td>
                     <span class="account-number">
                       {{ application.accountNumber }}
                     </span>
-                  </td>
+              </td>
 
-                  <td>
+              <td>
                     <span class="card-type">
                       <CreditCard :size="14" />
                       {{ application.cardType }}
                     </span>
 
-                    <span
-                      v-if="
+                <span
+                  v-if="
                         application.applicationStatus === 'APPROVED' &&
                         cardsByApplicationId[application.id]
                       "
-                      :class="`card-status-badge ${cardsByApplicationId[application.id]?.cardStatus.toLowerCase()}`"
-                    >
+                  :class="`card-status-badge ${cardsByApplicationId[application.id]?.cardStatus.toLowerCase()}`"
+                >
                       <span class="card-status-dot"></span>
                       {{ cardsByApplicationId[application.id]?.cardStatus }}
                     </span>
 
-                    <span
-                      v-if="
+                <span
+                  v-if="
                         application.applicationStatus === 'APPROVED' &&
                         application.cardId &&
                         !cardsByApplicationId[application.id]
                       "
-                      class="card-status-loading"
-                    >
+                  class="card-status-loading"
+                >
                       Card information unavailable
                     </span>
-                  </td>
+              </td>
 
-                  <td>
+              <td>
                     <span class="holder-name">
                       {{ application.holderName }}
                     </span>
-                  </td>
+              </td>
 
-                  <td>
+              <td>
                     <span :class="application.applicationStatus.toLowerCase()" class="status-badge">
                       <span class="status-dot"></span>
                       {{ getStatusLabel(application.applicationStatus) }}
                     </span>
 
-                    <span
-                      v-if="
+                <span
+                  v-if="
                         application.applicationStatus === 'REJECTED' && application.rejectionReason
                       "
-                      :title="application.rejectionReason"
-                      class="rejection-preview"
-                    >
+                  :title="application.rejectionReason"
+                  class="rejection-preview"
+                >
                       {{ application.rejectionReason }}
                     </span>
 
-                    <span
-                      v-if="application.applicationStatus === 'APPROVED' && application.cardId"
-                      class="card-created"
-                    >
+                <span
+                  v-if="application.applicationStatus === 'APPROVED' && application.cardId"
+                  class="card-created"
+                >
                       Card #{{ application.cardId }}
                     </span>
-                  </td>
+              </td>
 
-                  <td>
+              <td>
                     <span class="date-cell">
                       {{ formatDate(application.createdAt) }}
                     </span>
-                  </td>
+              </td>
 
-                  <td>
-                    <div v-if="application.applicationStatus === 'PENDING'" class="action-buttons">
-                      <button
-                        :disabled="actionLoadingId === application.id"
-                        class="approve-button"
-                        type="button"
-                        @click="openApprovalModal(application)"
-                      >
-                        <CheckCircle2 :size="15" />
-                        {{ actionLoadingId === application.id ? 'Processing...' : 'Approve' }}
-                      </button>
+              <td>
+                <div v-if="application.applicationStatus === 'PENDING'" class="action-buttons">
+                  <button
+                    :disabled="actionLoadingId === application.id"
+                    class="approve-button"
+                    type="button"
+                    @click="openApprovalModal(application)"
+                  >
+                    <CheckCircle2 :size="15" />
+                    {{ actionLoadingId === application.id ? 'Processing...' : 'Approve' }}
+                  </button>
 
-                      <button
-                        :disabled="actionLoadingId === application.id"
-                        class="reject-button"
-                        type="button"
-                        @click="openRejectModal(application)"
-                      >
-                        <XCircle :size="15" />
-                        Reject
-                      </button>
-                    </div>
+                  <button
+                    :disabled="actionLoadingId === application.id"
+                    class="reject-button"
+                    type="button"
+                    @click="openRejectModal(application)"
+                  >
+                    <XCircle :size="15" />
+                    Reject
+                  </button>
+                </div>
 
-                    <div
-                      v-else-if="
+                <div
+                  v-else-if="
                         application.applicationStatus === 'APPROVED' &&
                         cardsByApplicationId[application.id]
                       "
-                      class="action-buttons card-management-actions"
-                    >
-                      <button
-                        v-if="cardsByApplicationId[application.id]?.cardStatus === 'ACTIVE'"
-                        :disabled="actionLoadingId === application.id"
-                        class="freeze-button"
-                        type="button"
-                        @click="openCardActionModal(application, 'BLOCK')"
-                      >
-                        <Lock :size="15" />
-                        Freeze
-                      </button>
+                  class="action-buttons card-management-actions"
+                >
+                  <button
+                    v-if="cardsByApplicationId[application.id]?.cardStatus === 'ACTIVE'"
+                    :disabled="actionLoadingId === application.id"
+                    class="freeze-button"
+                    type="button"
+                    @click="openCardActionModal(application, 'BLOCK')"
+                  >
+                    <Lock :size="15" />
+                    Freeze
+                  </button>
 
-                      <button
-                        v-else-if="cardsByApplicationId[application.id]?.cardStatus === 'BLOCKED'"
-                        :disabled="actionLoadingId === application.id"
-                        class="activate-button"
-                        type="button"
-                        @click="openCardActionModal(application, 'ACTIVATE')"
-                      >
-                        <CheckCircle2 :size="15" />
-                        Unfreeze
-                      </button>
+                  <button
+                    v-else-if="cardsByApplicationId[application.id]?.cardStatus === 'BLOCKED'"
+                    :disabled="actionLoadingId === application.id"
+                    class="activate-button"
+                    type="button"
+                    @click="openCardActionModal(application, 'ACTIVATE')"
+                  >
+                    <CheckCircle2 :size="15" />
+                    Unfreeze
+                  </button>
 
-                      <button
-                        v-if="cardsByApplicationId[application.id]?.cardStatus !== 'CANCELLED'"
-                        :disabled="actionLoadingId === application.id"
-                        class="cancel-card-button"
-                        type="button"
-                        @click="openCardActionModal(application, 'CANCEL')"
-                      >
-                        <XCircle :size="15" />
-                        Cancel
-                      </button>
-                    </div>
+                  <button
+                    v-if="cardsByApplicationId[application.id]?.cardStatus !== 'CANCELLED'"
+                    :disabled="actionLoadingId === application.id"
+                    class="cancel-card-button"
+                    type="button"
+                    @click="openCardActionModal(application, 'CANCEL')"
+                  >
+                    <XCircle :size="15" />
+                    Cancel
+                  </button>
+                </div>
 
-                    <span
-                      v-else-if="application.applicationStatus === 'APPROVED'"
-                      class="completed-action"
-                    >
+                <span
+                  v-else-if="application.applicationStatus === 'APPROVED'"
+                  class="completed-action"
+                >
                       Card unavailable
                     </span>
 
-                    <span v-else class="completed-action">
+                <span v-else class="completed-action">
                       Reviewed
                       <ChevronRight :size="14" />
                     </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
-    </main>
+    </section>
+
 
     <div v-if="approvalModalOpen" class="modal-backdrop" @click.self="closeApprovalModal">
       <div class="action-modal">
@@ -1125,317 +959,11 @@ onMounted(() => {
         </div>
       </div>
     </div>
-  </div>
+  </BankingShell>
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
-.admin-layout {
-  min-height: 100vh;
-  background: #f5f8fc;
-  color: #10243e;
-  display: flex;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-}
-
-.admin-sidebar {
-  width: 258px;
-  min-width: 258px;
-  min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e6edf5;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 26px 18px 20px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
-}
-
-.sidebar-top {
-  width: 100%;
-}
-
-.admin-logo {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  text-decoration: none;
-  color: #0b2848;
-  margin-bottom: 43px;
-  padding: 0 7px;
-}
-
-.logo-mark {
-  width: 39px;
-  height: 39px;
-  border-radius: 11px;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-
-.logo-text strong {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.logo-text span {
-  color: #73859a;
-  font-size: 11px;
-  margin-top: 4px;
-}
-
-.mobile-close {
-  display: none;
-}
-
-.navigation-label {
-  padding: 0 12px;
-  margin: 0 0 11px;
-  color: #9aa9ba;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.second-label {
-  margin-top: 31px;
-}
-
-.admin-navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.admin-nav-link {
-  min-height: 47px;
-  padding: 0 13px;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  text-decoration: none;
-  color: #6c7e91;
-  font-size: 13px;
-  font-weight: 650;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
-
-.admin-nav-link:hover {
-  background: #f2f7fc;
-  color: #07559b;
-}
-
-.admin-nav-link.active {
-  background: #eaf3fb;
-  color: #07559b;
-  font-weight: 750;
-}
-
-.nav-count-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  margin-left: auto;
-  border-radius: 10px;
-  background: #07559b;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.admin-support {
-  border: 1px solid #e5edf5;
-  border-radius: 13px;
-  padding: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fbfdff;
-}
-
-.support-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 9px;
-  background: #eaf3fb;
-  color: #07559b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-support div:last-child {
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-support strong {
-  font-size: 11px;
-  color: #1d3652;
-}
-
-.admin-support span {
-  margin-top: 3px;
-  color: #91a0b0;
-  font-size: 9px;
-}
-
-.logout-button {
-  border: 0;
-  background: transparent;
-  min-height: 42px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #7d8d9e;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  border-radius: 10px;
-  text-align: left;
-}
-
-.logout-button:hover {
-  background: #f6f8fb;
-  color: #d14e4e;
-}
-
-.admin-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-header {
-  height: 84px;
-  background: #ffffff;
-  border-bottom: 1px solid #e7edf4;
-  padding: 0 39px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-overline {
-  color: #8b9bac;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-.header-left h1 {
-  margin: 4px 0 0;
-  color: #12304f;
-  font-size: 25px;
-  font-weight: 750;
-  letter-spacing: -0.7px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.header-icon-button {
-  width: 39px;
-  height: 39px;
-  border: 1px solid #e4ebf3;
-  background: #ffffff;
-  color: #60748a;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.header-icon-button:hover {
-  color: #07559b;
-  background: #f7faff;
-}
-
-.header-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: 8px;
-}
-
-.profile-avatar {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  background: #07559b;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.profile-info strong {
-  color: #213a55;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.profile-info span {
-  color: #8a9bad;
-  font-size: 9px;
-  margin-top: 3px;
-}
-
-.mobile-menu-button {
-  display: none;
-}
-
+/* BankingShell owns the admin application shell. */
 .admin-content {
   padding: 34px 39px 55px;
   max-width: 1500px;
@@ -1825,46 +1353,21 @@ onMounted(() => {
   color: #4b8b70;
 }
 
-.card-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  font-size: 7px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
 .card-status-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
 }
 
-.card-status-badge.active {
-  background: #edf8f4;
-  color: #398267;
-}
+
 
 .card-status-badge.active .card-status-dot {
   background: #48a47c;
 }
 
-.card-status-badge.blocked {
-  background: #fff7e8;
-  color: #ad762d;
-}
 
 .card-status-badge.blocked .card-status-dot {
   background: #d69a40;
-}
-
-.card-status-badge.cancelled,
-.card-status-badge.expired {
-  background: #fdf0f0;
-  color: #c45656;
 }
 
 .card-status-badge.cancelled .card-status-dot,
@@ -2309,58 +1812,6 @@ onMounted(() => {
 }
 
 @media (max-width: 850px) {
-  .admin-sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    transition: left 0.25s ease;
-    box-shadow: 12px 0 30px rgba(20, 48, 78, 0.1);
-  }
-
-  .admin-sidebar.sidebar-open {
-    left: 0;
-  }
-
-  .mobile-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 36, 59, 0.35);
-    z-index: 90;
-  }
-
-  .mobile-close {
-    position: absolute;
-    top: 24px;
-    right: 17px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 9px;
-    background: #f4f7fa;
-    color: #6c7e91;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .mobile-menu-button {
-    width: 39px;
-    height: 39px;
-    border: 1px solid #e4ebf3;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #526b83;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .admin-header {
-    padding: 0 22px;
-  }
 
   .admin-content {
     padding: 29px 22px 45px;
@@ -2368,32 +1819,7 @@ onMounted(() => {
 }
 
 @media (max-width: 600px) {
-  .admin-header {
-    height: 74px;
-    padding: 0 15px;
-  }
 
-  .admin-header h1 {
-    font-size: 20px;
-  }
-
-  .header-profile {
-    margin-left: 2px;
-  }
-
-  .profile-info {
-    display: none;
-  }
-
-  .header-icon-button {
-    width: 35px;
-    height: 35px;
-  }
-
-  .profile-avatar {
-    width: 35px;
-    height: 35px;
-  }
 
   .admin-content {
     padding: 24px 15px 40px;
@@ -2430,6 +1856,5 @@ onMounted(() => {
     padding: 19px;
   }
 }
+
 </style>
-
-

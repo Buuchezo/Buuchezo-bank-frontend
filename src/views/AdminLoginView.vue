@@ -4,7 +4,7 @@
       <div class="visual-glow"></div>
 
       <RouterLink to="/" class="brand">
-        <span class="brand-mark">B</span>
+        <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
         <span>Buuchezo Bank</span>
       </RouterLink>
 
@@ -17,8 +17,8 @@
         </h1>
 
         <p>
-          Administrative access is protected separately from customer banking.
-          Sign in with your administrator credentials to continue.
+          Administrative access is protected separately from customer banking. Sign in with your
+          administrator credentials to continue.
         </p>
 
         <div class="security-card">
@@ -39,7 +39,6 @@
 
     <div class="admin-login-form-area">
       <div class="admin-login-container">
-
         <div class="mobile-brand">
           <span class="brand-mark">B</span>
           <span>Buuchezo Bank</span>
@@ -50,14 +49,10 @@
 
           <h2>Welcome, administrator.</h2>
 
-          <p>
-            Enter your administrator credentials to access the banking
-            administration portal.
-          </p>
+          <p>Enter your administrator credentials to access the banking administration portal.</p>
         </div>
 
         <form class="login-form" @submit.prevent="handleLogin">
-
           <div class="form-group">
             <label for="admin-email">Email address</label>
 
@@ -84,11 +79,7 @@
                 required
               />
 
-              <button
-                type="button"
-                class="password-toggle"
-                @click="showPassword = !showPassword"
-              >
+              <button type="button" class="password-toggle" @click="showPassword = !showPassword">
                 {{ showPassword ? 'Hide' : 'Show' }}
               </button>
             </div>
@@ -98,11 +89,7 @@
             {{ errorMessage }}
           </div>
 
-          <button
-            type="submit"
-            class="login-submit"
-            :disabled="isLoading"
-          >
+          <button type="submit" class="login-submit" :disabled="isLoading">
             <span>
               {{ isLoading ? 'Signing in...' : 'Sign in as administrator' }}
             </span>
@@ -117,10 +104,7 @@
           <div>
             <strong>Separate administrator authentication</strong>
 
-            <p>
-              Administrator credentials are authenticated independently from
-              customer accounts.
-            </p>
+            <p>Administrator credentials are authenticated independently from customer accounts.</p>
           </div>
         </div>
 
@@ -134,10 +118,9 @@
         </div>
 
         <p class="legal">
-          Authorized administrators only. All administrative actions are
-          protected by role-based authorization.
+          Authorized administrators only. All administrative actions are protected by role-based
+          authorization.
         </p>
-
       </div>
     </div>
   </main>
@@ -147,6 +130,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, ArrowUpRight } from 'lucide-vue-next'
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
 
 interface AdminLoginResponse {
   statusCode: number
@@ -232,9 +216,7 @@ async function handleLogin() {
     console.error('Admin login error:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Something went wrong. Please try again.'
+      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
   } finally {
     isLoading.value = false
   }
@@ -305,6 +287,13 @@ async function handleLogin() {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+.banking-logo-image {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .brand-mark {
@@ -663,5 +652,4 @@ async function handleLogin() {
     margin-bottom: 40px;
   }
 }
-
 </style>

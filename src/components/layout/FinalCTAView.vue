@@ -41,9 +41,9 @@
         <div class="cta-card">
           <div class="cta-card-top">
             <div class="cta-card-brand">
-              <div class="cta-card-logo">B</div>
+              <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="cta-card-logo" />
 
-              <strong> Buuchezo Bank </strong>
+              <strong>Buuchezo Bank</strong>
             </div>
 
             <Wifi class="cta-contactless" :size="23" />
@@ -89,6 +89,8 @@
 
 <script setup lang="ts">
 import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
+
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
 </script>
 
 <style scoped>
@@ -107,6 +109,10 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
 
   overflow: hidden;
 }
+
+/* =========================================================
+   INNER LAYOUT
+========================================================= */
 
 .final-cta-inner {
   position: relative;
@@ -318,6 +324,10 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
   justify-content: center;
 }
 
+/* =========================================================
+   CIRCLES
+========================================================= */
+
 .cta-circle {
   position: absolute;
 
@@ -381,6 +391,10 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
   border-radius: 50%;
 }
 
+/* =========================================================
+   CARD TOP
+========================================================= */
+
 .cta-card-top {
   display: flex;
 
@@ -396,24 +410,20 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
   gap: 9px;
 }
 
+/* =========================================================
+   REAL BUUCHEZO BANK LOGO
+========================================================= */
+
 .cta-card-logo {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 
-  display: flex;
+  display: block;
 
-  align-items: center;
-  justify-content: center;
+  object-fit: contain;
+  object-position: center;
 
-  background: rgba(255, 255, 255, 0.13);
-
-  border: 1px solid rgba(255, 255, 255, 0.16);
-
-  border-radius: 7px;
-
-  font-size: 15px;
-
-  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .cta-card-brand strong {
@@ -451,7 +461,7 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
 }
 
 /* =========================================================
-   NUMBER
+   CARD NUMBER
 ========================================================= */
 
 .cta-card-number {
@@ -538,7 +548,7 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
 }
 
 /* =========================================================
-   BADGE
+   SECURITY BADGE
 ========================================================= */
 
 .cta-badge {
@@ -603,6 +613,10 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
 
   font-size: 8px;
 }
+
+/* =========================================================
+   FLOATING ANIMATION
+========================================================= */
 
 @keyframes ctaFloat {
   0%,
@@ -694,6 +708,11 @@ import { ArrowUpRight, ShieldCheck, Wifi } from 'lucide-vue-next'
     width: 88%;
 
     padding: 18px;
+  }
+
+  .cta-card-logo {
+    width: 30px;
+    height: 30px;
   }
 
   .cta-chip {

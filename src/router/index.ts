@@ -14,9 +14,19 @@ import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminUsersView from '@/views/AdminUsersView.vue'
 import AdminAccountsView from '@/views/AdminAccountsView.vue'
 import AdminTransactionsView from '@/views/AdminTransactionsView.vue'
-import InvestmentsView from '@/views/InvestmentsView.vue'
-import MarketDataView from '@/views/MarketDataView.vue'
+import InvestmentsView from '../views/InvestmentsView.vue'
+import MarketDataView from '../views/MarketDataView.vue'
 import AdminCardApplicationsView from '@/views/AdminCardApplicationsView.vue'
+import CookiesView from '@/components/CookiesView.vue'
+import SecurityView from '@/components/SecurityView.vue'
+import TermsView from '@/components/TermsView.vue'
+import PrivacyView from '@/components/PrivacyView.vue'
+import ContactView from '@/components/ContactView.vue'
+import SupportView from '@/components/SupportView.vue'
+import CareersView from '@/components/CareersView.vue'
+import AboutView from '@/components/AboutView.vue'
+import BusinessView from '@/views/public/BusinessView.vue'
+import WealthView from '@/views/public/WealthView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -132,13 +142,87 @@ const router = createRouter({
         requiresAuth: true,
       },
     },
+    {
+      path: '/about',
+      name: 'about',
+      component: AboutView,
+    },
+
+    {
+      path: '/careers',
+      name: 'careers',
+      component: CareersView,
+    },
+
+    {
+      path: '/support',
+      name: 'support',
+      component: SupportView,
+    },
+
+    {
+      path: '/contact',
+      name: 'contact',
+      component: ContactView,
+    },
+
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: PrivacyView,
+    },
+
+    {
+      path: '/terms',
+      name: 'terms',
+      component: TermsView,
+    },
+
+    {
+      path: '/security',
+      name: 'security',
+      component: SecurityView,
+    },
+
+    {
+      path: '/cookies',
+      name: 'cookies',
+      component: CookiesView,
+    },
+    {
+      path: '/business',
+      name: 'business',
+      component: BusinessView,
+    },
+
+    {
+      path: '/wealth',
+      name: 'wealth',
+      component: WealthView,
+    },
+
+    /*
+     * ------------------------------------------------------------
+     * SHARED SETTINGS ROUTE
+     * ------------------------------------------------------------
+     *
+     * Settings can be opened by either:
+     *
+     *   Customer:
+     *     accessToken
+     *
+     *   Administrator:
+     *     adminAccessToken
+     *
+     * BankingShell determines which navigation/session to display.
+     */
 
     {
       path: '/settings',
       name: 'settings',
       component: SettingsView,
       meta: {
-        requiresAuth: true,
+        requiresAuthOrAdmin: true,
       },
     },
 
@@ -234,8 +318,7 @@ router.beforeEach((to) => {
    */
 
   const customerAccessToken =
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('accessToken')
+    localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
 
   const customerAuthenticated = Boolean(customerAccessToken)
 
@@ -246,8 +329,7 @@ router.beforeEach((to) => {
    */
 
   const adminAccessToken =
-    localStorage.getItem('adminAccessToken') ||
-    sessionStorage.getItem('adminAccessToken')
+    localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken')
 
   const adminAuthenticated = Boolean(adminAccessToken)
 
@@ -277,7 +359,29 @@ router.beforeEach((to) => {
 
   /*
    * ------------------------------------------------------------
-   * 2. CUSTOMER ROUTES
+   * 2. SHARED AUTHENTICATED ROUTES
+   * ------------------------------------------------------------
+   *
+   * Some pages are intentionally shared between the customer
+   * and administrator areas.
+   *
+   * Currently this is the Settings page.
+   *
+   * Either authentication session is sufficient.
+   */
+
+  if (to.meta.requiresAuthOrAdmin && !customerAuthenticated && !adminAuthenticated) {
+    return {
+      name: adminAuthenticated ? 'admin-login' : 'login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  /*
+   * ------------------------------------------------------------
+   * 3. CUSTOMER ROUTES
    * ------------------------------------------------------------
    */
 
@@ -292,7 +396,7 @@ router.beforeEach((to) => {
 
   /*
    * ------------------------------------------------------------
-   * 3. CUSTOMER GUEST ROUTES
+   * 4. CUSTOMER GUEST ROUTES
    * ------------------------------------------------------------
    *
    * A customer session should prevent the customer from
@@ -309,7 +413,7 @@ router.beforeEach((to) => {
 
   /*
    * ------------------------------------------------------------
-   * 4. ADMIN LOGIN
+   * 5. ADMIN LOGIN
    * ------------------------------------------------------------
    *
    * An existing customer session does NOT prevent an admin

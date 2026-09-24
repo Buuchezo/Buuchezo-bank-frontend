@@ -5,7 +5,7 @@
     ============================================================= -->
 
     <RouterLink to="/" class="navbar-brand">
-      <div class="brand-logo">B</div>
+      <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="bank-card-logo" />
 
       <div class="brand-copy">
         <strong>Buuchezo Bank</strong>
@@ -18,43 +18,23 @@
     ============================================================= -->
 
     <nav class="navbar-navigation">
-      <RouterLink
-        to="/"
-        class="nav-link"
-        :class="{ active: route.path === '/' }"
-      >
+      <RouterLink to="/" class="nav-link" :class="{ active: route.path === '/' }">
         Personal
       </RouterLink>
 
-      <RouterLink
-        to="/business"
-        class="nav-link"
-        :class="{ active: route.path === '/business' }"
-      >
+      <RouterLink to="/business" class="nav-link" :class="{ active: route.path === '/business' }">
         Business
       </RouterLink>
 
-      <RouterLink
-        to="/wealth"
-        class="nav-link"
-        :class="{ active: route.path === '/wealth' }"
-      >
+      <RouterLink to="/wealth" class="nav-link" :class="{ active: route.path === '/wealth' }">
         Wealth
       </RouterLink>
 
-      <RouterLink
-        to="/about"
-        class="nav-link"
-        :class="{ active: route.path === '/about' }"
-      >
+      <RouterLink to="/about" class="nav-link" :class="{ active: route.path === '/about' }">
         About
       </RouterLink>
 
-      <RouterLink
-        to="/support"
-        class="nav-link"
-        :class="{ active: route.path === '/support' }"
-      >
+      <RouterLink to="/support" class="nav-link" :class="{ active: route.path === '/support' }">
         Support
       </RouterLink>
     </nav>
@@ -64,17 +44,11 @@
     ============================================================= -->
 
     <div class="navbar-actions">
-
       <!-- ==========================================================
            SEARCH
       =========================================================== -->
 
-      <button
-        class="search-button"
-        type="button"
-        aria-label="Search"
-        @click="toggleSearch"
-      >
+      <button class="search-button" type="button" aria-label="Search" @click="toggleSearch">
         <svg
           width="19"
           height="19"
@@ -118,9 +92,7 @@
            This is visible only on desktop.
       =========================================================== -->
 
-      <RouterLink to="/login" class="login-button">
-        Login
-      </RouterLink>
+      <RouterLink to="/login" class="login-button"> Login </RouterLink>
 
       <!-- ==========================================================
            DESKTOP REGISTER
@@ -130,9 +102,7 @@
            There is NO desktop dropdown.
       =========================================================== -->
 
-      <RouterLink to="/register" class="register-button">
-        Register
-      </RouterLink>
+      <RouterLink to="/register" class="register-button"> Register </RouterLink>
 
       <!-- ==========================================================
            MOBILE GET STARTED MENU
@@ -142,7 +112,6 @@
       =========================================================== -->
 
       <div class="mobile-account-menu" ref="accountMenu">
-
         <button
           class="mobile-account-button"
           type="button"
@@ -150,9 +119,7 @@
           aria-haspopup="menu"
           @click="toggleAccountMenu"
         >
-          <span class="mobile-account-label">
-            Get Started
-          </span>
+          <span class="mobile-account-label"> Get Started </span>
 
           <svg
             class="account-menu-chevron"
@@ -175,12 +142,7 @@
         ========================================================= -->
 
         <Transition name="dropdown">
-          <div
-            v-if="accountMenuOpen"
-            class="account-dropdown"
-            role="menu"
-          >
-
+          <div v-if="accountMenuOpen" class="account-dropdown" role="menu">
             <!-- Login -->
 
             <RouterLink
@@ -200,18 +162,11 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <path
-                    d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"
-                  />
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
 
                   <polyline points="10 17 15 12 10 7" />
 
-                  <line
-                    x1="15"
-                    y1="12"
-                    x2="3"
-                    y2="12"
-                  />
+                  <line x1="15" y1="12" x2="3" y2="12" />
                 </svg>
               </div>
 
@@ -240,29 +195,13 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <circle
-                    cx="9"
-                    cy="7"
-                    r="4"
-                  />
+                  <circle cx="9" cy="7" r="4" />
 
-                  <path
-                    d="M3 21v-2a6 6 0 0 1 12 0v2"
-                  />
+                  <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
 
-                  <line
-                    x1="19"
-                    y1="8"
-                    x2="19"
-                    y2="14"
-                  />
+                  <line x1="19" y1="8" x2="19" y2="14" />
 
-                  <line
-                    x1="16"
-                    y1="11"
-                    x2="22"
-                    y2="11"
-                  />
+                  <line x1="16" y1="11" x2="22" y2="11" />
                 </svg>
               </div>
 
@@ -271,10 +210,8 @@
                 <span>Open a new account</span>
               </div>
             </RouterLink>
-
           </div>
         </Transition>
-
       </div>
     </div>
   </header>
@@ -284,12 +221,8 @@
   ============================================================== -->
 
   <Transition name="search-panel">
-    <div
-      v-if="searchOpen"
-      class="search-panel"
-    >
+    <div v-if="searchOpen" class="search-panel">
       <div class="search-panel-inner">
-
         <svg
           width="20"
           height="20"
@@ -300,18 +233,9 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <circle
-            cx="11"
-            cy="11"
-            r="7"
-          />
+          <circle cx="11" cy="11" r="7" />
 
-          <line
-            x1="16.5"
-            y1="16.5"
-            x2="21"
-            y2="21"
-          />
+          <line x1="16.5" y1="16.5" x2="21" y2="21" />
         </svg>
 
         <input
@@ -322,27 +246,17 @@
           aria-label="Search"
         />
 
-        <button
-          class="search-close"
-          type="button"
-          aria-label="Close search"
-          @click="closeSearch"
-        >
+        <button class="search-close" type="button" aria-label="Close search" @click="closeSearch">
           ×
         </button>
-
       </div>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
-import {
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-} from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
 import { useRoute } from 'vue-router'
 
@@ -375,10 +289,7 @@ const closeAccountMenu = () => {
 const handleOutsideClick = (event: MouseEvent) => {
   const target = event.target as Node
 
-  if (
-    accountMenu.value &&
-    !accountMenu.value.contains(target)
-  ) {
+  if (accountMenu.value && !accountMenu.value.contains(target)) {
     closeAccountMenu()
   }
 }
@@ -413,17 +324,11 @@ const closeSearch = () => {
 ================================================================ */
 
 onMounted(() => {
-  document.addEventListener(
-    'click',
-    handleOutsideClick
-  )
+  document.addEventListener('click', handleOutsideClick)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener(
-    'click',
-    handleOutsideClick
-  )
+  document.removeEventListener('click', handleOutsideClick)
 })
 </script>
 
@@ -475,6 +380,13 @@ onBeforeUnmount(() => {
   color: #071b38;
 }
 
+.bank-card-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  display: block;
+}
+
 .brand-logo {
   width: 40px;
 
@@ -490,11 +402,7 @@ onBeforeUnmount(() => {
 
   border-radius: 9px;
 
-  background: linear-gradient(
-    145deg,
-    #062f61,
-    #087f94
-  );
+  background: linear-gradient(145deg, #062f61, #087f94);
 
   color: #ffffff;
 
@@ -747,9 +655,7 @@ onBeforeUnmount(() => {
 
   transform: translateY(-1px);
 
-  box-shadow:
-    0 7px 18px
-    rgba(6, 62, 115, 0.18);
+  box-shadow: 0 7px 18px rgba(6, 62, 115, 0.18);
 }
 
 /* ================================================================
@@ -811,9 +717,7 @@ onBeforeUnmount(() => {
 
   transform: translateY(-1px);
 
-  box-shadow:
-    0 7px 18px
-    rgba(6, 62, 115, 0.18);
+  box-shadow: 0 7px 18px rgba(6, 62, 115, 0.18);
 }
 
 .account-menu-chevron {
@@ -849,9 +753,7 @@ onBeforeUnmount(() => {
 
   background: #ffffff;
 
-  box-shadow:
-    0 18px 45px
-    rgba(20, 35, 55, 0.15);
+  box-shadow: 0 18px 45px rgba(20, 35, 55, 0.15);
 
   z-index: 1000;
 }
@@ -957,9 +859,7 @@ onBeforeUnmount(() => {
 .dropdown-leave-to {
   opacity: 0;
 
-  transform:
-    translateY(-5px)
-    scale(0.98);
+  transform: translateY(-5px) scale(0.98);
 }
 
 /* ================================================================
@@ -978,14 +878,11 @@ onBeforeUnmount(() => {
 
   padding: 14px 58px;
 
-  background:
-    rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.98);
 
   border-bottom: 1px solid #edf2f7;
 
-  box-shadow:
-    0 10px 30px
-    rgba(20, 35, 55, 0.08);
+  box-shadow: 0 10px 30px rgba(20, 35, 55, 0.08);
 }
 
 .search-panel-inner {
@@ -1250,10 +1147,7 @@ onBeforeUnmount(() => {
 
     left: auto;
 
-    width: min(
-      230px,
-      calc(100vw - 32px)
-    );
+    width: min(230px, calc(100vw - 32px));
   }
 
   .account-dropdown-item {

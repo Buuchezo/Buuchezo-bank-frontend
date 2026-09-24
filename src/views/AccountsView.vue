@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BankingShell from '@/components/BankingShell.vue'
+
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import NotificationDropdown from '../components/layout/NotificationDropdownView.vue'
@@ -442,7 +444,13 @@ onMounted(loadAccount)
 </script>
 
 <template>
-  <div class="accounts-page">
+  
+  <BankingShell
+    page-title="Accounts"
+    page-section="BANKING"
+    :user="user"
+  >
+<div class="accounts-page">
     <!-- Mobile overlay -->
     <div
       v-if="mobileMenuOpen"
@@ -1038,6 +1046,8 @@ onMounted(loadAccount)
       </section>
     </main>
   </div>
+
+  </BankingShell>
 </template>
 
 <style scoped>
@@ -2339,5 +2349,176 @@ onMounted(loadAccount)
     margin-top: 15px;
   }
 }
+
+
+/* ============================================================
+   BUUCHEZO BANK — LEGACY CUSTOMER SHELL DISABLED
+   BankingShell.vue is now the single customer application shell.
+   ============================================================ */
+
+/* ----------------------------
+   Legacy sidebars
+---------------------------- */
+
+.banking-content .dashboard-sidebar,
+.banking-content .sidebar,
+.banking-content .transfers-sidebar,
+.banking-content .accounts-sidebar,
+.banking-content .transactions-sidebar,
+.banking-content .investments-sidebar,
+.banking-content .market-sidebar,
+.banking-content .settings-sidebar,
+.banking-content .mobile-overlay {
+  display: none !important;
+}
+
+/* ----------------------------
+   Legacy headers
+---------------------------- */
+
+.banking-content .dashboard-header,
+.banking-content .transfers-header,
+.banking-content .accounts-header,
+.banking-content .transactions-header,
+.banking-content .cards-page .dashboard-header,
+.banking-content .investments-header,
+.banking-content .market-header,
+.banking-content .settings-header {
+  display: none !important;
+}
+
+/* ----------------------------
+   Legacy shell containers
+---------------------------- */
+
+.banking-content .dashboard-page,
+.banking-content .cards-page,
+.banking-content .transfers-page,
+.banking-content .accounts-page,
+.banking-content .transactions-page,
+.banking-content .investments-page,
+.banking-content .market-page,
+.banking-content .settings-page {
+  width: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* ----------------------------
+   Legacy main containers
+---------------------------- */
+
+.banking-content .dashboard-main,
+.banking-content .main-content,
+.banking-content .transfers-main,
+.banking-content .accounts-main,
+.banking-content .transactions-main,
+.banking-content .investments-main,
+.banking-content .market-main,
+.banking-content .settings-main {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background: transparent !important;
+}
+
+/* ----------------------------
+   Legacy content wrappers
+---------------------------- */
+
+.banking-content .dashboard-content,
+.banking-content .transfers-content,
+.banking-content .content {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* ----------------------------
+   Legacy mobile controls
+---------------------------- */
+
+.banking-content .mobile-menu-button,
+.banking-content .mobile-close {
+  display: none !important;
+}
+
+/* ----------------------------
+   Legacy page-level typography
+---------------------------- */
+
+.banking-content .dashboard-main > h1,
+.banking-content .dashboard-main > h2,
+.banking-content .main-content > h1,
+.banking-content .main-content > h2 {
+  font-family: inherit !important;
+}
+
+/* ----------------------------
+   Investments / standalone pages
+---------------------------- */
+
+.banking-content > .investments-page,
+.banking-content > .market-page,
+.banking-content > .settings-page {
+  box-sizing: border-box !important;
+}
+
+/* ----------------------------
+   Shared customer page spacing
+---------------------------- */
+
+.banking-content > .dashboard-page,
+.banking-content > .cards-page,
+.banking-content > .transfers-page,
+.banking-content > .accounts-page,
+.banking-content > .transactions-page,
+.banking-content > .investments-page,
+.banking-content > .market-page,
+.banking-content > .settings-page {
+  box-sizing: border-box !important;
+}
+
+/* ============================================================
+   FORCE CONSISTENT CUSTOMER TYPOGRAPHY
+   ============================================================ */
+
+.banking-content > .dashboard-page h1,
+.banking-content > .cards-page h1,
+.banking-content > .transfers-page h1,
+.banking-content > .accounts-page h1,
+.banking-content > .transactions-page h1,
+.banking-content > .investments-page h1,
+.banking-content > .market-page h1,
+.banking-content > .settings-page h1 {
+  color: #132945;
+}
+
+.banking-content > .dashboard-page p,
+.banking-content > .cards-page p,
+.banking-content > .transfers-page p,
+.banking-content > .accounts-page p,
+.banking-content > .transactions-page p,
+.banking-content > .investments-page p,
+.banking-content > .market-page p,
+.banking-content > .settings-page p {
+  color: #718096;
+}
+
+/* ============================================================
+   IMPORTANT:
+   Existing page-specific cards/buttons remain intact.
+   Only the outer application shell is centralized.
+   ============================================================ */
+
 </style>
 

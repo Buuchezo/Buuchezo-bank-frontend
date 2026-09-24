@@ -30,7 +30,9 @@
       =========================================================== -->
 
       <div class="features-grid">
-        <!-- ACCOUNTS -->
+        <!-- ========================================================
+             ACCOUNTS
+        ========================================================= -->
 
         <article class="feature-card">
           <div class="feature-card-top">
@@ -65,7 +67,9 @@
           <div class="feature-arrow">→</div>
         </article>
 
-        <!-- TRANSACTIONS -->
+        <!-- ========================================================
+             TRANSACTIONS
+        ========================================================= -->
 
         <article class="feature-card">
           <div class="feature-card-top">
@@ -102,7 +106,9 @@
           <div class="feature-arrow">→</div>
         </article>
 
-        <!-- CARDS -->
+        <!-- ========================================================
+             CARDS
+        ========================================================= -->
 
         <article class="feature-card">
           <div class="feature-card-top">
@@ -137,7 +143,9 @@
           <div class="feature-arrow">→</div>
         </article>
 
-        <!-- SECURITY -->
+        <!-- ========================================================
+             SECURITY
+        ========================================================= -->
 
         <article class="feature-card">
           <div class="feature-card-top">
@@ -342,18 +350,40 @@
 
   overflow: hidden;
 
+  cursor: pointer;
+
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
+    background-color 0.25s ease,
     box-shadow 0.25s ease;
 }
 
 .feature-card:hover {
   transform: translateY(-5px);
 
-  border-color: #c9d9e7;
+  border-color: #176fc1;
 
-  box-shadow: 0 18px 45px rgba(20, 55, 85, 0.09);
+  background: #f5fbff;
+
+  box-shadow: 0 18px 45px rgba(20, 55, 85, 0.12);
+}
+
+/* ================================================================
+   FEATURE CARD ELEMENT TRANSITIONS
+================================================================ */
+
+.feature-card .feature-icon,
+.feature-card .feature-number,
+.feature-card .feature-content h3,
+.feature-card .feature-content p,
+.feature-card .feature-arrow {
+  transition:
+    color 0.25s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    opacity 0.25s ease;
 }
 
 /* ================================================================
@@ -367,6 +397,10 @@
 
   justify-content: space-between;
 }
+
+/* ================================================================
+   ICON
+================================================================ */
 
 .feature-icon {
   width: 43px;
@@ -384,7 +418,24 @@
   background: #eef7fb;
 
   color: #087fa4;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s ease;
 }
+
+.feature-card:hover .feature-icon {
+  background: #176fc1;
+
+  color: #ffffff;
+
+  transform: translateY(-2px);
+}
+
+/* ================================================================
+   NUMBER
+================================================================ */
 
 .feature-number {
   color: #a5b1be;
@@ -394,6 +445,12 @@
   font-weight: 600;
 
   letter-spacing: 1px;
+
+  transition: color 0.25s ease;
+}
+
+.feature-card:hover .feature-number {
+  color: #176fc1;
 }
 
 /* ================================================================
@@ -416,6 +473,12 @@
   font-weight: 650;
 
   letter-spacing: -0.5px;
+
+  transition: color 0.25s ease;
+}
+
+.feature-card:hover .feature-content h3 {
+  color: #07559b;
 }
 
 .feature-content p {
@@ -428,6 +491,12 @@
   font-size: 12px;
 
   line-height: 1.6;
+
+  transition: color 0.25s ease;
+}
+
+.feature-card:hover .feature-content p {
+  color: #526b82;
 }
 
 /* ================================================================
@@ -450,11 +519,14 @@
   transform: translateX(-5px);
 
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    color 0.25s ease;
 }
 
 .feature-card:hover .feature-arrow {
+  color: #07559b;
+
   opacity: 1;
 
   transform: translateX(0);
@@ -554,6 +626,11 @@
 
     font-size: 11px;
   }
+
+  /*
+   * On touch devices there is no real hover state,
+   * so keep the arrow visible.
+   */
 
   .feature-arrow {
     opacity: 1;

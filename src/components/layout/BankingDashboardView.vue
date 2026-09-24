@@ -24,7 +24,7 @@
 
             <div>
               <strong>Clear overview</strong>
-              <span>See your balance and activity at a glance.</span>
+              <span> See your balance and activity at a glance. </span>
             </div>
           </div>
 
@@ -33,7 +33,7 @@
 
             <div>
               <strong>Easy transfers</strong>
-              <span>Move money quickly when you need to.</span>
+              <span> Move money quickly when you need to. </span>
             </div>
           </div>
 
@@ -42,7 +42,7 @@
 
             <div>
               <strong>Stay informed</strong>
-              <span>Keep up with your latest account activity.</span>
+              <span> Keep up with your latest account activity. </span>
             </div>
           </div>
         </div>
@@ -62,11 +62,14 @@
 
       <div class="dashboard-visual">
         <div class="dashboard-window">
-          <!-- WINDOW HEADER -->
+          <!-- =================================================
+               WINDOW HEADER
+          ================================================== -->
 
           <div class="window-header">
             <div class="window-brand">
-              <div class="mini-logo">B</div>
+              <!-- REAL BUUCHEZO BANK LOGO -->
+              <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="mini-logo" />
 
               <div>
                 <strong>Buuchezo Bank</strong>
@@ -79,10 +82,14 @@
             </div>
           </div>
 
-          <!-- DASHBOARD BODY -->
+          <!-- =================================================
+               DASHBOARD BODY
+          ================================================== -->
 
           <div class="window-body">
-            <!-- BALANCE -->
+            <!-- =================================================
+                 BALANCE
+            ================================================== -->
 
             <div class="balance-card">
               <div class="balance-top">
@@ -100,7 +107,9 @@
               </div>
             </div>
 
-            <!-- QUICK ACTIONS -->
+            <!-- =================================================
+                 QUICK ACTIONS
+            ================================================== -->
 
             <div class="quick-actions">
               <button type="button" class="quick-action">
@@ -136,10 +145,14 @@
               </button>
             </div>
 
-            <!-- LOWER DASHBOARD -->
+            <!-- =================================================
+                 LOWER DASHBOARD
+            ================================================== -->
 
             <div class="dashboard-columns">
-              <!-- TRANSACTIONS -->
+              <!-- =================================================
+                   TRANSACTIONS
+              ================================================== -->
 
               <div class="transactions-panel">
                 <div class="panel-header">
@@ -159,7 +172,7 @@
 
                     <div class="transaction-info">
                       <strong>Groceries</strong>
-                      <span>Today · Card payment</span>
+                      <span> Today · Card payment </span>
                     </div>
 
                     <strong class="transaction-amount negative"> −€84.20 </strong>
@@ -172,7 +185,7 @@
 
                     <div class="transaction-info">
                       <strong>Salary</strong>
-                      <span>Yesterday · Incoming</span>
+                      <span> Yesterday · Incoming </span>
                     </div>
 
                     <strong class="transaction-amount positive"> +€3,240.00 </strong>
@@ -185,7 +198,7 @@
 
                     <div class="transaction-info">
                       <strong>Coffee House</strong>
-                      <span>Yesterday · Card payment</span>
+                      <span> Yesterday · Card payment </span>
                     </div>
 
                     <strong class="transaction-amount negative"> −€5.80 </strong>
@@ -198,7 +211,7 @@
 
                     <div class="transaction-info">
                       <strong>Alex Morgan</strong>
-                      <span>18 Sep · Transfer</span>
+                      <span> 18 Sep · Transfer </span>
                     </div>
 
                     <strong class="transaction-amount negative"> −€120.00 </strong>
@@ -206,7 +219,9 @@
                 </div>
               </div>
 
-              <!-- SPENDING -->
+              <!-- =================================================
+                   SPENDING
+              ================================================== -->
 
               <div class="spending-panel">
                 <div class="panel-header">
@@ -222,7 +237,7 @@
 
                 <div class="spending-change">
                   <TrendingDown :size="13" />
-                  <span>8.4% from last month</span>
+                  <span> 8.4% from last month </span>
                 </div>
 
                 <div class="spending-chart">
@@ -251,7 +266,9 @@
           </div>
         </div>
 
-        <!-- FLOATING NOTIFICATION -->
+        <!-- =====================================================
+             FLOATING NOTIFICATION
+        ====================================================== -->
 
         <div class="dashboard-notification">
           <div class="notification-icon">
@@ -260,7 +277,7 @@
 
           <div>
             <strong>Transfer completed</strong>
-            <span>€250.00 sent successfully</span>
+            <span> €250.00 sent successfully </span>
           </div>
         </div>
       </div>
@@ -279,6 +296,8 @@ import {
   ShoppingBag,
   TrendingDown,
 } from 'lucide-vue-next'
+
+import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
 </script>
 
 <style scoped>
@@ -288,19 +307,30 @@ import {
 
 .banking-dashboard {
   width: 100%;
+
   background: #f6f9fc;
+
   padding: 120px 6% 130px;
+
   overflow: hidden;
 }
+
+/* =========================================================
+   LAYOUT
+========================================================= */
 
 .dashboard-inner {
   width: 100%;
   max-width: 1380px;
+
   margin: 0 auto;
 
   display: grid;
+
   grid-template-columns: 0.78fr 1.22fr;
+
   gap: 75px;
+
   align-items: center;
 }
 
@@ -322,7 +352,9 @@ import {
   color: #0b4878;
 
   font-size: 11px;
+
   font-weight: 800;
+
   letter-spacing: 0.15em;
 }
 
@@ -341,12 +373,15 @@ import {
   color: #082f56;
 
   font-size: clamp(42px, 4vw, 62px);
+
   line-height: 1.04;
+
   letter-spacing: -0.045em;
 }
 
 .dashboard-intro h2 span {
   display: block;
+
   color: #0b5da7;
 }
 
@@ -358,6 +393,7 @@ import {
   color: #687b8d;
 
   font-size: 16px;
+
   line-height: 1.75;
 }
 
@@ -367,7 +403,9 @@ import {
 
 .dashboard-points {
   display: flex;
+
   flex-direction: column;
+
   gap: 18px;
 
   margin-bottom: 36px;
@@ -375,7 +413,9 @@ import {
 
 .dashboard-point {
   display: flex;
+
   align-items: flex-start;
+
   gap: 13px;
 }
 
@@ -386,6 +426,7 @@ import {
   flex-shrink: 0;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -396,6 +437,7 @@ import {
   border-radius: 50%;
 
   font-size: 12px;
+
   font-weight: 800;
 }
 
@@ -423,17 +465,21 @@ import {
 
 .dashboard-button {
   display: inline-flex;
+
   align-items: center;
+
   gap: 14px;
 
   padding: 13px 13px 13px 22px;
 
   color: white;
+
   background: #0b4878;
 
   border-radius: 7px;
 
   font-size: 14px;
+
   font-weight: 700;
 
   text-decoration: none;
@@ -445,6 +491,7 @@ import {
 
 .dashboard-button:hover {
   background: #082f56;
+
   transform: translateY(-2px);
 }
 
@@ -453,6 +500,7 @@ import {
   height: 34px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -501,6 +549,7 @@ import {
   padding: 0 25px;
 
   display: flex;
+
   align-items: center;
   justify-content: space-between;
 
@@ -509,25 +558,27 @@ import {
 
 .window-brand {
   display: flex;
+
   align-items: center;
+
   gap: 10px;
 }
+
+/* =========================================================
+   REAL BUUCHEZO BANK LOGO
+========================================================= */
 
 .mini-logo {
   width: 31px;
   height: 31px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
 
-  color: white;
-  background: #0b4878;
+  object-fit: contain;
 
-  border-radius: 7px;
+  object-position: center;
 
-  font-size: 15px;
-  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .window-brand strong {
@@ -553,15 +604,18 @@ import {
   height: 34px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   color: #0b4878;
+
   background: #eaf4fa;
 
   border-radius: 50%;
 
   font-size: 10px;
+
   font-weight: 800;
 }
 
@@ -571,6 +625,7 @@ import {
 
 .window-body {
   padding: 25px;
+
   background: #f8fafc;
 }
 
@@ -592,7 +647,9 @@ import {
 
 .balance-top {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   color: rgba(255, 255, 255, 0.7);
@@ -606,6 +663,7 @@ import {
   color: rgba(255, 255, 255, 0.75);
 
   background: none;
+
   border: 0;
 
   font-size: 12px;
@@ -617,19 +675,25 @@ import {
   margin: 12px 0 18px;
 
   font-size: 34px;
+
   line-height: 1;
+
   letter-spacing: -0.04em;
+
   font-weight: 700;
 }
 
 .balance-amount span {
   font-size: 19px;
+
   opacity: 0.7;
 }
 
 .balance-account {
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   padding-top: 14px;
@@ -647,6 +711,7 @@ import {
 
 .quick-actions {
   display: grid;
+
   grid-template-columns: repeat(4, 1fr);
 
   gap: 10px;
@@ -660,18 +725,25 @@ import {
   padding: 12px 8px;
 
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
+
   gap: 7px;
 
   color: #53697b;
+
   background: white;
 
   border: 1px solid #e3ebf1;
+
   border-radius: 9px;
 
   font-family: inherit;
+
   font-size: 10px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -683,6 +755,7 @@ import {
 
 .quick-action:hover {
   border-color: #bfd2e0;
+
   transform: translateY(-2px);
 }
 
@@ -691,10 +764,12 @@ import {
   height: 30px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   color: #0b4878;
+
   background: #edf6fb;
 
   border-radius: 7px;
@@ -706,6 +781,7 @@ import {
 
 .dashboard-columns {
   display: grid;
+
   grid-template-columns: 1.15fr 0.85fr;
 
   gap: 12px;
@@ -724,12 +800,15 @@ import {
   background: white;
 
   border: 1px solid #e3ebf1;
+
   border-radius: 11px;
 }
 
 .panel-header {
   display: flex;
+
   align-items: flex-start;
+
   justify-content: space-between;
 
   gap: 10px;
@@ -745,7 +824,9 @@ import {
   color: #98a7b3;
 
   font-size: 8px;
+
   font-weight: 800;
+
   letter-spacing: 0.13em;
 }
 
@@ -763,10 +844,13 @@ import {
   color: #0b5da7;
 
   background: none;
+
   border: 0;
 
   font-family: inherit;
+
   font-size: 9px;
+
   font-weight: 700;
 
   cursor: pointer;
@@ -782,6 +866,7 @@ import {
   border-radius: 5px;
 
   font-size: 8px !important;
+
   letter-spacing: 0 !important;
 }
 
@@ -791,6 +876,7 @@ import {
 
 .transactions-list {
   display: flex;
+
   flex-direction: column;
 }
 
@@ -798,6 +884,7 @@ import {
   min-width: 0;
 
   display: flex;
+
   align-items: center;
 
   gap: 9px;
@@ -818,10 +905,12 @@ import {
   flex-shrink: 0;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   color: #0b4878;
+
   background: #edf6fb;
 
   border-radius: 7px;
@@ -829,6 +918,7 @@ import {
 
 .transaction-info {
   min-width: 0;
+
   flex: 1;
 }
 
@@ -842,6 +932,7 @@ import {
   font-size: 10px;
 
   text-overflow: ellipsis;
+
   white-space: nowrap;
 }
 
@@ -879,13 +970,17 @@ import {
   color: #082f56;
 
   font-size: 25px;
+
   font-weight: 700;
+
   letter-spacing: -0.03em;
 }
 
 .spending-change {
   display: flex;
+
   align-items: center;
+
   gap: 4px;
 
   margin-top: 5px;
@@ -903,7 +998,9 @@ import {
   height: 80px;
 
   display: flex;
+
   align-items: flex-end;
+
   justify-content: space-between;
 
   gap: 5px;
@@ -925,6 +1022,7 @@ import {
 
 .chart-labels {
   display: flex;
+
   justify-content: space-between;
 
   margin-top: 7px;
@@ -942,10 +1040,13 @@ import {
   position: absolute;
 
   right: -5px;
+
   bottom: 35px;
 
   display: flex;
+
   align-items: center;
+
   gap: 10px;
 
   padding: 12px 16px;
@@ -953,6 +1054,7 @@ import {
   background: white;
 
   border: 1px solid #e0e8ee;
+
   border-radius: 9px;
 
   box-shadow: 0 15px 35px rgba(8, 47, 86, 0.14);
@@ -965,10 +1067,12 @@ import {
   height: 30px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   color: #16805a;
+
   background: #e9f7f1;
 
   border-radius: 50%;
@@ -992,6 +1096,10 @@ import {
   font-size: 8px;
 }
 
+/* =========================================================
+   FLOATING ANIMATION
+========================================================= */
+
 @keyframes dashboardFloat {
   0%,
   100% {
@@ -1010,6 +1118,7 @@ import {
 @media (max-width: 1100px) {
   .dashboard-inner {
     grid-template-columns: 1fr;
+
     gap: 60px;
   }
 
@@ -1045,6 +1154,7 @@ import {
 
   .dashboard-button {
     width: 100%;
+
     justify-content: space-between;
   }
 
@@ -1054,6 +1164,7 @@ import {
 
   .window-header {
     height: 62px;
+
     padding: 0 17px;
   }
 
@@ -1075,7 +1186,13 @@ import {
 
   .dashboard-notification {
     right: 10px;
+
     bottom: -20px;
+  }
+
+  .mini-logo {
+    width: 29px;
+    height: 29px;
   }
 }
 
@@ -1086,6 +1203,7 @@ import {
 @media (max-width: 420px) {
   .banking-dashboard {
     padding-left: 16px;
+
     padding-right: 16px;
   }
 
