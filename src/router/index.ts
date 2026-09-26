@@ -27,6 +27,11 @@ import CareersView from '@/components/CareersView.vue'
 import AboutView from '@/components/AboutView.vue'
 import BusinessView from '@/views/public/BusinessView.vue'
 import WealthView from '@/views/public/WealthView.vue'
+import BusinessOnboardingView from '@/views/public/BusinessOnboardingView.vue'
+import BusinessDashboardView from '@/views/public/BusinessDashboardView.vue'
+import BusinessTransactionsView from '@/views/public/BusinessTransactionsView.vue'
+import BusinessTransfersView from '@/views/public/BusinessTransfersView.vue'
+import BusinessLoginView from '@/views/public/BusinessLoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -193,6 +198,45 @@ const router = createRouter({
       path: '/business',
       name: 'business',
       component: BusinessView,
+    },
+
+    {
+      path: '/business/login',
+      name: 'business-login',
+      component: BusinessLoginView,
+      meta: {
+        guestOnly: true,
+      },
+    },
+
+    {
+      path: '/business/onboarding',
+      name: 'business-onboarding',
+      component: BusinessOnboardingView,
+    },
+
+    {
+      path: '/business/dashboard',
+      name: 'business-dashboard',
+      component: BusinessDashboardView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/business/transfers',
+      component: BusinessTransfersView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+
+    {
+      path: '/business/transactions',
+      component: BusinessTransactionsView,
+      meta: {
+        requiresAuth: true,
+      },
     },
 
     {

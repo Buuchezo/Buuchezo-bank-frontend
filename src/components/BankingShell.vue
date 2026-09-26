@@ -15,9 +15,10 @@ import {
   LogOut,
   Menu,
   X,
-  ShieldCheck,
   RefreshCw,
+  Building2,
   Users,
+  ShieldCheck,
 } from 'lucide-vue-next'
 
 import NotificationDropdown from './layout/NotificationDropdownView.vue'
@@ -62,6 +63,9 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const mobileMenuOpen = ref(false)
+const isBusiness = computed(() => {
+  return route.path.startsWith('/business/')
+})
 
 const storedAdminUser = computed<User>(() => {
   const stored = localStorage.getItem('adminUser')
@@ -188,6 +192,32 @@ const customerServices = [
   },
 ]
 
+const businessNavigation = [
+  {
+    label: 'Overview',
+    to: '/business/dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    label: 'Transactions',
+    to: '/business/transactions',
+    icon: ArrowLeftRight,
+  },
+]
+
+const businessServices = [
+  {
+    label: 'Transfers',
+    to: '/business/transfers',
+    icon: Send,
+  },
+  {
+    label: 'Team Members',
+    to: '/business/members',
+    icon: Users,
+  },
+]
+
 const adminNavigation = [
   {
     label: 'Overview',
@@ -225,19 +255,47 @@ const adminServices = [
 ]
 
 const mainNavigation = computed(() => {
-  return isAdminMode.value ? adminNavigation : customerNavigation
+  if (isAdminMode.value) {
+    return adminNavigation
+  }
+
+  if (isBusiness.value) {
+    return businessNavigation
+  }
+
+  return customerNavigation
 })
 
 const serviceNavigation = computed(() => {
-  return isAdminMode.value ? adminServices : customerServices
+  if (isAdminMode.value) {
+    return adminServices
+  }
+
+  if (isBusiness.value) {
+    return businessServices
+  }
+
+  return customerServices
 })
 
 const navigationLabel = computed(() => {
-  return isAdminMode.value ? 'ADMINISTRATION' : 'MAIN'
+  if (isAdminMode.value) {
+    return 'ADMINISTRATION'
+  }
+
+  if (isBusiness.value) {
+    return 'BUSINESS BANKING'
+  }
+
+  return 'MAIN'
 })
 
 const servicesLabel = computed(() => {
-  return isAdminMode.value ? 'SYSTEM' : 'SERVICES'
+  if (isAdminMode.value) {
+    return 'SYSTEM'
+  }
+
+  return 'SERVICES'
 })
 
 function isActive(path: string) {
@@ -291,7 +349,11 @@ function logout() {
         >
           <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
 
-          <span class="banking-logo-text"> Buuchezo Bank </span>
+          <div class="banking-logo-text">
+            <strong>Buuchezo Bank</strong>
+
+            <small v-if="isBusiness"> Business Banking </small>
+          </div>
         </RouterLink>
 
         <button
@@ -446,7 +508,19 @@ function logout() {
               </strong>
 
               <span>
-                {{ displayUser.email || (isAdminMode ? 'Administrator' : 'Personal account') }}
+                <div class="banking-profile-info">
+                  <strong>
+                    {{ fullName }}
+                  </strong>
+
+                  <span v-if="isAdminMode"> Administrator </span>
+
+                  <span v-else-if="isBusiness"> Business Banking </span>
+
+                  <span v-else>
+                    {{ displayUser.email || 'Personal account' }}
+                  </span>
+                </div>
               </span>
             </div>
           </div>
@@ -564,10 +638,29 @@ function logout() {
 }
 
 .banking-logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  min-width: 0;
+
+  white-space: nowrap;
+}
+
+.banking-logo-text strong {
   font-size: 15px;
   font-weight: 750;
   letter-spacing: -0.2px;
-  white-space: nowrap;
+}
+
+.banking-logo-text small {
+  color: rgba(255, 255, 255, 0.5);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
 .banking-mobile-close {
