@@ -1,541 +1,549 @@
 <template>
-  
-  <BankingShell
-    page-title="Transfers"
-    page-section="BANKING"
-    :user="user"
-  >
-<main class="transfers-page">
-    <!-- =====================================================
+  <BankingShell :user="user" page-section="BANKING" page-title="Transfers">
+    <main class="transfers-page">
+      <!-- =====================================================
          SIDEBAR
     ====================================================== -->
 
-    <aside :class="{ open: mobileMenuOpen }" class="transfers-sidebar">
-      <RouterLink class="dashboard-logo" to="/">
-        <span>B</span>
-        <strong>Buuchezo Bank</strong>
-      </RouterLink>
-
-      <nav class="dashboard-nav">
-        <span class="nav-section-title"> MAIN </span>
-
-        <RouterLink class="dashboard-nav-link" to="/dashboard">
-          <LayoutDashboard :size="18" />
-          <span>Overview</span>
+      <aside :class="{ open: mobileMenuOpen }" class="transfers-sidebar">
+        <RouterLink class="dashboard-logo" to="/">
+          <span>B</span>
+          <strong>Buuchezo Bank</strong>
         </RouterLink>
 
-        <RouterLink class="dashboard-nav-link" to="/accounts">
-          <WalletCards :size="18" />
-          <span>Accounts</span>
-        </RouterLink>
+        <nav class="dashboard-nav">
+          <span class="nav-section-title"> MAIN </span>
 
-        <RouterLink class="dashboard-nav-link" to="/transactions">
-          <ArrowLeftRight :size="18" />
-          <span>Transactions</span>
-        </RouterLink>
+          <RouterLink class="dashboard-nav-link" to="/dashboard">
+            <LayoutDashboard :size="18" />
+            <span>Overview</span>
+          </RouterLink>
 
-        <RouterLink class="dashboard-nav-link" to="/cards">
-          <CreditCard :size="18" />
-          <span>Cards</span>
-        </RouterLink>
+          <RouterLink class="dashboard-nav-link" to="/accounts">
+            <WalletCards :size="18" />
+            <span>Accounts</span>
+          </RouterLink>
 
-        <span class="nav-section-title second-nav-title"> SERVICES </span>
+          <RouterLink class="dashboard-nav-link" to="/transactions">
+            <ArrowLeftRight :size="18" />
+            <span>Transactions</span>
+          </RouterLink>
 
-        <RouterLink class="dashboard-nav-link active" to="/transfers">
-          <Send :size="18" />
-          <span>Transfers</span>
-        </RouterLink>
+          <RouterLink class="dashboard-nav-link" to="/cards">
+            <CreditCard :size="18" />
+            <span>Cards</span>
+          </RouterLink>
 
-        <RouterLink class="dashboard-nav-link" to="/settings">
-          <Settings :size="18" />
-          <span>Settings</span>
-        </RouterLink>
-      </nav>
+          <span class="nav-section-title second-nav-title"> SERVICES </span>
 
-      <div class="sidebar-bottom">
-        <div class="support-box">
-          <div class="support-icon">
-            <HelpCircle :size="16" />
+          <RouterLink class="dashboard-nav-link active" to="/transfers">
+            <Send :size="18" />
+            <span>Transfers</span>
+          </RouterLink>
+
+          <RouterLink class="dashboard-nav-link" to="/settings">
+            <Settings :size="18" />
+            <span>Settings</span>
+          </RouterLink>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="support-box">
+            <div class="support-icon">
+              <HelpCircle :size="16" />
+            </div>
+
+            <div>
+              <strong>Need help?</strong>
+              <span>We're here for you.</span>
+            </div>
           </div>
 
-          <div>
-            <strong>Need help?</strong>
-            <span>We're here for you.</span>
-          </div>
+          <button class="logout-button" type="button" @click="logout">
+            <LogOut :size="17" />
+            <span>Sign out</span>
+          </button>
         </div>
+      </aside>
 
-        <button class="logout-button" type="button" @click="logout">
-          <LogOut :size="17" />
-          <span>Sign out</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- =====================================================
+      <!-- =====================================================
          MAIN
     ====================================================== -->
 
-    <div class="transfers-main">
-      <header class="transfers-header">
-        <button class="mobile-menu-button" type="button" @click="mobileMenuOpen = !mobileMenuOpen">
-          <Menu :size="21" />
-        </button>
+      <div class="transfers-main">
+        <header class="transfers-header">
+          <button
+            class="mobile-menu-button"
+            type="button"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <Menu :size="21" />
+          </button>
 
-        <div class="header-title">
-          <span>TRANSFERS</span>
+          <div class="header-title">
+            <span>TRANSFERS</span>
 
-          <h1>Send money</h1>
-        </div>
-
-        <div class="header-actions">
-          <NotificationDropdown />
-
-          <div class="header-profile">
-            <div class="profile-avatar">
-              {{ userInitials }}
-            </div>
-
-            <div class="profile-info">
-              <strong>
-                {{ fullName }}
-              </strong>
-
-              <span> Personal </span>
-            </div>
-
-            <ChevronDown :size="15" />
+            <h1>Send money</h1>
           </div>
-        </div>
-      </header>
 
-      <!-- =====================================================
+          <div class="header-actions">
+            <NotificationDropdown />
+
+            <div class="header-profile">
+              <div class="profile-avatar">
+                {{ userInitials }}
+              </div>
+
+              <div class="profile-info">
+                <strong>
+                  {{ fullName }}
+                </strong>
+
+                <span> Personal </span>
+              </div>
+
+              <ChevronDown :size="15" />
+            </div>
+          </div>
+        </header>
+
+        <!-- =====================================================
            CONTENT
       ====================================================== -->
 
-      <div class="transfers-content">
-        <!-- =================================================
+        <div class="transfers-content">
+          <!-- =================================================
              LOADING ACCOUNT
         ================================================== -->
 
-        <div v-if="loadingAccount" class="page-state">
-          <strong> Loading your account... </strong>
+          <div v-if="loadingAccount" class="page-state">
+            <strong> Loading your account... </strong>
 
-          <span> Preparing your transfer securely. </span>
-        </div>
+            <span> Preparing your transfer securely. </span>
+          </div>
 
-        <!-- =================================================
+          <!-- =================================================
              ACCOUNT ERROR
         ================================================== -->
 
-        <div v-else-if="accountError" class="page-state page-state-error">
-          <strong> Unable to load your account </strong>
+          <div v-else-if="accountError" class="page-state page-state-error">
+            <strong> Unable to load your account </strong>
 
-          <span>
-            {{ accountError }}
-          </span>
+            <span>
+              {{ accountError }}
+            </span>
 
-          <button type="button" @click="loadAccount">Try again</button>
-        </div>
+            <button type="button" @click="loadAccount">Try again</button>
+          </div>
 
-        <template v-else>
-          <!-- =================================================
+          <template v-else>
+            <!-- =================================================
                SUCCESS
           ================================================== -->
 
-          <section v-if="transferSuccessful" class="success-section">
-            <div class="success-icon">
-              <Check :size="30" />
-            </div>
-
-            <span class="success-label"> TRANSFER COMPLETE </span>
-
-            <h2>Money sent successfully.</h2>
-
-            <p>Your transfer has been submitted successfully.</p>
-
-            <div class="success-amount">
-              {{ formatMoney(form.amount) }}
-            </div>
-
-            <div class="success-recipient">
-              <span> Sent to </span>
-
-              <strong>
-                {{ form.toAccountNumber }}
-              </strong>
-            </div>
-
-            <div class="success-reference">
-              <span> Reference </span>
-
-              <strong>
-                {{ transferReference || 'N/A' }}
-              </strong>
-            </div>
-
-            <div class="success-actions">
-              <button class="primary-button" type="button" @click="goToTransactions">
-                View transactions
-                <ArrowRight :size="16" />
-              </button>
-
-              <button class="secondary-button" type="button" @click="startAnotherTransfer">
-                Send another payment
-              </button>
-            </div>
-          </section>
-
-          <!-- =================================================
-               TRANSFER FORM
-          ================================================== -->
-
-          <template v-else>
-            <!-- PAGE INTRO -->
-
-            <section class="page-intro">
-              <div>
-                <span> MOVE MONEY </span>
-
-                <h2>Send money securely.</h2>
-
-                <p>Transfer money from your Buuchezo Bank account to another account.</p>
+            <section v-if="transferSuccessful" class="success-section">
+              <div class="success-icon">
+                <Check :size="30" />
               </div>
 
-              <div class="available-balance">
-                <span> AVAILABLE BALANCE </span>
+              <span class="success-label"> TRANSFER COMPLETE </span>
+
+              <h2>Money sent successfully.</h2>
+
+              <p>Your transfer has been submitted successfully.</p>
+
+              <div class="success-amount">
+                {{ formatMoney(form.amount) }}
+              </div>
+
+              <div class="success-recipient">
+                <span> Sent to </span>
 
                 <strong>
-                  {{ formatMoney(account.balance) }}
+                  {{ form.toAccountNumber }}
                 </strong>
+              </div>
 
-                <small> •••• {{ maskedAccountNumber }} </small>
+              <div class="success-reference">
+                <span> Reference </span>
+
+                <strong>
+                  {{ transferReference || 'N/A' }}
+                </strong>
+              </div>
+
+              <div class="success-actions">
+                <button class="primary-button" type="button" @click="goToTransactions">
+                  View transactions
+                  <ArrowRight :size="16" />
+                </button>
+
+                <button class="secondary-button" type="button" @click="startAnotherTransfer">
+                  Send another payment
+                </button>
               </div>
             </section>
 
             <!-- =================================================
-                 FORM LAYOUT
-            ================================================== -->
+               TRANSFER FORM
+          ================================================== -->
 
-            <div class="transfer-layout">
-              <!-- =================================================
-                   FORM CARD
-              ================================================== -->
+            <template v-else>
+              <!-- PAGE INTRO -->
 
-              <section class="transfer-form-card">
-                <div class="form-heading">
-                  <div class="form-heading-icon">
-                    <Send :size="19" />
-                  </div>
+              <section class="page-intro">
+                <div>
+                  <span> MOVE MONEY </span>
 
-                  <div>
-                    <span> NEW TRANSFER </span>
+                  <h2>Send money securely.</h2>
 
-                    <h2>Transfer details</h2>
-                  </div>
+                  <p>Transfer money from your Buuchezo Bank account to another account.</p>
                 </div>
 
-                <!-- SERVER ERROR -->
+                <div class="available-balance">
+                  <span> AVAILABLE BALANCE </span>
 
-                <div v-if="transferError" class="form-error">
-                  <AlertCircle :size="16" />
+                  <strong>
+                    {{ formatMoney(account.balance) }}
+                  </strong>
 
-                  <span>
-                    {{ transferError }}
-                  </span>
+                  <small> •••• {{ maskedAccountNumber }} </small>
                 </div>
-
-                <form @submit.prevent="submitTransfer">
-                  <!-- FROM ACCOUNT -->
-
-                  <div class="form-group">
-                    <label> From account </label>
-
-                    <div class="account-field">
-                      <div class="field-icon">
-                        <WalletCards :size="17" />
-                      </div>
-
-                      <div>
-                        <strong>
-                          {{ account.accountType || 'Account' }}
-                        </strong>
-
-                        <span> •••• {{ maskedAccountNumber }} </span>
-                      </div>
-
-                      <div class="account-balance">
-                        <span> Available </span>
-
-                        <strong>
-                          {{ formatMoney(account.balance) }}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- TO ACCOUNT -->
-
-                  <div class="form-group">
-                    <label for="toAccountNumber"> Recipient account number </label>
-
-                    <div
-                      :class="{
-                        invalid: validationErrors.toAccountNumber,
-                      }"
-                      class="input-wrapper"
-                    >
-                      <Landmark :size="16" />
-
-                      <input
-                        id="toAccountNumber"
-                        v-model="form.toAccountNumber"
-                        :disabled="submitting"
-                        autocomplete="off"
-                        inputmode="numeric"
-                        placeholder="Enter account number"
-                        type="text"
-                        @input="clearFieldError('toAccountNumber')"
-                      />
-                    </div>
-
-                    <small v-if="validationErrors.toAccountNumber" class="field-error">
-                      {{ validationErrors.toAccountNumber }}
-                    </small>
-
-                    <small v-else class="field-help">
-                      Enter the recipient's bank account number.
-                    </small>
-                  </div>
-
-                  <!-- AMOUNT -->
-
-                  <div class="form-group">
-                    <label for="amount"> Amount </label>
-
-                    <div
-                      :class="{
-                        invalid: validationErrors.amount,
-                      }"
-                      class="amount-input-wrapper"
-                    >
-                      <span>
-                        {{ currencySymbol }}
-                      </span>
-
-                      <input
-                        id="amount"
-                        v-model="form.amount"
-                        :disabled="submitting"
-                        inputmode="decimal"
-                        min="0.01"
-                        placeholder="0.00"
-                        step="0.01"
-                        type="number"
-                        @input="clearFieldError('amount')"
-                      />
-
-                      <small>
-                        {{ account.currency }}
-                      </small>
-                    </div>
-
-                    <small v-if="validationErrors.amount" class="field-error">
-                      {{ validationErrors.amount }}
-                    </small>
-
-                    <small v-else class="field-help">
-                      You can send up to your available balance.
-                    </small>
-                  </div>
-
-                  <!-- DESCRIPTION -->
-
-                  <div class="form-group">
-                    <label for="description">
-                      Description
-                      <span> Optional </span>
-                    </label>
-
-                    <div class="input-wrapper textarea-wrapper">
-                      <FileText :size="16" />
-
-                      <textarea
-                        id="description"
-                        v-model="form.description"
-                        :disabled="submitting"
-                        maxlength="150"
-                        placeholder="What is this transfer for?"
-                        rows="3"
-                      ></textarea>
-                    </div>
-
-                    <small class="field-help">
-                      Add a note to help you identify the transaction later.
-                    </small>
-                  </div>
-
-                  <!-- SUBMIT -->
-
-                  <button
-                    :disabled="submitting || tanCreating || tanSubmitting"
-                    class="primary-button submit-button"
-                    type="submit"
-                  >
-                    <span v-if="submitting || tanCreating || tanSubmitting" class="spinner"></span>
-
-                    <span>
-                      {{ tanCreating ? 'Requesting TAN...' : 'Continue' }}
-                    </span>
-
-                    <ArrowRight v-if="!tanCreating && !tanSubmitting" :size="16" />
-                  </button>
-                </form>
               </section>
 
               <!-- =================================================
+                 FORM LAYOUT
+            ================================================== -->
+
+              <div class="transfer-layout">
+                <!-- =================================================
+                   FORM CARD
+              ================================================== -->
+
+                <section class="transfer-form-card">
+                  <div class="form-heading">
+                    <div class="form-heading-icon">
+                      <Send :size="19" />
+                    </div>
+
+                    <div>
+                      <span> NEW TRANSFER </span>
+
+                      <h2>Transfer details</h2>
+                    </div>
+                  </div>
+
+                  <!-- SERVER ERROR -->
+
+                  <div v-if="transferError" class="form-error">
+                    <AlertCircle :size="16" />
+
+                    <span>
+                      {{ transferError }}
+                    </span>
+                  </div>
+
+                  <form @submit.prevent="submitTransfer">
+                    <!-- FROM ACCOUNT -->
+
+                    <div class="form-group">
+                      <label> From account </label>
+
+                      <div class="account-field">
+                        <div class="field-icon">
+                          <WalletCards :size="17" />
+                        </div>
+
+                        <div>
+                          <strong>
+                            {{ account.accountType || 'Account' }}
+                          </strong>
+
+                          <span> •••• {{ maskedAccountNumber }} </span>
+                        </div>
+
+                        <div class="account-balance">
+                          <span> Available </span>
+
+                          <strong>
+                            {{ formatMoney(account.balance) }}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- TO ACCOUNT -->
+
+                    <div class="form-group">
+                      <label for="toAccountNumber"> Recipient account number </label>
+
+                      <div
+                        :class="{
+                          invalid: validationErrors.toAccountNumber,
+                        }"
+                        class="input-wrapper"
+                      >
+                        <Landmark :size="16" />
+
+                        <input
+                          id="toAccountNumber"
+                          v-model="form.toAccountNumber"
+                          :disabled="submitting"
+                          autocomplete="off"
+                          inputmode="numeric"
+                          placeholder="Enter account number"
+                          type="text"
+                          @input="clearFieldError('toAccountNumber')"
+                        />
+                      </div>
+
+                      <small v-if="validationErrors.toAccountNumber" class="field-error">
+                        {{ validationErrors.toAccountNumber }}
+                      </small>
+
+                      <small v-else class="field-help">
+                        Enter the recipient's bank account number.
+                      </small>
+                    </div>
+
+                    <!-- AMOUNT -->
+
+                    <div class="form-group">
+                      <label for="amount"> Amount </label>
+
+                      <div
+                        :class="{
+                          invalid: validationErrors.amount,
+                        }"
+                        class="amount-input-wrapper"
+                      >
+                        <span>
+                          {{ currencySymbol }}
+                        </span>
+
+                        <input
+                          id="amount"
+                          v-model="form.amount"
+                          :disabled="submitting"
+                          inputmode="decimal"
+                          min="0.01"
+                          placeholder="0.00"
+                          step="0.01"
+                          type="number"
+                          @input="clearFieldError('amount')"
+                        />
+
+                        <small>
+                          {{ account.currency }}
+                        </small>
+                      </div>
+
+                      <small v-if="validationErrors.amount" class="field-error">
+                        {{ validationErrors.amount }}
+                      </small>
+
+                      <small v-else class="field-help">
+                        You can send up to your available balance.
+                      </small>
+                    </div>
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="form-group">
+                      <label for="description">
+                        Description
+                        <span> Optional </span>
+                      </label>
+
+                      <div class="input-wrapper textarea-wrapper">
+                        <FileText :size="16" />
+
+                        <textarea
+                          id="description"
+                          v-model="form.description"
+                          :disabled="submitting"
+                          maxlength="150"
+                          placeholder="What is this transfer for?"
+                          rows="3"
+                        ></textarea>
+                      </div>
+
+                      <small class="field-help">
+                        Add a note to help you identify the transaction later.
+                      </small>
+                    </div>
+
+                    <!-- SUBMIT -->
+
+                    <button
+                      :disabled="submitting || tanCreating || tanSubmitting"
+                      class="primary-button submit-button"
+                      type="submit"
+                    >
+                      <span
+                        v-if="submitting || tanCreating || tanSubmitting"
+                        class="spinner"
+                      ></span>
+
+                      <span>
+                        {{ tanCreating ? 'Requesting TAN...' : 'Continue' }}
+                      </span>
+
+                      <ArrowRight v-if="!tanCreating && !tanSubmitting" :size="16" />
+                    </button>
+                  </form>
+                </section>
+
+                <!-- =================================================
                    INFORMATION PANEL
               ================================================== -->
 
-              <aside class="transfer-info">
-                <div class="info-card security-card">
-                  <div class="info-icon">
-                    <ShieldCheck :size="20" />
+                <aside class="transfer-info">
+                  <div class="info-card security-card">
+                    <div class="info-icon">
+                      <ShieldCheck :size="20" />
+                    </div>
+
+                    <span> SECURE TRANSFER </span>
+
+                    <h3>Your transfer is protected.</h3>
+
+                    <p>Every transfer is authenticated using your secure account session.</p>
                   </div>
 
-                  <span> SECURE TRANSFER </span>
+                  <div class="info-card">
+                    <div class="info-card-header">
+                      <Info :size="16" />
 
-                  <h3>Your transfer is protected.</h3>
+                      <strong> Before you send </strong>
+                    </div>
 
-                  <p>Every transfer is authenticated using your secure account session.</p>
-                </div>
+                    <ul>
+                      <li>Check the recipient account number carefully.</li>
 
-                <div class="info-card">
-                  <div class="info-card-header">
-                    <Info :size="16" />
+                      <li>Make sure you have enough available balance.</li>
 
-                    <strong> Before you send </strong>
+                      <li>
+                        Transfers may be processed according to your bank's transaction rules.
+                      </li>
+                    </ul>
                   </div>
 
-                  <ul>
-                    <li>Check the recipient account number carefully.</li>
+                  <div class="info-card support-info">
+                    <HelpCircle :size="18" />
 
-                    <li>Make sure you have enough available balance.</li>
+                    <div>
+                      <strong> Need help? </strong>
 
-                    <li>Transfers may be processed according to your bank's transaction rules.</li>
-                  </ul>
-                </div>
-
-                <div class="info-card support-info">
-                  <HelpCircle :size="18" />
-
-                  <div>
-                    <strong> Need help? </strong>
-
-                    <span>
-                      Contact Buuchezo Bank support if you have questions about a transfer.
-                    </span>
+                      <span>
+                        Contact Buuchezo Bank support if you have questions about a transfer.
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </aside>
-            </div>
+                </aside>
+              </div>
+            </template>
           </template>
-        </template>
+        </div>
       </div>
-    </div>
-    <!-- =====================================================
+      <!-- =====================================================
          TAN CONFIRMATION MODAL
     ====================================================== -->
 
-    <div v-if="tanModalOpen" class="tan-modal-overlay" @click.self="closeTanModal">
-      <section aria-labelledby="tan-modal-title" aria-modal="true" class="tan-modal" role="dialog">
-        <div class="tan-modal-icon">
-          <ShieldCheck :size="24" />
-        </div>
-
-        <span class="tan-modal-eyebrow"> TRANSACTION SECURITY </span>
-
-        <h2 id="tan-modal-title">Confirm your transfer</h2>
-
-        <p class="tan-modal-description">
-          Enter the 6-digit TAN sent to your registered notification channels to authorize this
-          transfer.
-        </p>
-
-        <div class="tan-transfer-summary">
-          <div>
-            <span>Amount</span>
-            <strong>{{ formatMoney(form.amount) }}</strong>
-          </div>
-          <div>
-            <span>Recipient</span>
-            <strong>{{ form.toAccountNumber }}</strong>
-          </div>
-        </div>
-
-        <div v-if="tanDeliveryMessage" class="tan-delivery-message">
-          <ShieldCheck :size="16" />
-          <span>{{ tanDeliveryMessage }}</span>
-        </div>
-
-        <div class="tan-input-group">
-          <label for="tanCode">Transaction authorization number</label>
-          <input
-            id="tanCode"
-            v-model="tanCode"
-            :disabled="tanSubmitting"
-            autocomplete="one-time-code"
-            class="tan-code-input"
-            inputmode="numeric"
-            maxlength="6"
-            placeholder="000000"
-            type="text"
-            @input="tanCode = tanCode.replace(/\D/g, '').slice(0, 6)"
-            @keyup.enter="confirmTanTransfer"
-          />
-        </div>
-
-        <p v-if="tanExpiresInSeconds > 0" class="tan-expiry">
-          This TAN expires in {{ tanExpiresInSeconds }} seconds.
-        </p>
-
-        <div v-if="tanError" class="tan-error">
-          <AlertCircle :size="16" />
-          <span>{{ tanError }}</span>
-        </div>
-
-        <div class="tan-modal-actions">
-          <button
-            :disabled="tanSubmitting"
-            class="secondary-button"
-            type="button"
-            @click="closeTanModal"
-          >
-            Cancel
-          </button>
-
-          <button
-            :disabled="tanSubmitting || tanCode.length !== 6"
-            class="primary-button"
-            type="button"
-            @click="confirmTanTransfer"
-          >
-            <span v-if="tanSubmitting" class="spinner"></span>
-            <span>{{ tanSubmitting ? 'Authorizing...' : 'Confirm transfer' }}</span>
-          </button>
-        </div>
-
-        <button
-          :disabled="tanSubmitting || tanCreating"
-          class="tan-resend-button"
-          type="button"
-          @click="resetTanChallenge"
+      <div v-if="tanModalOpen" class="tan-modal-overlay" @click.self="closeTanModal">
+        <section
+          aria-labelledby="tan-modal-title"
+          aria-modal="true"
+          class="tan-modal"
+          role="dialog"
         >
-          Request a new TAN
-        </button>
-      </section>
-    </div>
-  </main>
+          <div class="tan-modal-icon">
+            <ShieldCheck :size="24" />
+          </div>
 
+          <span class="tan-modal-eyebrow"> TRANSACTION SECURITY </span>
+
+          <h2 id="tan-modal-title">Confirm your transfer</h2>
+
+          <p class="tan-modal-description">
+            Enter the 6-digit TAN sent to your registered notification channels to authorize this
+            transfer.
+          </p>
+
+          <div class="tan-transfer-summary">
+            <div>
+              <span>Amount</span>
+              <strong>{{ formatMoney(form.amount) }}</strong>
+            </div>
+            <div>
+              <span>Recipient</span>
+              <strong>{{ form.toAccountNumber }}</strong>
+            </div>
+          </div>
+
+          <div v-if="tanDeliveryMessage" class="tan-delivery-message">
+            <ShieldCheck :size="16" />
+            <span>{{ tanDeliveryMessage }}</span>
+          </div>
+
+          <div class="tan-input-group">
+            <label for="tanCode">Transaction authorization number</label>
+            <input
+              id="tanCode"
+              v-model="tanCode"
+              :disabled="tanSubmitting"
+              autocomplete="one-time-code"
+              class="tan-code-input"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="000000"
+              type="text"
+              @input="tanCode = tanCode.replace(/\D/g, '').slice(0, 6)"
+              @keyup.enter="confirmTanTransfer"
+            />
+          </div>
+
+          <p v-if="tanExpiresInSeconds > 0" class="tan-expiry">
+            This TAN expires in {{ tanExpiresInSeconds }} seconds.
+          </p>
+
+          <div v-if="tanError" class="tan-error">
+            <AlertCircle :size="16" />
+            <span>{{ tanError }}</span>
+          </div>
+
+          <div class="tan-modal-actions">
+            <button
+              :disabled="tanSubmitting"
+              class="secondary-button"
+              type="button"
+              @click="closeTanModal"
+            >
+              Cancel
+            </button>
+
+            <button
+              :disabled="tanSubmitting || tanCode.length !== 6"
+              class="primary-button"
+              type="button"
+              @click="confirmTanTransfer"
+            >
+              <span v-if="tanSubmitting" class="spinner"></span>
+              <span>{{ tanSubmitting ? 'Authorizing...' : 'Confirm transfer' }}</span>
+            </button>
+          </div>
+
+          <button
+            :disabled="tanSubmitting || tanCreating"
+            class="tan-resend-button"
+            type="button"
+            @click="resetTanChallenge"
+          >
+            Request a new TAN
+          </button>
+        </section>
+      </div>
+    </main>
   </BankingShell>
 </template>
 
@@ -640,7 +648,7 @@ interface ValidationErrors {
    CONFIGURATION
 ========================================================= */
 
-const API_BASE_URL = 'http://13.48.104.209:8084'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const router = useRouter()
 
@@ -2899,7 +2907,6 @@ onMounted(loadAccount)
   }
 }
 
-
 /* ============================================================
    BUUCHEZO BANK — LEGACY CUSTOMER SHELL DISABLED
    BankingShell.vue is now the single customer application shell.
@@ -3068,5 +3075,4 @@ onMounted(loadAccount)
    Existing page-specific cards/buttons remain intact.
    Only the outer application shell is centralized.
    ============================================================ */
-
 </style>
