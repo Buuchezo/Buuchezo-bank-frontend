@@ -29,6 +29,7 @@ function closeMobileMenu() {
 <template>
   <header class="public-header">
     <div class="public-header-inner">
+      <!-- LOGO -->
       <RouterLink :to="isBusiness ? '/business' : '/'" class="public-logo" @click="closeMobileMenu">
         <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="public-logo-image" />
 
@@ -37,6 +38,7 @@ function closeMobileMenu() {
         </span>
       </RouterLink>
 
+      <!-- DESKTOP NAVIGATION -->
       <nav class="public-navigation">
         <RouterLink to="/" @click="closeMobileMenu"> Home </RouterLink>
 
@@ -49,6 +51,7 @@ function closeMobileMenu() {
         <RouterLink to="/contact" @click="closeMobileMenu"> Contact </RouterLink>
       </nav>
 
+      <!-- DESKTOP ACCOUNT ACTIONS -->
       <div class="public-header-actions">
         <RouterLink :to="loginRoute" class="public-login-link">
           {{ loginLabel }}
@@ -61,9 +64,10 @@ function closeMobileMenu() {
         </RouterLink>
       </div>
 
+      <!-- MOBILE MENU BUTTON -->
       <button
         :aria-expanded="mobileMenuOpen"
-        aria-label="Open navigation"
+        :aria-label="mobileMenuOpen ? 'Close navigation' : 'Open navigation'"
         class="public-mobile-button"
         type="button"
         @click="mobileMenuOpen = !mobileMenuOpen"
@@ -73,24 +77,79 @@ function closeMobileMenu() {
       </button>
     </div>
 
+    <!-- =========================================================
+         MOBILE NAVIGATION
+    ========================================================== -->
+
     <div v-if="mobileMenuOpen" class="public-mobile-menu">
-      <RouterLink to="/" @click="closeMobileMenu"> Home </RouterLink>
+      <!-- MAIN NAVIGATION -->
 
-      <RouterLink to="/about" @click="closeMobileMenu"> About us </RouterLink>
+      <div class="public-mobile-navigation">
+        <span class="public-mobile-section-title"> Explore </span>
 
-      <RouterLink to="/careers" @click="closeMobileMenu"> Careers </RouterLink>
+        <!-- Personal -->
+        <RouterLink class="public-mobile-nav-item" to="/" @click="closeMobileMenu">
+          <span> Personal </span>
 
-      <RouterLink to="/support" @click="closeMobileMenu"> Support </RouterLink>
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
 
-      <RouterLink to="/contact" @click="closeMobileMenu"> Contact </RouterLink>
+        <!-- Business -->
+        <RouterLink class="public-mobile-nav-item" to="/business" @click="closeMobileMenu">
+          <span> Business </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+
+        <!-- Wealth -->
+        <RouterLink class="public-mobile-nav-item" to="/wealth" @click="closeMobileMenu">
+          <span> Wealth </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+
+        <!-- About -->
+        <RouterLink class="public-mobile-nav-item" to="/about" @click="closeMobileMenu">
+          <span> About </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+
+        <!-- Careers -->
+        <RouterLink class="public-mobile-nav-item" to="/careers" @click="closeMobileMenu">
+          <span> Careers </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+
+        <!-- Support -->
+        <RouterLink class="public-mobile-nav-item" to="/support" @click="closeMobileMenu">
+          <span> Support </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+
+        <!-- Contact -->
+        <RouterLink class="public-mobile-nav-item" to="/contact" @click="closeMobileMenu">
+          <span> Contact </span>
+
+          <span class="public-mobile-arrow"> → </span>
+        </RouterLink>
+      </div>
+
+      <!-- ACCOUNT ACTIONS -->
 
       <div class="public-mobile-actions">
+        <span class="public-mobile-section-title"> Account </span>
+
         <RouterLink :to="loginRoute" class="public-mobile-login" @click="closeMobileMenu">
           {{ loginLabel }}
         </RouterLink>
 
         <RouterLink :to="accountRoute" class="public-mobile-register" @click="closeMobileMenu">
           {{ accountLabel }}
+
+          <ArrowUpRight :size="15" />
         </RouterLink>
       </div>
     </div>
@@ -198,6 +257,10 @@ function closeMobileMenu() {
   transform: translateY(-1px);
 }
 
+/* =========================================================
+   MOBILE BUTTON
+========================================================= */
+
 .public-mobile-button {
   display: none;
 
@@ -215,6 +278,10 @@ function closeMobileMenu() {
 
   cursor: pointer;
 }
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
 
 .public-mobile-menu {
   display: none;
@@ -235,36 +302,94 @@ function closeMobileMenu() {
 
     display: flex;
     flex-direction: column;
-    gap: 4px;
 
     background: white;
     border-top: 1px solid rgba(6, 47, 89, 0.06);
+
+    box-shadow: 0 14px 30px rgba(6, 47, 89, 0.08);
   }
 
-  .public-mobile-menu > a {
-    padding: 13px 10px;
+  /* =======================================================
+     SECTION TITLE
+  ======================================================== */
+
+  .public-mobile-section-title {
+    display: block;
+
+    margin: 4px 10px 7px;
+
+    color: #8797a8;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* =======================================================
+     MOBILE NAVIGATION
+  ======================================================== */
+
+  .public-mobile-navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .public-mobile-nav-item {
+    min-height: 46px;
+    padding: 0 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
     color: #294761;
     text-decoration: none;
 
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 650;
 
-    border-radius: 8px;
+    border-radius: 9px;
+
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
   }
 
-  .public-mobile-menu > a:hover {
-    background: #f3f8fc;
+  .public-mobile-nav-item:hover,
+  .public-mobile-nav-item.router-link-active {
     color: #07559b;
+    background: #f3f8fc;
   }
+
+  .public-mobile-arrow {
+    color: #9aabba;
+
+    font-size: 17px;
+
+    transition:
+      transform 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .public-mobile-nav-item:hover .public-mobile-arrow {
+    color: #07559b;
+    transform: translateX(3px);
+  }
+
+  /* =======================================================
+     ACCOUNT SECTION
+  ======================================================== */
 
   .public-mobile-actions {
-    margin-top: 12px;
+    margin-top: 14px;
     padding-top: 15px;
 
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
 
     border-top: 1px solid #e7eef4;
   }
@@ -276,6 +401,7 @@ function closeMobileMenu() {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 7px;
 
     border-radius: 8px;
     text-decoration: none;
@@ -289,9 +415,17 @@ function closeMobileMenu() {
     background: #f2f7fb;
   }
 
+  .public-mobile-login:hover {
+    background: #e8f1f8;
+  }
+
   .public-mobile-register {
     color: white;
     background: #07559b;
+  }
+
+  .public-mobile-register:hover {
+    background: #06457f;
   }
 }
 
@@ -307,6 +441,11 @@ function closeMobileMenu() {
   .public-logo-image {
     width: 34px;
     height: 34px;
+  }
+
+  .public-mobile-menu {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 </style>
