@@ -1,11 +1,25 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { Menu, X, ArrowUpRight } from 'lucide-vue-next'
-import { RouterLink } from 'vue-router'
+<script lang="ts" setup>
+import { computed, ref } from 'vue'
+import { ArrowUpRight, Menu, X } from 'lucide-vue-next'
+import { RouterLink, useRoute } from 'vue-router'
 
 import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
+const route = useRoute()
+
 const mobileMenuOpen = ref(false)
+
+const isBusiness = computed(() => route.path.startsWith('/business'))
+
+const loginRoute = computed(() => (isBusiness.value ? '/business/login' : '/login'))
+
+const accountRoute = computed(() => (isBusiness.value ? '/business/onboarding' : '/register'))
+
+const loginLabel = computed(() => (isBusiness.value ? 'Business sign in' : 'Sign in'))
+
+const accountLabel = computed(() =>
+  isBusiness.value ? 'Open a Business account' : 'Open an account',
+)
 
 function closeMobileMenu() {
   mobileMenuOpen.value = false
@@ -15,10 +29,12 @@ function closeMobileMenu() {
 <template>
   <header class="public-header">
     <div class="public-header-inner">
-      <RouterLink to="/" class="public-logo" @click="closeMobileMenu">
+      <RouterLink :to="isBusiness ? '/business' : '/'" class="public-logo" @click="closeMobileMenu">
         <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="public-logo-image" />
 
-        <span>Buuchezo Bank</span>
+        <span>
+          {{ isBusiness ? 'Buuchezo Bank Business' : 'Buuchezo Bank' }}
+        </span>
       </RouterLink>
 
       <nav class="public-navigation">
@@ -34,19 +50,22 @@ function closeMobileMenu() {
       </nav>
 
       <div class="public-header-actions">
-        <RouterLink to="/login" class="public-login-link"> Sign in </RouterLink>
+        <RouterLink :to="loginRoute" class="public-login-link">
+          {{ loginLabel }}
+        </RouterLink>
 
-        <RouterLink to="/register" class="public-header-button">
-          Open an account
+        <RouterLink :to="accountRoute" class="public-header-button">
+          {{ accountLabel }}
+
           <ArrowUpRight :size="16" />
         </RouterLink>
       </div>
 
       <button
-        type="button"
-        class="public-mobile-button"
-        aria-label="Open navigation"
         :aria-expanded="mobileMenuOpen"
+        aria-label="Open navigation"
+        class="public-mobile-button"
+        type="button"
         @click="mobileMenuOpen = !mobileMenuOpen"
       >
         <X v-if="mobileMenuOpen" :size="22" />
@@ -66,12 +85,12 @@ function closeMobileMenu() {
       <RouterLink to="/contact" @click="closeMobileMenu"> Contact </RouterLink>
 
       <div class="public-mobile-actions">
-        <RouterLink to="/login" class="public-mobile-login" @click="closeMobileMenu">
-          Sign in
+        <RouterLink :to="loginRoute" class="public-mobile-login" @click="closeMobileMenu">
+          {{ loginLabel }}
         </RouterLink>
 
-        <RouterLink to="/register" class="public-mobile-register" @click="closeMobileMenu">
-          Open an account
+        <RouterLink :to="accountRoute" class="public-mobile-register" @click="closeMobileMenu">
+          {{ accountLabel }}
         </RouterLink>
       </div>
     </div>

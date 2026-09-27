@@ -1,18 +1,10 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+import { useRouter } from 'vue-router'
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Loader2,
-  Building2,
-  UserRound,
-  WalletCards,
-  AlertCircle,
-} from 'lucide-vue-next'
+import { AlertCircle, ArrowLeft, ArrowRight, Building2, Check, Loader2, UserRound, WalletCards } from 'lucide-vue-next'
+
+import BankingShell from '@/components/BankingShell.vue'
 
 const router = useRouter()
 
@@ -21,8 +13,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084
 type Step = 1 | 2 | 3
 
 const step = ref<Step>(1)
+
 const loading = ref(false)
+
 const errorMessage = ref('')
+
 const successMessage = ref('')
 
 const form = ref({
@@ -63,15 +58,29 @@ const stepDescriptions = {
   3: 'Choose the account you want to open.',
 }
 
-const progress = computed(() => `${(step.value / 3) * 100}%`)
+const progress = computed(() => {
+  return `${(step.value / 3) * 100}%`
+})
+
+/* ============================================================
+   MESSAGES
+============================================================ */
 
 function clearMessages() {
   errorMessage.value = ''
   successMessage.value = ''
 }
 
+/* ============================================================
+   VALIDATION
+============================================================ */
+
 function validateStep(): boolean {
   clearMessages()
+
+  /* ----------------------------------------------------------
+     STEP 1
+  ---------------------------------------------------------- */
 
   if (step.value === 1) {
     if (!form.value.owner.firstName.trim()) {
@@ -96,6 +105,7 @@ function validateStep(): boolean {
 
     if (form.value.owner.password.length < 8) {
       errorMessage.value = 'Password must contain at least 8 characters.'
+
       return false
     }
 
@@ -105,62 +115,84 @@ function validateStep(): boolean {
     }
   }
 
+  /* ----------------------------------------------------------
+     STEP 2
+  ---------------------------------------------------------- */
+
   if (step.value === 2) {
     if (!form.value.business.legalName.trim()) {
       errorMessage.value = 'Legal business name is required.'
+
       return false
     }
 
     if (!form.value.business.registrationNumber.trim()) {
       errorMessage.value = 'Registration number is required.'
+
       return false
     }
 
     if (!form.value.business.email.trim()) {
       errorMessage.value = 'Business email is required.'
+
       return false
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.business.email)) {
       errorMessage.value = 'Enter a valid business email address.'
+
       return false
     }
 
     if (!form.value.business.phone.trim()) {
       errorMessage.value = 'Business phone number is required.'
+
       return false
     }
 
     if (!form.value.business.address.trim()) {
       errorMessage.value = 'Business address is required.'
+
       return false
     }
 
     if (!form.value.business.city.trim()) {
       errorMessage.value = 'Business city is required.'
+
       return false
     }
 
     if (!form.value.business.country.trim()) {
       errorMessage.value = 'Business country is required.'
+
       return false
     }
   }
 
+  /* ----------------------------------------------------------
+     STEP 3
+  ---------------------------------------------------------- */
+
   if (step.value === 3) {
     if (!form.value.account.accountType) {
       errorMessage.value = 'Select an account type.'
+
       return false
     }
 
     if (!form.value.account.currency) {
       errorMessage.value = 'Select a currency.'
+
       return false
     }
   }
 
   return true
 }
+
+/* ============================================================
+   STEP NAVIGATION
+============================================================ */
 
 function nextStep() {
   if (!validateStep()) {
@@ -169,6 +201,7 @@ function nextStep() {
 
   if (step.value < 3) {
     step.value = (step.value + 1) as Step
+
     clearMessages()
   }
 }
@@ -181,13 +214,23 @@ function previousStep() {
   }
 }
 
+/* ============================================================
+   AUTHENTICATION
+============================================================ */
+
 function storeAuthentication(token: string, user: unknown) {
   localStorage.setItem('accessToken', token)
+
   localStorage.setItem('user', JSON.stringify(user))
 
   sessionStorage.removeItem('accessToken')
+
   sessionStorage.removeItem('user')
 }
+
+/* ============================================================
+   SUBMIT ONBOARDING
+============================================================ */
 
 async function submitOnboarding() {
   if (!validateStep()) {
@@ -195,35 +238,49 @@ async function submitOnboarding() {
   }
 
   loading.value = true
+
   clearMessages()
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/businesses/onboarding`, {
       method: 'POST',
+
       headers: {
         'Content-Type': 'application/json',
       },
+
       body: JSON.stringify({
         owner: {
           firstName: form.value.owner.firstName.trim(),
+
           lastName: form.value.owner.lastName.trim(),
+
           email: form.value.owner.email.trim(),
+
           password: form.value.owner.password,
         },
 
         business: {
           legalName: form.value.business.legalName.trim(),
+
           tradingName: form.value.business.tradingName.trim() || null,
+
           registrationNumber: form.value.business.registrationNumber.trim(),
+
           email: form.value.business.email.trim(),
+
           phone: form.value.business.phone.trim(),
+
           address: form.value.business.address.trim(),
+
           city: form.value.business.city.trim(),
+
           country: form.value.business.country.trim(),
         },
 
         account: {
           accountType: form.value.account.accountType,
+
           currency: form.value.account.currency,
         },
       }),
@@ -243,13 +300,25 @@ async function submitOnboarding() {
       )
     }
 
+    /*
+     * Store authentication returned by the backend.
+     */
+
     storeAuthentication(data.authentication.token, data.authentication.user)
+
+    /*
+     * Store business information for the frontend.
+     */
 
     localStorage.setItem('business', JSON.stringify(data.business))
 
     localStorage.setItem('businessAccount', JSON.stringify(data.account))
 
     successMessage.value = 'Your business account has been created successfully.'
+
+    /*
+     * Normal Business Banking starts here.
+     */
 
     await router.push('/business/dashboard')
   } catch (error) {
@@ -264,872 +333,457 @@ async function submitOnboarding() {
 </script>
 
 <template>
-  <div class="onboarding-page">
-    <!-- =========================================================
-         SIDEBAR
-    ========================================================== -->
+  <BankingShell
+    navigation-mode="business-onboarding"
+    page-section="BUSINESS ACCOUNT"
+    page-title="Business account"
+  >
+    <main class="onboarding-page">
+      <div class="onboarding-container">
+        <!-- ==================================================
+             INTRODUCTION
+        =================================================== -->
 
-    <aside class="banking-sidebar">
-      <div class="banking-sidebar-top">
-        <RouterLink to="/business" class="banking-logo">
-          <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
-
-          <span class="banking-logo-text"> Buuchezo Bank </span>
-        </RouterLink>
-      </div>
-
-      <nav class="banking-navigation">
-        <!-- MAIN -->
-
-        <div class="banking-navigation-group">
-          <p class="banking-navigation-label">MAIN</p>
-
-          <RouterLink to="/business/dashboard" class="banking-navigation-item">
-            <WalletCards :size="18" />
-            <span>Overview</span>
-          </RouterLink>
-
-          <RouterLink to="/business/onboarding" class="banking-navigation-item active">
-            <Building2 :size="18" />
-            <span>Business account</span>
-          </RouterLink>
-
-          <a href="#" class="banking-navigation-item" @click.prevent>
-            <ArrowRight :size="18" />
-            <span>Transactions</span>
-          </a>
-        </div>
-
-        <!-- SERVICES -->
-
-        <div class="banking-navigation-group banking-services-group">
-          <p class="banking-navigation-label">SERVICES</p>
-
-          <a href="#" class="banking-navigation-item" @click.prevent>
-            <WalletCards :size="18" />
-            <span>Accounts</span>
-          </a>
-
-          <a href="#" class="banking-navigation-item" @click.prevent>
-            <Building2 :size="18" />
-            <span>Business profile</span>
-          </a>
-        </div>
-      </nav>
-
-      <!-- SIDEBAR BOTTOM -->
-
-      <div class="banking-sidebar-bottom">
-        <div class="banking-support-box">
-          <div class="banking-support-icon">
-            <AlertCircle :size="17" />
-          </div>
-
+        <section class="page-intro">
           <div>
-            <strong>Need help?</strong>
-            <span>We're here for you.</span>
+            <span class="intro-eyebrow"> BUSINESS BANKING </span>
+
+            <h2>Open your business account</h2>
+
+            <p>
+              Set up your business banking in a few simple steps. Your business account will be
+              ready once the application is completed.
+            </p>
           </div>
-        </div>
+        </section>
 
-        <RouterLink to="/business" class="banking-back-button">
-          <ArrowLeft :size="17" />
-          <span>Back to business</span>
-        </RouterLink>
-      </div>
-    </aside>
+        <!-- ==================================================
+             PROGRESS
+        =================================================== -->
 
-    <!-- =========================================================
-         MAIN APPLICATION
-    ========================================================== -->
-
-    <main class="banking-main">
-      <!-- HEADER -->
-
-      <header class="banking-header">
-        <div class="banking-page-heading">
-          <span class="banking-page-section"> BUUCHEZO BUSINESS </span>
-
-          <h1>Business account</h1>
-        </div>
-
-        <RouterLink to="/business" class="header-back-link">
-          <ArrowLeft :size="16" />
-          Back to Business Banking
-        </RouterLink>
-      </header>
-
-      <!-- CONTENT -->
-
-      <section class="banking-content">
-        <div class="onboarding-container">
-          <!-- INTRO -->
-
-          <section class="page-intro">
+        <section class="progress-card">
+          <div class="progress-header">
             <div>
-              <span class="intro-eyebrow"> BUSINESS BANKING </span>
+              <span> Step {{ step }} of 3 </span>
 
-              <h2>Open your business account</h2>
+              <strong>
+                {{ stepTitles[step] }}
+              </strong>
+            </div>
+
+            <strong class="progress-value"> {{ Math.round((step / 3) * 100) }}% </strong>
+          </div>
+
+          <div class="progress-track">
+            <div :style="{ width: progress }" class="progress-bar" />
+          </div>
+
+          <div class="step-indicators">
+            <div
+              v-for="number in 3"
+              :key="number"
+              :class="{
+                active: step === number,
+                completed: step > number,
+              }"
+              class="step-indicator"
+            >
+              <span>
+                <Check v-if="step > number" :size="14" />
+
+                <template v-else>
+                  {{ number }}
+                </template>
+              </span>
+
+              <small>
+                {{ stepTitles[number as Step] }}
+              </small>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================
+             FORM CARD
+        =================================================== -->
+
+        <section class="form-card">
+          <!-- FORM HEADER -->
+
+          <div class="form-heading">
+            <div class="form-heading-icon">
+              <UserRound v-if="step === 1" :size="21" />
+
+              <Building2 v-else-if="step === 2" :size="21" />
+
+              <WalletCards v-else :size="21" />
+            </div>
+
+            <div>
+              <span class="form-step-label"> STEP {{ step }} </span>
+
+              <h2>
+                {{ stepTitles[step] }}
+              </h2>
 
               <p>
-                Set up your business banking in a few simple steps. Your business account will be
-                ready once the application is completed.
+                {{ stepDescriptions[step] }}
               </p>
             </div>
-          </section>
+          </div>
 
-          <!-- PROGRESS -->
+          <!-- ERROR -->
 
-          <section class="progress-card">
-            <div class="progress-header">
-              <div>
-                <span> Step {{ step }} of 3 </span>
+          <div v-if="errorMessage" class="message error-message">
+            <AlertCircle :size="18" />
 
-                <strong>
-                  {{ stepTitles[step] }}
-                </strong>
-              </div>
+            <span>
+              {{ errorMessage }}
+            </span>
+          </div>
 
-              <strong class="progress-value"> {{ Math.round((step / 3) * 100) }}% </strong>
+          <!-- SUCCESS -->
+
+          <div v-if="successMessage" class="message success-message">
+            <Check :size="18" />
+
+            <span>
+              {{ successMessage }}
+            </span>
+          </div>
+
+          <!-- =================================================
+               STEP 1 — OWNER
+          ================================================== -->
+
+          <div v-if="step === 1" class="form-content">
+            <div class="form-grid">
+              <label class="field">
+                <span> First name </span>
+
+                <input
+                  v-model="form.owner.firstName"
+                  autocomplete="given-name"
+                  placeholder="First name"
+                  type="text"
+                />
+              </label>
+
+              <label class="field">
+                <span> Last name </span>
+
+                <input
+                  v-model="form.owner.lastName"
+                  autocomplete="family-name"
+                  placeholder="Last name"
+                  type="text"
+                />
+              </label>
+
+              <label class="field full">
+                <span> Email address </span>
+
+                <input
+                  v-model="form.owner.email"
+                  autocomplete="email"
+                  placeholder="you@example.com"
+                  type="email"
+                />
+              </label>
+
+              <label class="field">
+                <span> Password </span>
+
+                <input
+                  v-model="form.owner.password"
+                  autocomplete="new-password"
+                  placeholder="Minimum 8 characters"
+                  type="password"
+                />
+              </label>
+
+              <label class="field">
+                <span> Confirm password </span>
+
+                <input
+                  v-model="form.owner.confirmPassword"
+                  autocomplete="new-password"
+                  placeholder="Repeat password"
+                  type="password"
+                />
+              </label>
             </div>
+          </div>
 
-            <div class="progress-track">
-              <div class="progress-bar" :style="{ width: progress }" />
-            </div>
+          <!-- =================================================
+               STEP 2 — BUSINESS
+          ================================================== -->
 
-            <div class="step-indicators">
-              <div
-                v-for="number in 3"
-                :key="number"
-                class="step-indicator"
-                :class="{
-                  active: step === number,
-                  completed: step > number,
-                }"
-              >
+          <div v-else-if="step === 2" class="form-content">
+            <div class="form-grid">
+              <label class="field full">
+                <span> Legal business name </span>
+
+                <input v-model="form.business.legalName" placeholder="Example GmbH" type="text" />
+              </label>
+
+              <label class="field full">
                 <span>
-                  <Check v-if="step > number" :size="14" />
-
-                  <template v-else>
-                    {{ number }}
-                  </template>
+                  Trading name
+                  <small>(optional)</small>
                 </span>
 
-                <small>
-                  {{ stepTitles[number as Step] }}
-                </small>
-              </div>
+                <input
+                  v-model="form.business.tradingName"
+                  placeholder="Your public business name"
+                  type="text"
+                />
+              </label>
+
+              <label class="field full">
+                <span> Registration number </span>
+
+                <input
+                  v-model="form.business.registrationNumber"
+                  placeholder="Company registration number"
+                  type="text"
+                />
+              </label>
+
+              <label class="field">
+                <span> Business email </span>
+
+                <input
+                  v-model="form.business.email"
+                  placeholder="business@example.com"
+                  type="email"
+                />
+              </label>
+
+              <label class="field">
+                <span> Business phone </span>
+
+                <input v-model="form.business.phone" placeholder="+49 ..." type="tel" />
+              </label>
+
+              <label class="field full">
+                <span> Business address </span>
+
+                <input
+                  v-model="form.business.address"
+                  placeholder="Street and house number"
+                  type="text"
+                />
+              </label>
+
+              <label class="field">
+                <span> City </span>
+
+                <input v-model="form.business.city" placeholder="Frankfurt" type="text" />
+              </label>
+
+              <label class="field">
+                <span> Country </span>
+
+                <input v-model="form.business.country" placeholder="Germany" type="text" />
+              </label>
             </div>
-          </section>
+          </div>
 
-          <!-- FORM CARD -->
+          <!-- =================================================
+               STEP 3 — ACCOUNT
+          ================================================== -->
 
-          <section class="form-card">
-            <!-- FORM HEADER -->
-
-            <div class="form-heading">
-              <div class="form-heading-icon">
-                <UserRound v-if="step === 1" :size="21" />
-
-                <Building2 v-else-if="step === 2" :size="21" />
-
-                <WalletCards v-else :size="21" />
-              </div>
+          <div v-else class="form-content">
+            <div class="account-options">
+              <!-- ACCOUNT TYPE -->
 
               <div>
-                <span class="form-step-label"> STEP {{ step }} </span>
+                <span class="section-label"> Account type </span>
 
-                <h2>
-                  {{ stepTitles[step] }}
-                </h2>
+                <div class="option-grid">
+                  <button
+                    :class="{
+                      selected: form.account.accountType === 'CURRENT',
+                    }"
+                    class="option-card"
+                    type="button"
+                    @click="form.account.accountType = 'CURRENT'"
+                  >
+                    <div class="option-icon">
+                      <WalletCards :size="19" />
+                    </div>
 
-                <p>
-                  {{ stepDescriptions[step] }}
-                </p>
+                    <strong> Current account </strong>
+
+                    <span> For everyday business banking, payments and operating expenses. </span>
+                  </button>
+
+                  <button
+                    :class="{
+                      selected: form.account.accountType === 'CHECKING',
+                    }"
+                    class="option-card"
+                    type="button"
+                    @click="form.account.accountType = 'CHECKING'"
+                  >
+                    <div class="option-icon">
+                      <WalletCards :size="19" />
+                    </div>
+
+                    <strong> Checking account </strong>
+
+                    <span> A flexible account for regular business transactions. </span>
+                  </button>
+
+                  <button
+                    :class="{
+                      selected: form.account.accountType === 'SAVINGS',
+                    }"
+                    class="option-card"
+                    type="button"
+                    @click="form.account.accountType = 'SAVINGS'"
+                  >
+                    <div class="option-icon">
+                      <WalletCards :size="19" />
+                    </div>
+
+                    <strong> Savings account </strong>
+
+                    <span> Keep business reserves separate from everyday spending. </span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <!-- ERROR -->
+              <!-- CURRENCY -->
 
-            <div v-if="errorMessage" class="message error-message">
-              <AlertCircle :size="18" />
+              <div>
+                <span class="section-label"> Currency </span>
 
-              <span>
-                {{ errorMessage }}
-              </span>
-            </div>
+                <div class="currency-options">
+                  <button
+                    :class="{
+                      selected: form.account.currency === 'EUR',
+                    }"
+                    class="currency-card"
+                    type="button"
+                    @click="form.account.currency = 'EUR'"
+                  >
+                    <strong> € EUR </strong>
 
-            <!-- SUCCESS -->
+                    <span> Euro </span>
+                  </button>
 
-            <div v-if="successMessage" class="message success-message">
-              <Check :size="18" />
+                  <button
+                    :class="{
+                      selected: form.account.currency === 'USD',
+                    }"
+                    class="currency-card"
+                    type="button"
+                    @click="form.account.currency = 'USD'"
+                  >
+                    <strong> $ USD </strong>
 
-              <span>
-                {{ successMessage }}
-              </span>
-            </div>
-
-            <!-- =================================================
-                 STEP 1
-            ================================================== -->
-
-            <div v-if="step === 1" class="form-content">
-              <div class="form-grid">
-                <label class="field">
-                  <span> First name </span>
-
-                  <input
-                    v-model="form.owner.firstName"
-                    type="text"
-                    autocomplete="given-name"
-                    placeholder="First name"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> Last name </span>
-
-                  <input
-                    v-model="form.owner.lastName"
-                    type="text"
-                    autocomplete="family-name"
-                    placeholder="Last name"
-                  />
-                </label>
-
-                <label class="field full">
-                  <span> Email address </span>
-
-                  <input
-                    v-model="form.owner.email"
-                    type="email"
-                    autocomplete="email"
-                    placeholder="you@example.com"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> Password </span>
-
-                  <input
-                    v-model="form.owner.password"
-                    type="password"
-                    autocomplete="new-password"
-                    placeholder="Minimum 8 characters"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> Confirm password </span>
-
-                  <input
-                    v-model="form.owner.confirmPassword"
-                    type="password"
-                    autocomplete="new-password"
-                    placeholder="Repeat password"
-                  />
-                </label>
+                    <span> US Dollar </span>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <!-- =================================================
-                 STEP 2
-            ================================================== -->
+              <!-- REVIEW -->
 
-            <div v-else-if="step === 2" class="form-content">
-              <div class="form-grid">
-                <label class="field full">
-                  <span> Legal business name </span>
+              <div class="review-box">
+                <div>
+                  <span> Business </span>
 
-                  <input v-model="form.business.legalName" type="text" placeholder="Example GmbH" />
-                </label>
-
-                <label class="field full">
-                  <span>
-                    Trading name
-                    <small>(optional)</small>
-                  </span>
-
-                  <input
-                    v-model="form.business.tradingName"
-                    type="text"
-                    placeholder="Your public business name"
-                  />
-                </label>
-
-                <label class="field full">
-                  <span> Registration number </span>
-
-                  <input
-                    v-model="form.business.registrationNumber"
-                    type="text"
-                    placeholder="Company registration number"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> Business email </span>
-
-                  <input
-                    v-model="form.business.email"
-                    type="email"
-                    placeholder="business@example.com"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> Business phone </span>
-
-                  <input v-model="form.business.phone" type="tel" placeholder="+49 ..." />
-                </label>
-
-                <label class="field full">
-                  <span> Business address </span>
-
-                  <input
-                    v-model="form.business.address"
-                    type="text"
-                    placeholder="Street and house number"
-                  />
-                </label>
-
-                <label class="field">
-                  <span> City </span>
-
-                  <input v-model="form.business.city" type="text" placeholder="Frankfurt" />
-                </label>
-
-                <label class="field">
-                  <span> Country </span>
-
-                  <input v-model="form.business.country" type="text" placeholder="Germany" />
-                </label>
-              </div>
-            </div>
-
-            <!-- =================================================
-                 STEP 3
-            ================================================== -->
-
-            <div v-else class="form-content">
-              <div class="account-options">
-                <!-- ACCOUNT TYPE -->
+                  <strong>
+                    {{ form.business.legalName || '—' }}
+                  </strong>
+                </div>
 
                 <div>
-                  <span class="section-label"> Account type </span>
+                  <span> Account </span>
 
-                  <div class="option-grid">
-                    <button
-                      type="button"
-                      class="option-card"
-                      :class="{
-                        selected: form.account.accountType === 'CURRENT',
-                      }"
-                      @click="form.account.accountType = 'CURRENT'"
-                    >
-                      <div class="option-icon">
-                        <WalletCards :size="19" />
-                      </div>
-
-                      <strong> Current account </strong>
-
-                      <span> For everyday business banking, payments and operating expenses. </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="option-card"
-                      :class="{
-                        selected: form.account.accountType === 'CHECKING',
-                      }"
-                      @click="form.account.accountType = 'CHECKING'"
-                    >
-                      <div class="option-icon">
-                        <WalletCards :size="19" />
-                      </div>
-
-                      <strong> Checking account </strong>
-
-                      <span> A flexible account for regular business transactions. </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="option-card"
-                      :class="{
-                        selected: form.account.accountType === 'SAVINGS',
-                      }"
-                      @click="form.account.accountType = 'SAVINGS'"
-                    >
-                      <div class="option-icon">
-                        <WalletCards :size="19" />
-                      </div>
-
-                      <strong> Savings account </strong>
-
-                      <span> Keep business reserves separate from everyday spending. </span>
-                    </button>
-                  </div>
+                  <strong>
+                    {{ form.account.accountType }}
+                    ·
+                    {{ form.account.currency }}
+                  </strong>
                 </div>
-
-                <!-- CURRENCY -->
 
                 <div>
-                  <span class="section-label"> Currency </span>
+                  <span> Owner </span>
 
-                  <div class="currency-options">
-                    <button
-                      type="button"
-                      class="currency-card"
-                      :class="{
-                        selected: form.account.currency === 'EUR',
-                      }"
-                      @click="form.account.currency = 'EUR'"
-                    >
-                      <strong> € EUR </strong>
-
-                      <span> Euro </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="currency-card"
-                      :class="{
-                        selected: form.account.currency === 'USD',
-                      }"
-                      @click="form.account.currency = 'USD'"
-                    >
-                      <strong> $ USD </strong>
-
-                      <span> US Dollar </span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- REVIEW -->
-
-                <div class="review-box">
-                  <div>
-                    <span> Business </span>
-
-                    <strong>
-                      {{ form.business.legalName || '—' }}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span> Account </span>
-
-                    <strong>
-                      {{ form.account.accountType }}
-                      ·
-                      {{ form.account.currency }}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span> Owner </span>
-
-                    <strong>
-                      {{ form.owner.firstName }}
-                      {{ form.owner.lastName }}
-                    </strong>
-                  </div>
+                  <strong>
+                    {{ form.owner.firstName }}
+                    {{ form.owner.lastName }}
+                  </strong>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- ACTIONS -->
+          <!-- =================================================
+               ACTIONS
+          ================================================== -->
 
-            <div class="form-actions">
-              <button
-                v-if="step > 1"
-                type="button"
-                class="secondary-button"
-                :disabled="loading"
-                @click="previousStep"
-              >
-                <ArrowLeft :size="17" />
-                Back
-              </button>
+          <div class="form-actions">
+            <button
+              v-if="step > 1"
+              :disabled="loading"
+              class="secondary-button"
+              type="button"
+              @click="previousStep"
+            >
+              <ArrowLeft :size="17" />
 
-              <div v-else />
+              Back
+            </button>
 
-              <button v-if="step < 3" type="button" class="primary-button" @click="nextStep">
-                Continue
-                <ArrowRight :size="17" />
-              </button>
+            <div v-else />
 
-              <button
-                v-else
-                type="button"
-                class="primary-button"
-                :disabled="loading"
-                @click="submitOnboarding"
-              >
-                <Loader2 v-if="loading" :size="18" class="spin" />
+            <button v-if="step < 3" class="primary-button" type="button" @click="nextStep">
+              Continue
 
-                <span>
-                  {{ loading ? 'Creating account...' : 'Create business account' }}
-                </span>
+              <ArrowRight :size="17" />
+            </button>
 
-                <Check v-if="!loading" :size="17" />
-              </button>
-            </div>
-          </section>
+            <button
+              v-else
+              :disabled="loading"
+              class="primary-button"
+              type="button"
+              @click="submitOnboarding"
+            >
+              <Loader2 v-if="loading" :size="18" class="spin" />
 
-          <p class="security-note">
-            Your information is transmitted securely. Business account creation is protected by
-            Buuchezo Bank's authentication infrastructure.
-          </p>
-        </div>
-      </section>
+              <span>
+                {{ loading ? 'Creating account...' : 'Create business account' }}
+              </span>
+
+              <Check v-if="!loading" :size="17" />
+            </button>
+          </div>
+        </section>
+
+        <!-- SECURITY -->
+
+        <p class="security-note">
+          Your information is transmitted securely. Business account creation is protected by
+          Buuchezo Bank's authentication infrastructure.
+        </p>
+      </div>
     </main>
-  </div>
+  </BankingShell>
 </template>
 
 <style scoped>
 /* ============================================================
-   BUUCHEZO BANK — SHARED APPLICATION VISUAL SYSTEM
-
-   Matches BankingShell.vue:
-   navy       #0b1f38
-   navy light #132d4d
-   blue       #1597ff
-   blue dark  #0d6fbd
-   text       #132945
-   muted      #718096
-   border     #e1e8f0
-   background #f5f8fc
-   white      #ffffff
+   ONBOARDING
 ============================================================ */
-
-* {
-  box-sizing: border-box;
-}
 
 .onboarding-page {
-  min-height: 100vh;
   width: 100%;
-  display: flex;
-  background: #f5f8fc;
-  color: #132945;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-}
-
-/* ============================================================
-   SIDEBAR
-============================================================ */
-
-.banking-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 1000;
-
-  width: 258px;
-  height: 100vh;
-
-  display: flex;
-  flex-direction: column;
-
-  padding: 22px 14px 18px;
-
-  background: linear-gradient(180deg, #0b1f38 0%, #0b1f38 65%, #091b31 100%);
-
-  color: #ffffff;
-
-  box-shadow: 8px 0 30px rgba(9, 27, 49, 0.12);
-}
-
-/* ============================================================
-   LOGO
-============================================================ */
-
-.banking-sidebar-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 0 10px;
-  margin-bottom: 30px;
-}
-
-.banking-logo {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  color: #ffffff;
-  text-decoration: none;
-}
-
-.banking-logo-image {
-  width: 35px;
-  height: 35px;
-
-  display: block;
-
-  object-fit: contain;
-  object-position: center;
-
-  flex-shrink: 0;
-}
-
-.banking-logo-text {
-  color: #ffffff;
-
-  font-size: 15px;
-  font-weight: 750;
-
-  letter-spacing: -0.2px;
-  white-space: nowrap;
-}
-
-/* ============================================================
-   NAVIGATION
-============================================================ */
-
-.banking-navigation {
-  flex: 1;
-  min-height: 0;
-
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  scrollbar-width: thin;
-}
-
-.banking-navigation-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.banking-services-group {
-  margin-top: 27px;
-}
-
-.banking-navigation-label {
-  margin: 0 11px 8px;
-
-  color: rgba(255, 255, 255, 0.42);
-
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-}
-
-.banking-navigation-item {
-  min-height: 43px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 11px;
-
-  padding: 0 12px;
-
-  border-radius: 9px;
-
-  color: rgba(255, 255, 255, 0.68);
-
-  text-decoration: none;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
-}
-
-.banking-navigation-item svg {
-  flex-shrink: 0;
-}
-
-.banking-navigation-item:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: #ffffff;
-}
-
-.banking-navigation-item.active {
-  background: rgba(21, 151, 255, 0.14);
-  color: #1597ff;
-}
-
-/* ============================================================
-   SIDEBAR BOTTOM
-============================================================ */
-
-.banking-sidebar-bottom {
-  padding-top: 16px;
-}
-
-.banking-support-box {
-  padding: 12px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 10px;
-
-  border-radius: 10px;
-
-  background: rgba(255, 255, 255, 0.055);
-
-  margin-bottom: 10px;
-}
-
-.banking-support-icon {
-  width: 32px;
-  height: 32px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border-radius: 8px;
-
-  background: rgba(21, 151, 255, 0.13);
-
-  color: #1597ff;
-}
-
-.banking-support-box strong,
-.banking-support-box span {
-  display: block;
-}
-
-.banking-support-box strong {
-  margin-bottom: 3px;
-
-  color: rgba(255, 255, 255, 0.86);
-
-  font-size: 10px;
-}
-
-.banking-support-box span {
-  color: rgba(255, 255, 255, 0.43);
-
-  font-size: 9px;
-}
-
-.banking-back-button {
-  min-height: 42px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 11px;
-
-  padding: 0 12px;
-
-  border-radius: 9px;
-
-  color: rgba(255, 255, 255, 0.58);
-
-  text-decoration: none;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
-}
-
-.banking-back-button:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-}
-
-/* ============================================================
-   MAIN
-============================================================ */
-
-.banking-main {
-  flex: 1;
-  min-width: 0;
-
-  margin-left: 258px;
-}
-
-/* ============================================================
-   HEADER
-============================================================ */
-
-.banking-header {
-  height: 88px;
-
-  padding: 0 39px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  background: #ffffff;
-
-  border-bottom: 1px solid #e1e8f0;
-}
-
-.banking-page-heading {
-  display: flex;
-  flex-direction: column;
-}
-
-.banking-page-section {
-  margin-bottom: 5px;
-
-  color: #718096;
-
-  font-size: 9px;
-  font-weight: 800;
-
-  letter-spacing: 1.35px;
-}
-
-.banking-page-heading h1 {
-  margin: 0;
-
-  color: #132945;
-
-  font-size: 21px;
-  font-weight: 700;
-
-  letter-spacing: -0.45px;
-}
-
-.header-back-link {
-  display: inline-flex;
-  align-items: center;
-
-  gap: 7px;
-
-  color: #718096;
-
-  text-decoration: none;
-
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.header-back-link:hover {
-  color: #1597ff;
-}
-
-/* ============================================================
-   CONTENT
-============================================================ */
-
-.banking-content {
-  min-height: calc(100vh - 88px);
-
-  padding: 34px 39px 60px;
+  min-height: calc(100vh - 76px);
 }
 
 .onboarding-container {
@@ -1179,6 +833,7 @@ async function submitOnboarding() {
   color: #718096;
 
   font-size: 12px;
+
   line-height: 1.65;
 }
 
@@ -1194,6 +849,7 @@ async function submitOnboarding() {
   background: #ffffff;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 12px;
 
   box-shadow: 0 5px 18px rgba(9, 27, 49, 0.035);
@@ -1210,6 +866,7 @@ async function submitOnboarding() {
 .progress-header > div {
   display: flex;
   flex-direction: column;
+
   gap: 4px;
 }
 
@@ -1232,6 +889,7 @@ async function submitOnboarding() {
   color: #1597ff !important;
 
   font-size: 10px !important;
+
   font-weight: 800;
 }
 
@@ -1258,6 +916,7 @@ async function submitOnboarding() {
 
 .step-indicators {
   display: grid;
+
   grid-template-columns: repeat(3, 1fr);
 
   margin-top: 15px;
@@ -1290,6 +949,7 @@ async function submitOnboarding() {
   flex-shrink: 0;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 50%;
 
   background: #ffffff;
@@ -1343,6 +1003,7 @@ async function submitOnboarding() {
   background: #ffffff;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 14px;
 
   box-shadow: 0 6px 20px rgba(9, 27, 49, 0.045);
@@ -1481,6 +1142,7 @@ async function submitOnboarding() {
   color: #718096;
 
   font-size: 9px;
+
   font-weight: 500;
 }
 
@@ -1491,6 +1153,7 @@ async function submitOnboarding() {
   padding: 0 12px;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 8px;
 
   outline: none;
@@ -1500,6 +1163,7 @@ async function submitOnboarding() {
   color: #132945;
 
   font-family: inherit;
+
   font-size: 12px;
 
   transition:
@@ -1554,6 +1218,7 @@ async function submitOnboarding() {
   gap: 9px;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 10px;
 
   background: #ffffff;
@@ -1604,6 +1269,7 @@ async function submitOnboarding() {
   color: #132945;
 
   font-size: 11px;
+
   font-weight: 700;
 }
 
@@ -1611,6 +1277,7 @@ async function submitOnboarding() {
   color: #718096;
 
   font-size: 9px;
+
   line-height: 1.55;
 }
 
@@ -1638,6 +1305,7 @@ async function submitOnboarding() {
   gap: 3px;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 9px;
 
   background: #ffffff;
@@ -1694,6 +1362,7 @@ async function submitOnboarding() {
   padding: 16px;
 
   border: 1px solid #e1e8f0;
+
   border-radius: 10px;
 
   background: #f5f8fc;
@@ -1760,6 +1429,7 @@ async function submitOnboarding() {
   border-radius: 8px;
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 700;
 
@@ -1828,6 +1498,7 @@ async function submitOnboarding() {
   text-align: center;
 
   font-size: 9px;
+
   line-height: 1.5;
 }
 
@@ -1850,59 +1521,12 @@ async function submitOnboarding() {
 ============================================================ */
 
 @media (max-width: 900px) {
-  .banking-sidebar {
-    width: 220px;
-  }
-
-  .banking-main {
-    margin-left: 220px;
-  }
-
-  .banking-header {
-    padding: 0 25px;
-  }
-
-  .banking-content {
-    padding: 28px 25px 50px;
-  }
-
   .option-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 700px) {
-  .banking-sidebar {
-    display: none;
-  }
-
-  .banking-main {
-    margin-left: 0;
-  }
-
-  .banking-header {
-    height: 78px;
-
-    padding: 0 18px;
-  }
-
-  .banking-page-heading h1 {
-    font-size: 18px;
-  }
-
-  .header-back-link {
-    font-size: 0;
-  }
-
-  .header-back-link svg {
-    width: 19px;
-    height: 19px;
-  }
-
-  .banking-content {
-    padding: 25px 16px 45px;
-  }
-
   .page-intro h2 {
     font-size: 22px;
   }
@@ -1954,15 +1578,6 @@ async function submitOnboarding() {
 }
 
 @media (max-width: 480px) {
-  .banking-header {
-    padding: 0 14px;
-  }
-
-  .banking-content {
-    padding-left: 13px;
-    padding-right: 13px;
-  }
-
   .progress-card {
     padding: 15px;
   }
@@ -1982,6 +1597,7 @@ async function submitOnboarding() {
 
   .form-actions {
     flex-direction: column-reverse;
+
     align-items: stretch;
   }
 

@@ -1,28 +1,28 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import {
-  LayoutDashboard,
-  WalletCards,
   ArrowLeftRight,
-  CreditCard,
-  Send,
-  ChartCandlestick,
   BarChart3,
-  Settings,
+  ChartCandlestick,
+  CreditCard,
   HelpCircle,
+  LayoutDashboard,
   LogOut,
   Menu,
-  X,
   RefreshCw,
-  Building2,
-  Users,
+  Send,
+  Settings,
   ShieldCheck,
+  Users,
+  WalletCards,
+  X
 } from 'lucide-vue-next'
 
 import NotificationDropdown from './layout/NotificationDropdownView.vue'
-import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+
+import buuchezoBankLogo from '../assets/images/buuchezobank-logo.png'
 
 interface User {
   firstName?: string
@@ -33,6 +33,8 @@ interface User {
   authorities?: string[]
 }
 
+type NavigationMode = 'customer' | 'business' | 'admin' | 'business-onboarding'
+
 const props = withDefaults(
   defineProps<{
     user?: User
@@ -40,12 +42,8 @@ const props = withDefaults(
     pageSection?: string
     showRefresh?: boolean
     refreshing?: boolean
-
-    /*
-     * When true, this shell renders the administration
-     * navigation instead of the customer navigation.
-     */
     admin?: boolean
+    navigationMode?: NavigationMode
   }>(),
   {
     user: () => ({}),
@@ -53,6 +51,7 @@ const props = withDefaults(
     showRefresh: false,
     refreshing: false,
     admin: false,
+    navigationMode: undefined,
   },
 )
 
@@ -62,10 +61,14 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const router = useRouter()
+
 const mobileMenuOpen = ref(false)
-const isBusiness = computed(() => {
-  return route.path.startsWith('/business/')
-})
+
+/*
+ * ============================================================
+ * STORED USERS
+ * ============================================================
+ */
 
 const storedAdminUser = computed<User>(() => {
   const stored = localStorage.getItem('adminUser')
@@ -75,7 +78,7 @@ const storedAdminUser = computed<User>(() => {
   }
 
   try {
-    return JSON.parse(stored)
+    return JSON.parse(stored) as User
   } catch {
     return {}
   }
@@ -89,48 +92,103 @@ const storedCustomerUser = computed<User>(() => {
   }
 
   try {
-    return JSON.parse(stored)
+    return JSON.parse(stored) as User
   } catch {
     return {}
   }
 })
 
-const storedUserIsAdmin = computed(() => {
-  const user = storedAdminUser.value
-
-  return (
-    user.role === 'ADMIN' ||
-    user.authType === 'ADMIN' ||
-    user.authorities?.includes?.('ADMIN') === true
-  )
-})
+/*
+ * ============================================================
+ * ADMIN MODE
+ * ============================================================
+ */
 
 const isAdminMode = computed(() => {
-  return props.admin || storedUserIsAdmin.value
+  /*
+   * Business routes always use the business shell,
+   * even when an admin session exists in the browser.
+   */
+  if (isBusiness.value) {
+    return false
+  }
+
+  /*
+   * Explicit admin pages and /admin/* routes use
+   * the administrator shell.
+   */
+  return props.admin || isAdminRoute.value
 })
+
+/*
+ * ============================================================
+ * NAVIGATION MODE
+ * ============================================================
+ */
+
+const isBusiness = computed(() => {
+  return route.path === '/business' || route.path.startsWith('/business/')
+})
+
+const isAdminRoute = computed(() => {
+  return route.path === '/admin' || route.path.startsWith('/admin/')
+})
+
+const effectiveNavigationMode = computed<NavigationMode>(() => {
+  if (props.navigationMode) {
+    return props.navigationMode
+  }
+
+  if (isAdminMode.value) {
+    return 'admin'
+  }
+
+  if (isBusiness.value) {
+    return 'business'
+  }
+
+  return 'customer'
+})
+
+/*
+ * ============================================================
+ * DISPLAY USER
+ * ============================================================
+ */
 
 const displayUser = computed<User>(() => {
   /*
-   * Explicitly supplied user always wins.
-   *
-   * Admin pages can simply use :admin="true" and the shell
-   * will automatically use adminUser from localStorage.
+   * Explicit user passed by the page has priority.
    */
   if (props.user.firstName || props.user.lastName || props.user.email) {
     return props.user
   }
 
-  if (isAdminMode.value) {
+  /*
+   * Admin session.
+   */
+  if (effectiveNavigationMode.value === 'admin') {
     return storedAdminUser.value
   }
 
+  /*
+   * Normal customer/business session.
+   */
   return storedCustomerUser.value
 })
 
 const fullName = computed(() => {
   const name = `${displayUser.value.firstName || ''} ${displayUser.value.lastName || ''}`.trim()
 
-  return name || (isAdminMode.value ? 'Administrator' : 'Account holder')
+  if (name) {
+    return name
+  }
+
+  if (effectiveNavigationMode.value === 'admin') {
+    return 'Administrator'
+  }
+
+  return 'Account holder'
 })
 
 const userInitials = computed(() => {
@@ -145,6 +203,12 @@ const userInitials = computed(() => {
 
   return displayUser.value.email?.charAt(0).toUpperCase() || 'U'
 })
+
+/*
+ * ============================================================
+ * CUSTOMER NAVIGATION
+ * ============================================================
+ */
 
 const customerNavigation = [
   {
@@ -192,6 +256,15 @@ const customerServices = [
   },
 ]
 
+/*
+ * ============================================================
+ * BUSINESS NAVIGATION
+ * ============================================================
+ *
+ * This is the navigation for an already authenticated
+ * business owner/member.
+ */
+
 const businessNavigation = [
   {
     label: 'Overview',
@@ -199,9 +272,19 @@ const businessNavigation = [
     icon: LayoutDashboard,
   },
   {
+    label: 'Accounts',
+    to: '/business/accounts',
+    icon: WalletCards,
+  },
+  {
     label: 'Transactions',
     to: '/business/transactions',
     icon: ArrowLeftRight,
+  },
+  {
+    label: 'Cards',
+    to: '/business/cards',
+    icon: CreditCard,
   },
 ]
 
@@ -216,7 +299,18 @@ const businessServices = [
     to: '/business/members',
     icon: Users,
   },
+  {
+    label: 'Settings',
+    to: '/business/settings',
+    icon: Settings,
+  },
 ]
+
+/*
+ * ============================================================
+ * ADMIN NAVIGATION
+ * ============================================================
+ */
 
 const adminNavigation = [
   {
@@ -254,51 +348,113 @@ const adminServices = [
   },
 ]
 
+/*
+ * ============================================================
+ * BUSINESS ONBOARDING NAVIGATION
+ * ============================================================
+ */
+
+const businessOnboardingNavigation = [
+  {
+    label: 'Business account',
+    to: '/business/onboarding',
+    icon: WalletCards,
+  },
+]
+
+/*
+ * ============================================================
+ * ACTIVE NAVIGATION
+ * ============================================================
+ */
+
 const mainNavigation = computed(() => {
-  if (isAdminMode.value) {
-    return adminNavigation
-  }
+  switch (effectiveNavigationMode.value) {
+    case 'admin':
+      return adminNavigation
 
-  if (isBusiness.value) {
-    return businessNavigation
-  }
+    case 'business':
+      return businessNavigation
 
-  return customerNavigation
+    case 'business-onboarding':
+      return businessOnboardingNavigation
+
+    case 'customer':
+    default:
+      return customerNavigation
+  }
 })
 
 const serviceNavigation = computed(() => {
-  if (isAdminMode.value) {
-    return adminServices
-  }
+  switch (effectiveNavigationMode.value) {
+    case 'admin':
+      return adminServices
 
-  if (isBusiness.value) {
-    return businessServices
-  }
+    case 'business':
+      return businessServices
 
-  return customerServices
+    case 'business-onboarding':
+      return []
+
+    case 'customer':
+    default:
+      return customerServices
+  }
 })
 
 const navigationLabel = computed(() => {
-  if (isAdminMode.value) {
-    return 'ADMINISTRATION'
-  }
+  switch (effectiveNavigationMode.value) {
+    case 'admin':
+      return 'ADMINISTRATION'
 
-  if (isBusiness.value) {
-    return 'BUSINESS BANKING'
-  }
+    case 'business':
+    case 'business-onboarding':
+      return 'BUSINESS BANKING'
 
-  return 'MAIN'
+    case 'customer':
+    default:
+      return 'MAIN'
+  }
 })
 
 const servicesLabel = computed(() => {
-  if (isAdminMode.value) {
+  if (effectiveNavigationMode.value === 'admin') {
     return 'SYSTEM'
   }
 
   return 'SERVICES'
 })
 
-function isActive(path: string) {
+/*
+ * ============================================================
+ * ADMIN BUTTON
+ * ============================================================
+ *
+ * We calculate this in script instead of accessing
+ * localStorage directly from the template.
+ */
+
+const showAdminDashboardButton = computed(() => {
+  if (
+    effectiveNavigationMode.value === 'admin' ||
+    effectiveNavigationMode.value === 'business' ||
+    effectiveNavigationMode.value === 'business-onboarding'
+  ) {
+    return false
+  }
+
+  return Boolean(
+    localStorage.getItem('adminAccessToken') || sessionStorage.getItem('adminAccessToken'),
+  )
+})
+
+/*
+ * ============================================================
+ * ROUTING
+ * ============================================================
+ */
+
+function isActive(path: string): boolean {
   return route.path === path
 }
 
@@ -306,13 +462,32 @@ function closeMobileMenu() {
   mobileMenuOpen.value = false
 }
 
+function openMobileMenu() {
+  mobileMenuOpen.value = true
+}
+
+function handleRefresh() {
+  emit('refresh')
+}
+
 function goToAdminDashboard() {
   closeMobileMenu()
+
   router.push('/admin/dashboard')
 }
 
+/*
+ * ============================================================
+ * LOGOUT
+ * ============================================================
+ */
+
 function logout() {
-  if (isAdminMode.value) {
+  /*
+   * ADMIN SESSION
+   */
+
+  if (effectiveNavigationMode.value === 'admin') {
     localStorage.removeItem('adminAccessToken')
     localStorage.removeItem('adminUser')
 
@@ -320,55 +495,143 @@ function logout() {
     sessionStorage.removeItem('adminUser')
 
     router.push('/admin/login')
+
     return
   }
 
+  /*
+   * CUSTOMER / BUSINESS SESSION
+   */
+
   localStorage.removeItem('accessToken')
   localStorage.removeItem('user')
+  localStorage.removeItem('business')
+  localStorage.removeItem('businessAccount')
 
   sessionStorage.removeItem('accessToken')
   sessionStorage.removeItem('user')
+  sessionStorage.removeItem('business')
+  sessionStorage.removeItem('businessAccount')
 
+  /*
+   * Business users and customers both use the normal
+   * authentication session.
+   */
   router.push('/login')
 }
+
+/*
+ * ============================================================
+ * LOGO ROUTE
+ * ============================================================
+ */
+
+const logoRoute = computed(() => {
+  if (effectiveNavigationMode.value === 'admin') {
+    return '/admin/dashboard'
+  }
+
+  if (
+    effectiveNavigationMode.value === 'business' ||
+    effectiveNavigationMode.value === 'business-onboarding'
+  ) {
+    return '/business'
+  }
+
+  return '/'
+})
+
+/*
+ * ============================================================
+ * HEADER BACK ROUTE
+ * ============================================================
+ */
+
+const headerBackRoute = computed(() => {
+  if (
+    effectiveNavigationMode.value === 'business' ||
+    effectiveNavigationMode.value === 'business-onboarding'
+  ) {
+    return '/business'
+  }
+
+  if (effectiveNavigationMode.value === 'admin') {
+    return '/admin/dashboard'
+  }
+
+  return '/'
+})
+
+const headerBackLabel = computed(() => {
+  if (
+    effectiveNavigationMode.value === 'business' ||
+    effectiveNavigationMode.value === 'business-onboarding'
+  ) {
+    return 'Back to Business'
+  }
+
+  if (effectiveNavigationMode.value === 'admin') {
+    return 'Admin Dashboard'
+  }
+
+  return 'Home'
+})
 </script>
 
 <template>
   <div class="banking-shell">
-    <!-- MOBILE OVERLAY -->
+    <!-- =====================================================
+         MOBILE OVERLAY
+    ====================================================== -->
+
     <div v-if="mobileMenuOpen" class="banking-mobile-overlay" @click="closeMobileMenu" />
 
-    <!-- SIDEBAR -->
-    <aside class="banking-sidebar" :class="{ 'is-open': mobileMenuOpen }">
-      <!-- LOGO -->
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside :class="{ 'is-open': mobileMenuOpen }" class="banking-sidebar">
+      <!-- ===================================================
+           SIDEBAR TOP
+      ==================================================== -->
+
       <div class="banking-sidebar-top">
-        <RouterLink
-          :to="isAdminMode ? '/admin/dashboard' : '/'"
-          class="banking-logo"
-          @click="closeMobileMenu"
-        >
+        <RouterLink :to="logoRoute" class="banking-logo" @click="closeMobileMenu">
           <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
 
           <div class="banking-logo-text">
             <strong>Buuchezo Bank</strong>
 
-            <small v-if="isBusiness"> Business Banking </small>
+            <small
+              v-if="
+                effectiveNavigationMode === 'business' ||
+                effectiveNavigationMode === 'business-onboarding'
+              "
+            >
+              Business Banking
+            </small>
+
+            <small v-else-if="effectiveNavigationMode === 'admin'"> Administration </small>
           </div>
         </RouterLink>
 
         <button
-          type="button"
-          class="banking-mobile-close"
           aria-label="Close navigation"
+          class="banking-mobile-close"
+          type="button"
           @click="closeMobileMenu"
         >
           <X :size="21" />
         </button>
       </div>
 
-      <!-- NAVIGATION -->
+      <!-- ===================================================
+           NAVIGATION
+      ==================================================== -->
+
       <nav class="banking-navigation">
-        <!-- MAIN / ADMINISTRATION -->
+        <!-- MAIN NAVIGATION -->
+
         <div class="banking-navigation-group">
           <p class="banking-navigation-label">
             {{ navigationLabel }}
@@ -377,19 +640,23 @@ function logout() {
           <RouterLink
             v-for="item in mainNavigation"
             :key="item.to"
+            :class="{ active: isActive(item.to) }"
             :to="item.to"
             class="banking-navigation-item"
-            :class="{ active: isActive(item.to) }"
             @click="closeMobileMenu"
           >
-            <component :is="item.icon" :size="19" :stroke-width="2" />
+            <component :is="item.icon" :size="18" />
 
             <span>{{ item.label }}</span>
           </RouterLink>
         </div>
 
-        <!-- SERVICES / SYSTEM -->
-        <div class="banking-navigation-group banking-services-group">
+        <!-- SERVICES -->
+
+        <div
+          v-if="serviceNavigation.length > 0"
+          class="banking-navigation-group banking-services-group"
+        >
           <p class="banking-navigation-label">
             {{ servicesLabel }}
           </p>
@@ -397,165 +664,170 @@ function logout() {
           <RouterLink
             v-for="item in serviceNavigation"
             :key="item.to"
+            :class="{ active: isActive(item.to) }"
             :to="item.to"
             class="banking-navigation-item"
-            :class="{ active: isActive(item.to) }"
             @click="closeMobileMenu"
           >
-            <component :is="item.icon" :size="19" :stroke-width="2" />
+            <component :is="item.icon" :size="18" />
 
             <span>{{ item.label }}</span>
           </RouterLink>
         </div>
       </nav>
 
-      <!-- SIDEBAR BOTTOM -->
+      <!-- ===================================================
+           SIDEBAR BOTTOM
+      ==================================================== -->
+
       <div class="banking-sidebar-bottom">
-        <!-- CUSTOMER ONLY -->
-        <button
-          v-if="!isAdminMode && storedUserIsAdmin"
-          type="button"
-          class="banking-admin-button"
-          @click="goToAdminDashboard"
-        >
-          <ShieldCheck :size="17" />
-          <span>Admin Dashboard</span>
-        </button>
+        <!-- SUPPORT -->
 
-        <!-- ADMIN SUPPORT -->
-        <div v-if="isAdminMode" class="banking-support">
-          <div class="banking-support-icon">
-            <ShieldCheck :size="17" />
-          </div>
-
-          <div class="banking-support-text">
-            <strong>Admin Area</strong>
-            <span>Secure administration</span>
-          </div>
-        </div>
-
-        <!-- CUSTOMER SUPPORT -->
-        <div v-else class="banking-support">
+        <div class="banking-support-box">
           <div class="banking-support-icon">
             <HelpCircle :size="17" />
           </div>
 
-          <div class="banking-support-text">
+          <div>
             <strong>Need help?</strong>
             <span>We're here for you.</span>
           </div>
         </div>
 
-        <button type="button" class="banking-logout" @click="logout">
-          <LogOut :size="18" />
+        <!-- ADMIN SWITCH -->
 
-          <span>
-            {{ isAdminMode ? 'Sign out' : 'Sign out' }}
-          </span>
+        <button
+          v-if="showAdminDashboardButton"
+          class="banking-bottom-button"
+          type="button"
+          @click="goToAdminDashboard"
+        >
+          <ShieldCheck :size="17" />
+
+          <span>Admin Dashboard</span>
+        </button>
+
+        <!-- LOGOUT -->
+
+        <button class="banking-bottom-button logout-button" type="button" @click="logout">
+          <LogOut :size="17" />
+
+          <span>Sign out</span>
         </button>
       </div>
     </aside>
 
-    <!-- MAIN AREA -->
+    <!-- =====================================================
+         MAIN APPLICATION
+    ====================================================== -->
+
     <main class="banking-main">
-      <!-- HEADER -->
+      <!-- ===================================================
+           HEADER
+      ==================================================== -->
+
       <header class="banking-header">
         <div class="banking-header-left">
           <button
-            type="button"
-            class="banking-mobile-menu"
             aria-label="Open navigation"
-            @click="mobileMenuOpen = true"
+            class="banking-mobile-menu"
+            type="button"
+            @click="openMobileMenu"
           >
-            <Menu :size="22" />
+            <Menu :size="21" />
           </button>
 
           <div class="banking-page-heading">
             <span class="banking-page-section">
-              {{ pageSection }}
+              {{ props.pageSection }}
             </span>
 
             <h1>
-              {{ pageTitle }}
+              {{ props.pageTitle }}
             </h1>
           </div>
         </div>
 
-        <div class="banking-header-right">
+        <div class="banking-header-actions">
+          <!-- REFRESH -->
+
           <button
             v-if="showRefresh"
-            type="button"
-            class="banking-header-button"
             :disabled="refreshing"
             aria-label="Refresh"
-            @click="emit('refresh')"
+            class="banking-header-button"
+            type="button"
+            @click="handleRefresh"
           >
-            <RefreshCw :size="18" :class="{ spinning: refreshing }" />
+            <RefreshCw :class="{ 'is-spinning': refreshing }" :size="17" />
           </button>
 
-          <div class="banking-notification">
-            <NotificationDropdown />
-          </div>
+          <!-- NOTIFICATIONS -->
+
+          <NotificationDropdown />
+
+          <!-- PROFILE -->
 
           <div class="banking-profile">
-            <div class="banking-avatar">
+            <div class="banking-profile-avatar">
               {{ userInitials }}
             </div>
 
             <div class="banking-profile-info">
-              <strong>
-                {{ fullName }}
-              </strong>
+              <strong>{{ fullName }}</strong>
 
               <span>
-                <div class="banking-profile-info">
-                  <strong>
-                    {{ fullName }}
-                  </strong>
-
-                  <span v-if="isAdminMode"> Administrator </span>
-
-                  <span v-else-if="isBusiness"> Business Banking </span>
-
-                  <span v-else>
-                    {{ displayUser.email || 'Personal account' }}
-                  </span>
-                </div>
+                {{ displayUser.email || 'Authenticated user' }}
               </span>
             </div>
           </div>
         </div>
       </header>
 
-      <!-- PAGE CONTENT -->
+      <!-- ===================================================
+           CONTENT
+      ==================================================== -->
+
       <section class="banking-content">
         <slot />
       </section>
+
+      <!-- ===================================================
+           MOBILE BOTTOM / FOOTER
+      ==================================================== -->
+
+      <footer class="banking-footer">
+        <RouterLink :to="headerBackRoute" class="banking-footer-link">
+          {{ headerBackLabel }}
+        </RouterLink>
+
+        <span class="banking-footer-separator">•</span>
+
+        <span>Buuchezo Bank</span>
+      </footer>
     </main>
   </div>
 </template>
 
-<style>
+<style scoped>
 /* ============================================================
-   BUUCHEZO BANK — SHARED CUSTOMER APPLICATION SHELL
-   ============================================================ */
+   BUUCHEZO BANK — BANKING SHELL
+============================================================ */
+
+* {
+  box-sizing: border-box;
+}
 
 .banking-shell {
-  --banking-navy: #0b1f38;
-  --banking-navy-light: #132d4d;
-  --banking-blue: #1597ff;
-  --banking-blue-dark: #0d6fbd;
-  --banking-text: #132945;
-  --banking-muted: #718096;
-  --banking-border: #e1e8f0;
-  --banking-background: #f5f8fc;
-  --banking-white: #ffffff;
-
   min-height: 100vh;
   width: 100%;
+
   display: flex;
-  background: var(--banking-background);
-  color: var(--banking-text);
+
+  background: #f5f8fc;
+
+  color: #132945;
+
   font-family:
     Inter,
     -apple-system,
@@ -566,11 +838,12 @@ function logout() {
 
 /* ============================================================
    SIDEBAR
-   ============================================================ */
+============================================================ */
 
 .banking-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
+
   z-index: 1000;
 
   width: 258px;
@@ -586,11 +859,15 @@ function logout() {
   color: #ffffff;
 
   box-shadow: 8px 0 30px rgba(9, 27, 49, 0.12);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 /* ============================================================
    LOGO
-   ============================================================ */
+============================================================ */
 
 .banking-sidebar-top {
   display: flex;
@@ -598,51 +875,38 @@ function logout() {
   justify-content: space-between;
 
   padding: 0 10px;
+
   margin-bottom: 30px;
 }
 
 .banking-logo {
   display: flex;
   align-items: center;
+
   gap: 11px;
 
   color: #ffffff;
+
   text-decoration: none;
 }
-.banking-logo-image {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  display: block;
-  flex-shrink: 0;
-}
 
-.banking-logo-mark {
+.banking-logo-image {
   width: 35px;
   height: 35px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
 
-  border-radius: 10px;
+  object-fit: contain;
+  object-position: center;
 
-  background: linear-gradient(135deg, #1597ff 0%, #0d6fbd 100%);
-
-  color: #ffffff;
-
-  font-size: 17px;
-  font-weight: 800;
-
-  box-shadow: 0 7px 18px rgba(21, 151, 255, 0.24);
+  flex-shrink: 0;
 }
 
 .banking-logo-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 
-  min-width: 0;
+  color: #ffffff;
 
   white-space: nowrap;
 }
@@ -650,55 +914,44 @@ function logout() {
 .banking-logo-text strong {
   font-size: 15px;
   font-weight: 750;
+
+  line-height: 1.2;
+
   letter-spacing: -0.2px;
 }
 
 .banking-logo-text small {
-  color: rgba(255, 255, 255, 0.5);
+  margin-top: 3px;
 
-  font-size: 9px;
+  color: rgba(255, 255, 255, 0.55);
+
+  font-size: 8px;
   font-weight: 700;
 
-  letter-spacing: 0.6px;
+  letter-spacing: 0.12em;
+
   text-transform: uppercase;
-}
-
-.banking-mobile-close {
-  display: none;
-
-  width: 34px;
-  height: 34px;
-
-  align-items: center;
-  justify-content: center;
-
-  border: 0;
-  border-radius: 9px;
-
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-
-  cursor: pointer;
 }
 
 /* ============================================================
    NAVIGATION
-   ============================================================ */
+============================================================ */
 
 .banking-navigation {
   flex: 1;
+
   min-height: 0;
 
   overflow-y: auto;
   overflow-x: hidden;
 
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .banking-navigation-group {
   display: flex;
   flex-direction: column;
+
   gap: 5px;
 }
 
@@ -712,203 +965,187 @@ function logout() {
   color: rgba(255, 255, 255, 0.42);
 
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
 
   letter-spacing: 1.2px;
-  line-height: 1;
 }
 
 .banking-navigation-item {
-  position: relative;
-
-  min-height: 44px;
+  min-height: 43px;
 
   display: flex;
   align-items: center;
-  gap: 12px;
 
-  padding: 0 13px;
+  gap: 11px;
 
-  border-radius: 10px;
+  padding: 0 12px;
+
+  border-radius: 9px;
 
   color: rgba(255, 255, 255, 0.68);
-  text-decoration: none;
 
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 650;
 
+  text-decoration: none;
+
   transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .banking-navigation-item svg {
-  flex: 0 0 auto;
+  flex-shrink: 0;
+
+  opacity: 0.8;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .banking-navigation-item:hover {
-  background: rgba(255, 255, 255, 0.07);
   color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.07);
+
+  transform: translateX(1px);
+}
+
+.banking-navigation-item:hover svg {
+  opacity: 1;
 }
 
 .banking-navigation-item.active {
-  background: linear-gradient(135deg, #0d6fbd 0%, #1597ff 100%);
-
   color: #ffffff;
 
-  box-shadow: 0 8px 20px rgba(21, 151, 255, 0.18);
+  background: linear-gradient(135deg, rgba(21, 151, 255, 0.23), rgba(21, 151, 255, 0.1));
+
+  box-shadow: inset 0 0 0 1px rgba(21, 151, 255, 0.12);
 }
 
-.banking-navigation-item.active::before {
-  content: '';
-
-  position: absolute;
-  left: -14px;
-  top: 8px;
-  bottom: 8px;
-
-  width: 3px;
-
-  border-radius: 0 4px 4px 0;
-
-  background: #5eb9ff;
+.banking-navigation-item.active svg {
+  opacity: 1;
 }
 
 /* ============================================================
    SIDEBAR BOTTOM
-   ============================================================ */
+============================================================ */
 
 .banking-sidebar-bottom {
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  padding-top: 18px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.banking-support {
+.banking-support-box {
   display: flex;
   align-items: center;
+
   gap: 10px;
 
-  margin: 0 4px 12px;
   padding: 11px;
 
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 11px;
+  border-radius: 9px;
 
-  background: rgba(255, 255, 255, 0.045);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .banking-support-icon {
-  width: 31px;
-  height: 31px;
+  width: 30px;
+  height: 30px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  flex: 0 0 auto;
+  flex-shrink: 0;
 
   border-radius: 8px;
 
-  background: rgba(21, 151, 255, 0.16);
-  color: #69beff;
+  background: rgba(21, 151, 255, 0.13);
+
+  color: #72c3ff;
 }
 
-.banking-support-text {
-  min-width: 0;
-
+.banking-support-box > div:last-child {
   display: flex;
   flex-direction: column;
+
   gap: 2px;
 }
 
-.banking-support-text strong {
+.banking-support-box strong {
   color: #ffffff;
 
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
 }
 
-.banking-support-text span {
-  color: rgba(255, 255, 255, 0.42);
+.banking-support-box span {
+  color: rgba(255, 255, 255, 0.45);
 
-  font-size: 10px;
+  font-size: 8px;
 }
 
-.banking-admin-button {
-  width: calc(100% - 8px);
-  min-height: 40px;
-
-  margin: 0 4px 10px;
-  padding: 0 11px;
+.banking-bottom-button {
+  width: 100%;
+  min-height: 38px;
 
   display: flex;
   align-items: center;
+
   gap: 9px;
 
-  border: 1px solid rgba(21, 151, 255, 0.24);
-  border-radius: 9px;
-
-  background: rgba(21, 151, 255, 0.1);
-  color: #79c8ff;
-
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    border-color 180ms ease;
-}
-
-.banking-admin-button:hover {
-  background: rgba(21, 151, 255, 0.18);
-  border-color: rgba(21, 151, 255, 0.4);
-  color: #ffffff;
-}
-
-.banking-logout {
-  width: 100%;
-  min-height: 43px;
-
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  padding: 0 13px;
+  padding: 0 11px;
 
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
 
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
 
-  font: inherit;
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.58);
+
+  font-family: inherit;
+
+  font-size: 10px;
   font-weight: 650;
+
+  text-align: left;
 
   cursor: pointer;
 
   transition:
-    background-color 180ms ease,
-    color 180ms ease;
+    color 0.2s ease,
+    background 0.2s ease;
 }
 
-.banking-logout:hover {
-  background: rgba(255, 255, 255, 0.07);
+.banking-bottom-button:hover {
   color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.logout-button:hover {
+  color: #ffffff;
+
+  background: rgba(220, 70, 70, 0.12);
 }
 
 /* ============================================================
    MAIN
-   ============================================================ */
+============================================================ */
 
 .banking-main {
-  min-width: 0;
-  width: calc(100% - 258px);
   min-height: 100vh;
+
+  width: calc(100% - 258px);
 
   margin-left: 258px;
 
@@ -918,28 +1155,27 @@ function logout() {
 
 /* ============================================================
    HEADER
-   ============================================================ */
+============================================================ */
 
 .banking-header {
-  position: sticky;
-  top: 0;
-  z-index: 900;
-
-  height: 76px;
   min-height: 76px;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  padding: 0 30px;
+  gap: 25px;
 
-  border-bottom: 1px solid rgba(225, 232, 240, 0.9);
+  padding: 0 32px;
 
-  background: rgba(255, 255, 255, 0.94);
+  background: #ffffff;
 
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid #e6edf4;
+
+  position: sticky;
+  top: 0;
+
+  z-index: 100;
 }
 
 .banking-header-left {
@@ -947,234 +1183,94 @@ function logout() {
 
   display: flex;
   align-items: center;
+
   gap: 14px;
 }
 
-.banking-mobile-menu {
-  display: none;
-
-  width: 38px;
-  height: 38px;
-
-  align-items: center;
-  justify-content: center;
-
-  border: 1px solid var(--banking-border);
-  border-radius: 9px;
-
-  background: #ffffff;
-  color: var(--banking-text);
-
-  cursor: pointer;
-}
-
 .banking-page-heading {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 3px;
 }
 
 .banking-page-section {
-  color: #8b98a8;
+  margin-bottom: 4px;
 
-  font-size: 9px;
+  color: #0d6fbd;
+
+  font-size: 8px;
   font-weight: 800;
 
-  letter-spacing: 1.15px;
-  line-height: 1;
+  letter-spacing: 0.16em;
 }
 
 .banking-page-heading h1 {
   margin: 0;
 
-  color: #132945;
+  overflow: hidden;
 
-  font-size: 20px;
+  color: #0b1f38;
+
+  font-size: 17px;
   font-weight: 750;
 
-  letter-spacing: -0.35px;
   line-height: 1.2;
+
+  letter-spacing: -0.02em;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.banking-header-right {
+.banking-header-actions {
   display: flex;
   align-items: center;
-  gap: 13px;
+
+  gap: 12px;
 }
 
 .banking-header-button {
-  width: 38px;
-  height: 38px;
+  width: 35px;
+  height: 35px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 1px solid var(--banking-border);
-  border-radius: 9px;
+  padding: 0;
+
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
 
   background: #ffffff;
-  color: #60748a;
+
+  color: #52657d;
 
   cursor: pointer;
 
   transition:
-    background-color 180ms ease,
-    color 180ms ease,
-    border-color 180ms ease;
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
 }
 
 .banking-header-button:hover:not(:disabled) {
-  background: #f4f8fc;
-  border-color: #cfdbe7;
   color: #0d6fbd;
+
+  border-color: #bcd9ed;
+
+  background: #f7fbff;
 }
 
 .banking-header-button:disabled {
-  opacity: 0.55;
   cursor: not-allowed;
+
+  opacity: 0.55;
 }
 
-.banking-notification {
-  display: flex;
-  align-items: center;
-}
-
-.banking-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  padding-left: 13px;
-
-  border-left: 1px solid var(--banking-border);
-}
-
-.banking-avatar {
-  width: 36px;
-  height: 36px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: linear-gradient(135deg, #0d6fbd 0%, #1597ff 100%);
-
-  color: #ffffff;
-
-  font-size: 11px;
-  font-weight: 800;
-
-  box-shadow: 0 5px 14px rgba(21, 151, 255, 0.2);
-}
-
-.banking-profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  min-width: 0;
-}
-
-.banking-profile-info strong {
-  max-width: 170px;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  color: #132945;
-
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.banking-profile-info span {
-  max-width: 190px;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  color: #8a98a8;
-
-  font-size: 10px;
-}
-
-/* ============================================================
-   PAGE CONTENT
-   ============================================================ */
-
-.banking-content {
-  flex: 1;
-
-  width: 100%;
-  min-width: 0;
-
-  padding: 30px;
-}
-
-/* ============================================================
-   GENERIC CONTENT RULES
-   These establish one typography scale across every page.
-   ============================================================ */
-
-.banking-content > h1,
-.banking-content > h2,
-.banking-content section > h1,
-.banking-content section > h2 {
-  color: #132945;
-}
-
-.banking-content h1 {
-  font-size: 26px;
-  line-height: 1.2;
-}
-
-.banking-content h2 {
-  font-size: 22px;
-  line-height: 1.25;
-}
-
-.banking-content h3 {
-  font-size: 16px;
-  line-height: 1.3;
-}
-
-.banking-content p {
-  color: #718096;
-}
-
-/* ============================================================
-   SHARED CARDS
-   ============================================================ */
-
-.banking-content .bz-card,
-.banking-content .card,
-.banking-content .content-card {
-  border: 1px solid #e1e8f0;
-  border-radius: 16px;
-
-  background: #ffffff;
-
-  box-shadow: 0 8px 28px rgba(15, 35, 55, 0.055);
-}
-
-/* ============================================================
-   ANIMATION
-   ============================================================ */
-
-.banking-navigation-item,
-.banking-header-button,
-.banking-admin-button,
-.banking-logout {
-  will-change: background-color, color, transform;
-}
-
-.spinning {
-  animation: banking-spin 0.8s linear infinite;
+.is-spinning {
+  animation: banking-spin 0.9s linear infinite;
 }
 
 @keyframes banking-spin {
@@ -1184,113 +1280,275 @@ function logout() {
 }
 
 /* ============================================================
-   MOBILE
-   ============================================================ */
+   PROFILE
+============================================================ */
 
-.banking-mobile-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
+.banking-profile {
+  display: flex;
+  align-items: center;
 
-  background: rgba(5, 19, 35, 0.48);
+  gap: 9px;
 
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  padding-left: 10px;
+
+  border-left: 1px solid #e6edf4;
 }
 
-@media (max-width: 900px) {
+.banking-profile-avatar {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #0b1f38;
+
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.banking-profile-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.banking-profile-info strong {
+  max-width: 145px;
+
+  overflow: hidden;
+
+  color: #132945;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.banking-profile-info span {
+  max-width: 145px;
+
+  overflow: hidden;
+
+  color: #8a98a9;
+
+  font-size: 8px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   CONTENT
+============================================================ */
+
+.banking-content {
+  flex: 1;
+
+  width: 100%;
+
+  padding: 30px 32px 40px;
+}
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+.banking-footer {
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 9px;
+
+  padding: 0 20px;
+
+  color: #98a5b4;
+
+  border-top: 1px solid #e6edf4;
+
+  background: #ffffff;
+
+  font-size: 8px;
+}
+
+.banking-footer-link {
+  color: #718096;
+
+  text-decoration: none;
+}
+
+.banking-footer-link:hover {
+  color: #0d6fbd;
+}
+
+.banking-footer-separator {
+  color: #c4ccd5;
+}
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+.banking-mobile-menu,
+.banking-mobile-close {
+  display: none;
+}
+
+.banking-mobile-overlay {
+  display: none;
+}
+
+/* ============================================================
+   TABLET
+============================================================ */
+
+@media (max-width: 1000px) {
   .banking-sidebar {
     transform: translateX(-100%);
-    transition: transform 220ms ease;
+
+    box-shadow: none;
   }
 
   .banking-sidebar.is-open {
     transform: translateX(0);
+
+    box-shadow: 12px 0 40px rgba(9, 27, 49, 0.2);
+  }
+
+  .banking-mobile-overlay {
+    position: fixed;
+    inset: 0;
+
+    z-index: 999;
+
+    display: block;
+
+    background: rgba(7, 22, 39, 0.45);
+
+    backdrop-filter: blur(2px);
+  }
+
+  .banking-mobile-menu {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    padding: 0;
+
+    border: 1px solid #e1e8f0;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #132945;
+
+    cursor: pointer;
   }
 
   .banking-mobile-close {
+    width: 34px;
+    height: 34px;
+
     display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, 0.06);
+
+    color: #ffffff;
+
+    cursor: pointer;
   }
 
   .banking-main {
     width: 100%;
+
     margin-left: 0;
-  }
-
-  .banking-mobile-menu {
-    display: flex;
-  }
-
-  .banking-header {
-    padding: 0 20px;
-  }
-
-  .banking-content {
-    padding: 24px 20px;
-  }
-}
-
-@media (max-width: 640px) {
-  .banking-header {
-    height: 68px;
-    min-height: 68px;
-    padding: 0 14px;
-  }
-
-  .banking-content {
-    padding: 20px 14px;
-  }
-
-  .banking-page-heading h1 {
-    font-size: 18px;
-  }
-
-  .banking-header-right {
-    gap: 7px;
-  }
-
-  .banking-profile {
-    padding-left: 7px;
-  }
-
-  .banking-profile-info {
-    display: none;
-  }
-
-  .banking-avatar {
-    width: 34px;
-    height: 34px;
-  }
-
-  .banking-header-button {
-    width: 34px;
-    height: 34px;
-  }
-
-  .banking-content h1 {
-    font-size: 23px;
-  }
-
-  .banking-content h2 {
-    font-size: 20px;
   }
 }
 
 /* ============================================================
-   REDUCED MOTION
-   ============================================================ */
+   MOBILE
+============================================================ */
 
-@media (prefers-reduced-motion: reduce) {
-  .banking-sidebar,
-  .banking-navigation-item,
-  .banking-header-button,
-  .banking-admin-button,
-  .banking-logout {
-    transition: none;
+@media (max-width: 700px) {
+  .banking-header {
+    min-height: 68px;
+
+    padding: 0 16px;
   }
 
-  .spinning {
-    animation: none;
+  .banking-content {
+    padding: 22px 16px 32px;
+  }
+
+  .banking-header-actions {
+    gap: 6px;
+  }
+
+  .banking-profile {
+    display: none;
+  }
+
+  .banking-page-heading h1 {
+    font-size: 15px;
+  }
+
+  .banking-page-section {
+    font-size: 7px;
+  }
+
+  .banking-footer {
+    font-size: 7px;
+  }
+}
+
+@media (max-width: 450px) {
+  .banking-header {
+    gap: 10px;
+  }
+
+  .banking-header-actions {
+    margin-left: auto;
+  }
+
+  .banking-header-button {
+    width: 33px;
+    height: 33px;
+  }
+
+  .banking-page-heading {
+    max-width: 150px;
+  }
+
+  .banking-content {
+    padding: 18px 12px 28px;
   }
 }
 </style>

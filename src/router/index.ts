@@ -32,6 +32,10 @@ import BusinessDashboardView from '@/views/public/BusinessDashboardView.vue'
 import BusinessTransactionsView from '@/views/public/BusinessTransactionsView.vue'
 import BusinessTransfersView from '@/views/public/BusinessTransfersView.vue'
 import BusinessLoginView from '@/views/public/BusinessLoginView.vue'
+import BusinessAccountsView from '@/views/public/BusinessAccountsView.vue'
+import BusinessCardsView from '@/views/public/BusinessCardsView.vue'
+import BusinessMembersView from '@/views/public/BusinessMembersView.vue'
+import BusinessSettingsView from '@/views/public/BusinessSettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -224,11 +228,39 @@ const router = createRouter({
       },
     },
     {
+      path: '/business/accounts',
+      name: 'business-accounts',
+      component: BusinessAccountsView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/business/cards',
+      name: 'business-cards',
+      component: BusinessCardsView,
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/business/transfers',
       component: BusinessTransfersView,
       meta: {
         requiresAuth: true,
       },
+    },
+    {
+      path: '/business/settings',
+      name: 'business-settings',
+      component: BusinessSettingsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/business/members',
+      name: 'business-members',
+      component: BusinessMembersView,
+      meta: { requiresAuth: true },
     },
 
     {
