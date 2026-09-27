@@ -4,7 +4,7 @@
          BRAND
     ============================================================= -->
 
-    <RouterLink to="/" class="navbar-brand">
+    <RouterLink class="navbar-brand" to="/">
       <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="bank-card-logo" />
 
       <div class="brand-copy">
@@ -18,23 +18,23 @@
     ============================================================= -->
 
     <nav class="navbar-navigation">
-      <RouterLink to="/" class="nav-link" :class="{ active: route.path === '/' }">
+      <RouterLink :class="{ active: route.path === '/' }" class="nav-link" to="/">
         Personal
       </RouterLink>
 
-      <RouterLink to="/business" class="nav-link" :class="{ active: route.path === '/business' }">
+      <RouterLink :class="{ active: route.path === '/business' }" class="nav-link" to="/business">
         Business
       </RouterLink>
 
-      <RouterLink to="/wealth" class="nav-link" :class="{ active: route.path === '/wealth' }">
+      <RouterLink :class="{ active: route.path === '/wealth' }" class="nav-link" to="/wealth">
         Wealth
       </RouterLink>
 
-      <RouterLink to="/about" class="nav-link" :class="{ active: route.path === '/about' }">
+      <RouterLink :class="{ active: route.path === '/about' }" class="nav-link" to="/about">
         About
       </RouterLink>
 
-      <RouterLink to="/support" class="nav-link" :class="{ active: route.path === '/support' }">
+      <RouterLink :class="{ active: route.path === '/support' }" class="nav-link" to="/support">
         Support
       </RouterLink>
     </nav>
@@ -48,19 +48,19 @@
            SEARCH
       =========================================================== -->
 
-      <button class="search-button" type="button" aria-label="Search" @click="toggleSearch">
+      <button aria-label="Search" class="search-button" type="button" @click="toggleSearch">
         <svg
-          width="19"
-          height="19"
-          viewBox="0 0 24 24"
           fill="none"
+          height="19"
           stroke="currentColor"
-          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
+          stroke-width="1.8"
+          viewBox="0 0 24 24"
+          width="19"
         >
           <circle cx="11" cy="11" r="7" />
-          <line x1="16.5" y1="16.5" x2="21" y2="21" />
+          <line x1="16.5" x2="21" y1="16.5" y2="21" />
         </svg>
       </button>
 
@@ -72,14 +72,14 @@
         EN
 
         <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
           fill="none"
+          height="12"
           stroke="currentColor"
-          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="12"
         >
           <path d="m6 9 6 6 6-6" />
         </svg>
@@ -92,7 +92,7 @@
            This is visible only on desktop.
       =========================================================== -->
 
-      <RouterLink to="/login" class="login-button"> Login </RouterLink>
+      <RouterLink class="login-button" to="/login"> Login </RouterLink>
 
       <!-- ==========================================================
            DESKTOP REGISTER
@@ -102,7 +102,7 @@
            There is NO desktop dropdown.
       =========================================================== -->
 
-      <RouterLink to="/register" class="register-button"> Register </RouterLink>
+      <RouterLink class="register-button" to="/register"> Register </RouterLink>
 
       <!-- ==========================================================
            MOBILE GET STARTED MENU
@@ -111,27 +111,27 @@
            This is hidden on desktop and visible only on mobile.
       =========================================================== -->
 
-      <div class="mobile-account-menu" ref="accountMenu">
+      <div ref="accountMenu" class="mobile-account-menu">
         <button
-          class="mobile-account-button"
-          type="button"
           :aria-expanded="accountMenuOpen"
           aria-haspopup="menu"
+          class="mobile-account-button"
+          type="button"
           @click="toggleAccountMenu"
         >
           <span class="mobile-account-label"> Get Started </span>
 
           <svg
-            class="account-menu-chevron"
             :class="{ rotated: accountMenuOpen }"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
+            class="account-menu-chevron"
             fill="none"
+            height="15"
             stroke="currentColor"
-            stroke-width="2.2"
             stroke-linecap="round"
             stroke-linejoin="round"
+            stroke-width="2.2"
+            viewBox="0 0 24 24"
+            width="15"
           >
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -143,73 +143,234 @@
 
         <Transition name="dropdown">
           <div v-if="accountMenuOpen" class="account-dropdown" role="menu">
-            <!-- Login -->
+            <!-- ========================================================
+                 SITE NAVIGATION
+            ========================================================= -->
 
-            <RouterLink
-              to="/login"
-              class="account-dropdown-item"
-              role="menuitem"
-              @click="closeAccountMenu"
-            >
-              <div class="dropdown-icon">
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <div class="dropdown-section">
+              <span class="dropdown-section-title"> Explore </span>
 
-                  <polyline points="10 17 15 12 10 7" />
+              <!-- Personal -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <path d="M3 10.5 12 3l9 7.5" />
+                    <path d="M5 9.5V21h14V9.5" />
+                    <path d="M9 21v-6h6v6" />
+                  </svg>
+                </div>
 
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
-              </div>
+                <div class="dropdown-copy">
+                  <strong>Personal</strong>
+                  <span>Personal banking</span>
+                </div>
+              </RouterLink>
 
-              <div class="dropdown-copy">
-                <strong>Login</strong>
-                <span>Access your account</span>
-              </div>
-            </RouterLink>
+              <!-- Business -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/business"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <rect height="13" rx="2" width="18" x="3" y="7" />
+                    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d="M3 12h18" />
+                    <path d="M10 12v2h4v-2" />
+                  </svg>
+                </div>
 
-            <!-- Register -->
+                <div class="dropdown-copy">
+                  <strong>Business</strong>
+                  <span>Business banking</span>
+                </div>
+              </RouterLink>
 
-            <RouterLink
-              to="/register"
-              class="account-dropdown-item"
-              role="menuitem"
-              @click="closeAccountMenu"
-            >
-              <div class="dropdown-icon">
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="9" cy="7" r="4" />
+              <!-- Wealth -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/wealth"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <path d="M3 17l6-6 4 4 8-8" />
+                    <path d="M15 7h6v6" />
+                  </svg>
+                </div>
 
-                  <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
+                <div class="dropdown-copy">
+                  <strong>Wealth</strong>
+                  <span>Wealth & investments</span>
+                </div>
+              </RouterLink>
 
-                  <line x1="19" y1="8" x2="19" y2="14" />
+              <!-- About -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/about"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <line x1="12" x2="12" y1="10" y2="16" />
+                    <circle cx="12" cy="7" fill="currentColor" r="0.8" />
+                  </svg>
+                </div>
 
-                  <line x1="16" y1="11" x2="22" y2="11" />
-                </svg>
-              </div>
+                <div class="dropdown-copy">
+                  <strong>About</strong>
+                  <span>About Buuchezo Bank</span>
+                </div>
+              </RouterLink>
 
-              <div class="dropdown-copy">
-                <strong>Register</strong>
-                <span>Open a new account</span>
-              </div>
-            </RouterLink>
+              <!-- Support -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/support"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M8.5 9a3.5 3.5 0 0 1 7 0c0 2-1.5 2.8-2.7 3.5-.8.4-1.3.8-1.3 1.5" />
+                    <circle cx="12" cy="17" fill="currentColor" r="0.8" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-copy">
+                  <strong>Support</strong>
+                  <span>Help & support</span>
+                </div>
+              </RouterLink>
+            </div>
+
+            <!-- ========================================================
+                 ACCOUNT
+            ========================================================= -->
+
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-section">
+              <span class="dropdown-section-title"> Account </span>
+
+              <!-- Login -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/login"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" x2="3" y1="12" y2="12" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-copy">
+                  <strong>Login</strong>
+                  <span>Access your account</span>
+                </div>
+              </RouterLink>
+
+              <!-- Register -->
+              <RouterLink
+                class="account-dropdown-item"
+                role="menuitem"
+                to="/register"
+                @click="closeAccountMenu"
+              >
+                <div class="dropdown-icon">
+                  <svg
+                    fill="none"
+                    height="17"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    viewBox="0 0 24 24"
+                    width="17"
+                  >
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
+                    <line x1="19" x2="19" y1="8" y2="14" />
+                    <line x1="16" x2="22" y1="11" y2="11" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-copy">
+                  <strong>Register</strong>
+                  <span>Open a new account</span>
+                </div>
+              </RouterLink>
+            </div>
           </div>
         </Transition>
       </div>
@@ -224,29 +385,29 @@
     <div v-if="searchOpen" class="search-panel">
       <div class="search-panel-inner">
         <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
           fill="none"
+          height="20"
           stroke="currentColor"
-          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
+          stroke-width="1.8"
+          viewBox="0 0 24 24"
+          width="20"
         >
           <circle cx="11" cy="11" r="7" />
 
-          <line x1="16.5" y1="16.5" x2="21" y2="21" />
+          <line x1="16.5" x2="21" y1="16.5" y2="21" />
         </svg>
 
         <input
           ref="searchInput"
           v-model="searchQuery"
-          type="search"
-          placeholder="Search Buuchezo Bank..."
           aria-label="Search"
+          placeholder="Search Buuchezo Bank..."
+          type="search"
         />
 
-        <button class="search-close" type="button" aria-label="Close search" @click="closeSearch">
+        <button aria-label="Close search" class="search-close" type="button" @click="closeSearch">
           ×
         </button>
       </div>
@@ -254,7 +415,7 @@
   </Transition>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
@@ -756,6 +917,45 @@ onBeforeUnmount(() => {
   box-shadow: 0 18px 45px rgba(20, 35, 55, 0.15);
 
   z-index: 1000;
+}
+/* ================================================================
+   MOBILE DROPDOWN SECTIONS
+================================================================ */
+
+.dropdown-section {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.dropdown-section-title {
+  display: block;
+
+  padding: 7px 11px 5px;
+
+  color: #8191a6;
+
+  font-size: 9px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+/* ================================================================
+   MOBILE DROPDOWN DIVIDER
+================================================================ */
+
+.dropdown-divider {
+  height: 1px;
+
+  margin: 7px 4px;
+
+  background: #e5eaf0;
 }
 
 /* ================================================================
