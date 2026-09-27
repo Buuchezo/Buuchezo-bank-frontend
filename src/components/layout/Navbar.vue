@@ -397,6 +397,18 @@
       </div>
     </div>
   </header>
+  <!-- ==============================================================
+     MOBILE MENU BACKDROP
+================================================================ -->
+
+  <Transition name="mobile-backdrop">
+    <div
+      v-if="accountMenuOpen"
+      aria-hidden="true"
+      class="mobile-menu-backdrop"
+      @click="closeAccountMenu"
+    ></div>
+  </Transition>
 
   <!-- ==============================================================
        SEARCH PANEL
@@ -1053,15 +1065,65 @@ onBeforeUnmount(() => {
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
 
-  transform: translateY(-5px) scale(0.98);
+  transform: translateY(-8px);
+}
+
+/* ================================================================
+   MOBILE MENU BACKDROP
+================================================================ */
+
+.mobile-menu-backdrop {
+  position: fixed;
+
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 80;
+
+  /*
+    Slight darkening while keeping the
+    page visible underneath.
+  */
+  background: rgba(7, 27, 56, 0.22);
+
+  /*
+    Blur the page underneath the menu.
+  */
+  backdrop-filter: blur(5px);
+
+  -webkit-backdrop-filter: blur(5px);
+
+  cursor: pointer;
+
+  /*
+    Prevent touch gestures from passing
+    through to the page underneath.
+  */
+  touch-action: none;
+}
+
+/* ================================================================
+   MOBILE BACKDROP TRANSITION
+================================================================ */
+
+.mobile-backdrop-enter-active,
+.mobile-backdrop-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.mobile-backdrop-enter-from,
+.mobile-backdrop-leave-to {
+  opacity: 0;
 }
 
 /* ================================================================
@@ -1199,17 +1261,26 @@ onBeforeUnmount(() => {
     padding: 0 20px;
   }
 
-  /* Hide desktop navigation */
+  /* --------------------------------------------------------------
+     Hide desktop navigation
+  -------------------------------------------------------------- */
+
   .navbar-navigation {
     display: none;
   }
 
-  /* Hide language selector */
+  /* --------------------------------------------------------------
+     Hide language
+  -------------------------------------------------------------- */
+
   .language-button {
     display: none;
   }
 
-  /* Hide desktop authentication buttons */
+  /* --------------------------------------------------------------
+     Hide desktop authentication
+  -------------------------------------------------------------- */
+
   .login-button {
     display: none;
   }
@@ -1218,20 +1289,44 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  /* Show mobile menu */
+  /* --------------------------------------------------------------
+     Show mobile hamburger
+  -------------------------------------------------------------- */
+
   .mobile-account-menu {
     display: flex;
+
+    /*
+      Static positioning here allows the full-width
+      fixed dropdown to escape the menu container.
+    */
+    position: static;
   }
 
-  /* Search is not shown on mobile */
+  /* --------------------------------------------------------------
+     Hide mobile search
+  -------------------------------------------------------------- */
+
   .search-button {
     display: none;
   }
 
-  /*
-    Full-width mobile navigation.
-    It starts directly underneath the navbar.
-  */
+  /* --------------------------------------------------------------
+     Mobile hamburger
+  -------------------------------------------------------------- */
+
+  .mobile-account-button {
+    width: 48px;
+    height: 48px;
+
+    padding: 0;
+
+    border-radius: 12px;
+  }
+
+  /* --------------------------------------------------------------
+     FULL-WIDTH MOBILE MENU
+  -------------------------------------------------------------- */
 
   .account-dropdown {
     position: fixed;
@@ -1260,18 +1355,22 @@ onBeforeUnmount(() => {
 
     background: #ffffff;
 
+    /*
+      Keep menu above the backdrop.
+    */
+    z-index: 100;
+
     box-shadow: 0 16px 35px rgba(6, 47, 89, 0.09);
 
     -webkit-overflow-scrolling: touch;
   }
 
-  .mobile-account-button {
-    width: 48px;
-    height: 48px;
+  /*
+    Backdrop must sit below the mobile menu.
+  */
 
-    padding: 0;
-
-    border-radius: 12px;
+  .mobile-menu-backdrop {
+    z-index: 80;
   }
 }
 
@@ -1292,10 +1391,17 @@ onBeforeUnmount(() => {
 
     padding: 0 16px;
 
+    /*
+      White mobile navbar like the Wealth page.
+    */
     background: #ffffff;
 
     border-bottom: none;
   }
+
+  /* --------------------------------------------------------------
+     Brand
+  -------------------------------------------------------------- */
 
   .navbar-brand {
     gap: 9px;
@@ -1318,24 +1424,27 @@ onBeforeUnmount(() => {
     display: none;
   }
 
+  /* --------------------------------------------------------------
+     Actions
+  -------------------------------------------------------------- */
+
   .navbar-actions {
     margin-left: auto;
 
     gap: 5px;
   }
 
-  /*
-    Search remains available on desktop,
-    but is removed from the mobile header.
-  */
+  /* --------------------------------------------------------------
+     Search hidden on mobile
+  -------------------------------------------------------------- */
 
   .search-button {
     display: none;
   }
 
-  /*
-    Mobile hamburger
-  */
+  /* --------------------------------------------------------------
+     Hamburger
+  -------------------------------------------------------------- */
 
   .mobile-account-button {
     width: 44px;
@@ -1351,9 +1460,9 @@ onBeforeUnmount(() => {
     height: 17px;
   }
 
-  /*
-    Full-width mobile menu
-  */
+  /* --------------------------------------------------------------
+     FULL-WIDTH MOBILE MENU
+  -------------------------------------------------------------- */
 
   .account-dropdown {
     position: fixed;
@@ -1382,10 +1491,26 @@ onBeforeUnmount(() => {
 
     background: #ffffff;
 
+    z-index: 100;
+
     box-shadow: 0 16px 35px rgba(6, 47, 89, 0.09);
 
     -webkit-overflow-scrolling: touch;
   }
+
+  /* --------------------------------------------------------------
+     Backdrop starts below the navbar
+  -------------------------------------------------------------- */
+
+  .mobile-menu-backdrop {
+    top: 70px;
+
+    z-index: 80;
+  }
+
+  /* --------------------------------------------------------------
+     Dropdown items
+  -------------------------------------------------------------- */
 
   .account-dropdown-item {
     padding: 13px 11px;
@@ -1404,11 +1529,9 @@ onBeforeUnmount(() => {
     font-size: 11px;
   }
 
-  /*
-    Search panel is still available if search is
-    triggered programmatically, but normally the
-    search button is hidden on mobile.
-  */
+  /* --------------------------------------------------------------
+     Search panel
+  -------------------------------------------------------------- */
 
   .search-panel {
     top: 70px;
@@ -1456,6 +1579,10 @@ onBeforeUnmount(() => {
 
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .mobile-menu-backdrop {
+    top: 70px;
   }
 }
 </style>
