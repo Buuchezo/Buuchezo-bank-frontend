@@ -886,7 +886,6 @@ onBeforeUnmount(() => {
 
   transition: transform 0.2s ease;
 }
-
 .account-menu-chevron.rotated {
   transform: rotate(180deg);
 }
