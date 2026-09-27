@@ -68,7 +68,7 @@
            LANGUAGE
       =========================================================== -->
 
-      <button class="language-button" type="button">
+      <button aria-label="Select language" class="language-button" type="button">
         EN
 
         <svg
@@ -87,70 +87,53 @@
 
       <!-- ==========================================================
            DESKTOP LOGIN
-
-           IMPORTANT:
-           This is visible only on desktop.
       =========================================================== -->
 
       <RouterLink class="login-button" to="/login"> Login </RouterLink>
 
       <!-- ==========================================================
            DESKTOP REGISTER
-
-           IMPORTANT:
-           This is visible only on desktop.
-           There is NO desktop dropdown.
       =========================================================== -->
 
       <RouterLink class="register-button" to="/register"> Register </RouterLink>
 
       <!-- ==========================================================
            MOBILE GET STARTED MENU
-
-           IMPORTANT:
-           This is hidden on desktop and visible only on mobile.
       =========================================================== -->
 
       <div ref="accountMenu" class="mobile-account-menu">
         <button
           :aria-expanded="accountMenuOpen"
           aria-haspopup="menu"
+          aria-label="Open navigation menu"
           class="mobile-account-button"
           type="button"
           @click="toggleAccountMenu"
         >
-          <span class="mobile-account-label"> Get Started </span>
-
-          <svg
-            :class="{ rotated: accountMenuOpen }"
-            class="account-menu-chevron"
-            fill="none"
-            height="15"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2.2"
-            viewBox="0 0 24 24"
-            width="15"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+          <span :class="{ open: accountMenuOpen }" class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
         </button>
 
         <!-- ========================================================
-             MOBILE DROPDOWN
+             FULL-WIDTH MOBILE NAVIGATION
         ========================================================= -->
 
         <Transition name="dropdown">
           <div v-if="accountMenuOpen" class="account-dropdown" role="menu">
-            <!-- ========================================================
-                 SITE NAVIGATION
-            ========================================================= -->
+            <!-- ====================================================
+                 EXPLORE
+            ===================================================== -->
 
             <div class="dropdown-section">
-              <span class="dropdown-section-title"> Explore </span>
+              <div class="dropdown-section-heading">
+                <span>Explore</span>
+              </div>
 
               <!-- Personal -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -160,13 +143,13 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <path d="M3 10.5 12 3l9 7.5" />
                     <path d="M5 9.5V21h14V9.5" />
@@ -178,9 +161,12 @@
                   <strong>Personal</strong>
                   <span>Personal banking</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
 
               <!-- Business -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -190,17 +176,20 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <rect height="13" rx="2" width="18" x="3" y="7" />
+
                     <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+
                     <path d="M3 12h18" />
+
                     <path d="M10 12v2h4v-2" />
                   </svg>
                 </div>
@@ -209,9 +198,12 @@
                   <strong>Business</strong>
                   <span>Business banking</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
 
               <!-- Wealth -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -221,13 +213,13 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <path d="M3 17l6-6 4 4 8-8" />
                     <path d="M15 7h6v6" />
@@ -238,9 +230,12 @@
                   <strong>Wealth</strong>
                   <span>Wealth & investments</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
 
               <!-- About -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -250,16 +245,18 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <circle cx="12" cy="12" r="9" />
+
                     <line x1="12" x2="12" y1="10" y2="16" />
+
                     <circle cx="12" cy="7" fill="currentColor" r="0.8" />
                   </svg>
                 </div>
@@ -268,9 +265,12 @@
                   <strong>About</strong>
                   <span>About Buuchezo Bank</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
 
               <!-- Support -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -280,16 +280,18 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <circle cx="12" cy="12" r="9" />
+
                     <path d="M8.5 9a3.5 3.5 0 0 1 7 0c0 2-1.5 2.8-2.7 3.5-.8.4-1.3.8-1.3 1.5" />
+
                     <circle cx="12" cy="17" fill="currentColor" r="0.8" />
                   </svg>
                 </div>
@@ -298,19 +300,28 @@
                   <strong>Support</strong>
                   <span>Help & support</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
             </div>
 
-            <!-- ========================================================
-                 ACCOUNT
-            ========================================================= -->
+            <!-- ====================================================
+                 DIVIDER
+            ===================================================== -->
 
             <div class="dropdown-divider"></div>
 
+            <!-- ====================================================
+                 ACCOUNT
+            ===================================================== -->
+
             <div class="dropdown-section">
-              <span class="dropdown-section-title"> Account </span>
+              <div class="dropdown-section-heading">
+                <span>Account</span>
+              </div>
 
               <!-- Login -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -320,16 +331,18 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+
                     <polyline points="10 17 15 12 10 7" />
+
                     <line x1="15" x2="3" y1="12" y2="12" />
                   </svg>
                 </div>
@@ -338,9 +351,12 @@
                   <strong>Login</strong>
                   <span>Access your account</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
 
               <!-- Register -->
+
               <RouterLink
                 class="account-dropdown-item"
                 role="menuitem"
@@ -350,17 +366,20 @@
                 <div class="dropdown-icon">
                   <svg
                     fill="none"
-                    height="17"
+                    height="18"
                     stroke="currentColor"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="1.8"
                     viewBox="0 0 24 24"
-                    width="17"
+                    width="18"
                   >
                     <circle cx="9" cy="7" r="4" />
+
                     <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
+
                     <line x1="19" x2="19" y1="8" y2="14" />
+
                     <line x1="16" x2="22" y1="11" y2="11" />
                   </svg>
                 </div>
@@ -369,6 +388,8 @@
                   <strong>Register</strong>
                   <span>Open a new account</span>
                 </div>
+
+                <span class="dropdown-arrow">→</span>
               </RouterLink>
             </div>
           </div>
@@ -417,9 +438,11 @@
 
 <script lang="ts" setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
-
 import { useRoute } from 'vue-router'
+
+import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png' /* ================================================================
+   ROUTER
+================================================================ */
 
 /* ================================================================
    ROUTER
@@ -507,11 +530,9 @@ onBeforeUnmount(() => {
   z-index: 100;
 
   width: 100%;
-
   height: 78px;
 
   display: flex;
-
   align-items: center;
 
   padding: 0 58px;
@@ -544,19 +565,19 @@ onBeforeUnmount(() => {
 .bank-card-logo {
   width: 46px;
   height: 46px;
+
   object-fit: contain;
+
   display: block;
 }
 
 .brand-logo {
   width: 40px;
-
   height: 40px;
 
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   flex-shrink: 0;
@@ -597,7 +618,7 @@ onBeforeUnmount(() => {
 }
 
 /* ================================================================
-   NAVIGATION
+   DESKTOP NAVIGATION
 ================================================================ */
 
 .navbar-navigation {
@@ -656,7 +677,7 @@ onBeforeUnmount(() => {
 }
 
 /* ================================================================
-   ACTIONS
+   NAVBAR ACTIONS
 ================================================================ */
 
 .navbar-actions {
@@ -677,13 +698,11 @@ onBeforeUnmount(() => {
 
 .search-button {
   width: 38px;
-
   height: 38px;
 
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   border: 0;
@@ -743,7 +762,6 @@ onBeforeUnmount(() => {
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   padding: 0 19px;
@@ -786,7 +804,6 @@ onBeforeUnmount(() => {
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   padding: 0 16px;
@@ -821,9 +838,6 @@ onBeforeUnmount(() => {
 
 /* ================================================================
    MOBILE ACCOUNT MENU
-
-   Hidden by default.
-   Only shown on mobile.
 ================================================================ */
 
 .mobile-account-menu {
@@ -835,59 +849,89 @@ onBeforeUnmount(() => {
 }
 
 /* ================================================================
-   MOBILE GET STARTED BUTTON
+   MOBILE HAMBURGER BUTTON
 ================================================================ */
 
 .mobile-account-button {
-  height: 40px;
+  width: 48px;
+  height: 48px;
 
   display: inline-flex;
 
   align-items: center;
-
   justify-content: center;
 
-  gap: 9px;
-
-  padding: 0 16px;
+  padding: 0;
 
   border: 0;
 
-  border-radius: 7px;
+  border-radius: 12px;
 
-  background: #063e73;
+  background: #f3f7fb;
 
-  color: #ffffff;
-
-  font-family: inherit;
-
-  font-size: 13px;
-
-  font-weight: 600;
+  color: #063e73;
 
   cursor: pointer;
 
   transition:
     background 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.2s ease;
 }
 
 .mobile-account-button:hover {
-  background: #07518f;
-
-  transform: translateY(-1px);
-
-  box-shadow: 0 7px 18px rgba(6, 62, 115, 0.18);
+  background: #eaf2f8;
 }
 
-.account-menu-chevron {
+.mobile-account-button:active {
+  transform: scale(0.96);
+}
+
+/* ================================================================
+   HAMBURGER ICON
+================================================================ */
+
+.hamburger-icon {
+  width: 22px;
+  height: 18px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
   flex-shrink: 0;
-
-  transition: transform 0.2s ease;
 }
-.account-menu-chevron.rotated {
-  transform: rotate(180deg);
+
+.hamburger-icon span {
+  display: block;
+
+  width: 100%;
+  height: 2.5px;
+
+  border-radius: 999px;
+
+  background: #063e73;
+
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
+
+/* ================================================================
+   HAMBURGER -> X
+================================================================ */
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(7.75px) rotate(45deg);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-7.75px) rotate(-45deg);
 }
 
 /* ================================================================
@@ -916,45 +960,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 18px 45px rgba(20, 35, 55, 0.15);
 
   z-index: 1000;
-}
-/* ================================================================
-   MOBILE DROPDOWN SECTIONS
-================================================================ */
-
-.dropdown-section {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dropdown-section-title {
-  display: block;
-
-  padding: 7px 11px 5px;
-
-  color: #8191a6;
-
-  font-size: 9px;
-
-  font-weight: 700;
-
-  letter-spacing: 0.08em;
-
-  text-transform: uppercase;
-}
-
-/* ================================================================
-   MOBILE DROPDOWN DIVIDER
-================================================================ */
-
-.dropdown-divider {
-  height: 1px;
-
-  margin: 7px 4px;
-
-  background: #e5eaf0;
 }
 
 /* ================================================================
@@ -997,7 +1002,6 @@ onBeforeUnmount(() => {
 
 .dropdown-icon {
   width: 35px;
-
   height: 35px;
 
   flex-shrink: 0;
@@ -1005,7 +1009,6 @@ onBeforeUnmount(() => {
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   border-radius: 8px;
@@ -1134,7 +1137,6 @@ onBeforeUnmount(() => {
 
 .search-close {
   width: 30px;
-
   height: 30px;
 
   border: 0;
@@ -1189,7 +1191,7 @@ onBeforeUnmount(() => {
 }
 
 /* ================================================================
-   SMALL DESKTOP / TABLET
+   TABLET / MOBILE
 ================================================================ */
 
 @media (max-width: 900px) {
@@ -1197,21 +1199,17 @@ onBeforeUnmount(() => {
     padding: 0 20px;
   }
 
+  /* Hide desktop navigation */
   .navbar-navigation {
     display: none;
   }
 
+  /* Hide language selector */
   .language-button {
     display: none;
   }
 
-  /*
-    IMPORTANT:
-
-    Desktop Login and Register disappear.
-    Mobile Get Started appears.
-  */
-
+  /* Hide desktop authentication buttons */
   .login-button {
     display: none;
   }
@@ -1220,38 +1218,60 @@ onBeforeUnmount(() => {
     display: none;
   }
 
+  /* Show mobile menu */
   .mobile-account-menu {
     display: flex;
   }
 
-  .mobile-account-button {
-    height: 44px;
-
-    width: auto;
-
-    min-width: 48px;
-
-    padding: 0 13px;
-  }
-
-  .mobile-account-label {
+  /* Search is not shown on mobile */
+  .search-button {
     display: none;
   }
 
-  .account-menu-chevron {
-    width: 18px;
-
-    height: 18px;
-  }
+  /*
+    Full-width mobile navigation.
+    It starts directly underneath the navbar.
+  */
 
   .account-dropdown {
-    top: calc(100% + 10px);
+    position: fixed;
 
+    top: 78px;
+
+    left: 0;
     right: 0;
 
-    left: auto;
+    width: 100%;
+    max-width: none;
 
-    width: 230px;
+    max-height: calc(100vh - 78px);
+
+    overflow-y: auto;
+
+    padding: 20px 24px 28px;
+
+    box-sizing: border-box;
+
+    border: 0;
+
+    border-top: 1px solid rgba(6, 47, 89, 0.08);
+
+    border-radius: 0;
+
+    background: #ffffff;
+
+    box-shadow: 0 16px 35px rgba(6, 47, 89, 0.09);
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-account-button {
+    width: 48px;
+    height: 48px;
+
+    padding: 0;
+
+    border-radius: 12px;
   }
 }
 
@@ -1272,7 +1292,7 @@ onBeforeUnmount(() => {
 
     padding: 0 16px;
 
-    background: transparent;
+    background: #ffffff;
 
     border-bottom: none;
   }
@@ -1283,14 +1303,9 @@ onBeforeUnmount(() => {
     min-width: 0;
   }
 
-  .brand-logo {
-    width: 38px;
-
-    height: 38px;
-
-    border-radius: 8px;
-
-    font-size: 22px;
+  .bank-card-logo {
+    width: 42px;
+    height: 42px;
   }
 
   .brand-copy strong {
@@ -1309,49 +1324,91 @@ onBeforeUnmount(() => {
     gap: 5px;
   }
 
-  .search-button {
-    width: 40px;
+  /*
+    Search remains available on desktop,
+    but is removed from the mobile header.
+  */
 
-    height: 40px;
+  .search-button {
+    display: none;
   }
+
+  /*
+    Mobile hamburger
+  */
 
   .mobile-account-button {
     width: 44px;
-
     height: 44px;
 
-    border-radius: 8px;
+    border-radius: 10px;
 
     padding: 0;
   }
 
-  .account-menu-chevron {
-    width: 18px;
-
-    height: 18px;
+  .hamburger-icon {
+    width: 21px;
+    height: 17px;
   }
 
   /*
-    IMPORTANT:
-    Dropdown is anchored to the right edge
-    of the mobile Get Started button.
+    Full-width mobile menu
   */
 
   .account-dropdown {
-    position: absolute;
+    position: fixed;
 
-    top: calc(100% + 9px);
+    top: 70px;
 
+    left: 0;
     right: 0;
 
-    left: auto;
+    width: 100%;
+    max-width: none;
 
-    width: min(230px, calc(100vw - 32px));
+    max-height: calc(100vh - 70px);
+
+    overflow-y: auto;
+
+    padding: 18px 16px 26px;
+
+    box-sizing: border-box;
+
+    border: 0;
+
+    border-top: 1px solid rgba(6, 47, 89, 0.08);
+
+    border-radius: 0;
+
+    background: #ffffff;
+
+    box-shadow: 0 16px 35px rgba(6, 47, 89, 0.09);
+
+    -webkit-overflow-scrolling: touch;
   }
 
   .account-dropdown-item {
     padding: 13px 11px;
   }
+
+  .dropdown-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dropdown-copy strong {
+    font-size: 14px;
+  }
+
+  .dropdown-copy span {
+    font-size: 11px;
+  }
+
+  /*
+    Search panel is still available if search is
+    triggered programmatically, but normally the
+    search button is hidden on mobile.
+  */
 
   .search-panel {
     top: 70px;
@@ -1369,24 +1426,36 @@ onBeforeUnmount(() => {
     padding: 0 12px;
   }
 
+  .bank-card-logo {
+    width: 40px;
+    height: 40px;
+  }
+
   .brand-copy strong {
     font-size: 14px;
   }
 
-  .brand-logo {
-    width: 36px;
-
-    height: 36px;
-  }
-
   .mobile-account-button {
     width: 42px;
-
     height: 42px;
   }
 
+  .hamburger-icon {
+    width: 20px;
+    height: 16px;
+  }
+
   .account-dropdown {
-    width: calc(100vw - 24px);
+    top: 70px;
+
+    left: 0;
+    right: 0;
+
+    width: 100%;
+    max-width: none;
+
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
 </style>
