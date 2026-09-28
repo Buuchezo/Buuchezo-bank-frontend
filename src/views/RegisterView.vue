@@ -1,19 +1,11 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+import buuchezoBankBlueLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  ShieldCheck,
-  UserPlus,
-} from 'lucide-vue-next'
+import { ArrowRight, ArrowUpRight, Check, Eye, EyeOff, LockKeyhole, ShieldCheck, UserPlus } from 'lucide-vue-next'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -182,8 +174,7 @@ async function register() {
       throw new Error(result.message || 'Registration failed. Please try again.')
     }
 
-    successMessage.value =
-      result.message || 'Your account has been created successfully.'
+    successMessage.value = result.message || 'Your account has been created successfully.'
 
     /*
      * Registration does not automatically store a token.
@@ -204,9 +195,7 @@ async function register() {
     console.error('Registration failed:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Registration failed. Please try again.'
+      error instanceof Error ? error.message : 'Registration failed. Please try again.'
   } finally {
     loading.value = false
   }
@@ -220,12 +209,8 @@ async function register() {
       <div class="visual-background" />
 
       <div class="visual-content">
-        <RouterLink to="/" class="brand">
-          <img
-            :src="buuchezoBankLogo"
-            alt="Buuchezo Bank"
-            class="register-brand-logo"
-          />
+        <RouterLink class="brand" to="/">
+          <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="register-brand-logo" />
 
           <strong>Buuchezo Bank</strong>
         </RouterLink>
@@ -238,20 +223,14 @@ async function register() {
             <span>your future.</span>
           </h1>
 
-          <p>
-            Open your Buuchezo Bank account and manage your money with confidence.
-          </p>
+          <p>Open your Buuchezo Bank account and manage your money with confidence.</p>
         </div>
 
         <!-- CARD -->
         <div class="visual-card">
           <div class="card-top">
             <div class="card-brand">
-              <img
-                :src="buuchezoBankLogo"
-                alt="Buuchezo Bank"
-                class="card-brand-logo"
-              />
+              <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="card-brand-logo" />
 
               <strong>Buuchezo</strong>
             </div>
@@ -266,9 +245,7 @@ async function register() {
             <span />
           </div>
 
-          <div class="card-number">
-            •••• &nbsp; •••• &nbsp; •••• &nbsp; 3456
-          </div>
+          <div class="card-number">•••• &nbsp; •••• &nbsp; •••• &nbsp; 3456</div>
 
           <div class="card-bottom">
             <div>
@@ -304,12 +281,8 @@ async function register() {
     <section class="register-form-section">
       <div class="register-container">
         <div class="mobile-brand">
-          <RouterLink to="/" class="brand">
-            <img
-              :src="buuchezoBankLogo"
-              alt="Buuchezo Bank"
-              class="register-brand-logo"
-            />
+          <RouterLink class="brand" to="/">
+            <img :src="buuchezoBankBlueLogo" alt="Buuchezo Bank" class="register-brand-logo" />
 
             <strong>Buuchezo Bank</strong>
           </RouterLink>
@@ -357,10 +330,10 @@ async function register() {
               <input
                 id="firstName"
                 v-model="firstName"
-                type="text"
+                :disabled="loading"
                 autocomplete="given-name"
                 placeholder="Kennedy"
-                :disabled="loading"
+                type="text"
               />
             </div>
 
@@ -370,10 +343,10 @@ async function register() {
               <input
                 id="lastName"
                 v-model="lastName"
-                type="text"
+                :disabled="loading"
                 autocomplete="family-name"
                 placeholder="Buchichi"
-                :disabled="loading"
+                type="text"
               />
             </div>
           </div>
@@ -385,10 +358,10 @@ async function register() {
             <input
               id="email"
               v-model="email"
-              type="email"
+              :disabled="loading"
               autocomplete="email"
               placeholder="you@example.com"
-              :disabled="loading"
+              type="email"
             />
           </div>
 
@@ -402,19 +375,17 @@ async function register() {
               <input
                 id="password"
                 v-model="password"
+                :disabled="loading"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="new-password"
                 placeholder="Create a secure password"
-                :disabled="loading"
               />
 
               <button
-                type="button"
-                class="password-toggle"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
                 :disabled="loading"
-                :aria-label="
-                  showPassword ? 'Hide password' : 'Show password'
-                "
+                class="password-toggle"
+                type="button"
                 @click="showPassword = !showPassword"
               >
                 <EyeOff v-if="showPassword" :size="17" />
@@ -444,8 +415,7 @@ async function register() {
             </div>
 
             <small class="field-hint">
-              Use at least 8 characters with a mix of letters, numbers and
-              symbols.
+              Use at least 8 characters with a mix of letters, numbers and symbols.
             </small>
           </div>
 
@@ -454,31 +424,27 @@ async function register() {
             <label for="confirmPassword">Confirm password</label>
 
             <div
-              class="password-wrapper"
               :class="{
                 invalid: confirmPassword && !passwordsMatch,
               }"
+              class="password-wrapper"
             >
               <LockKeyhole :size="17" class="field-icon" />
 
               <input
                 id="confirmPassword"
                 v-model="confirmPassword"
+                :disabled="loading"
                 :type="showConfirmPassword ? 'text' : 'password'"
                 autocomplete="new-password"
                 placeholder="Repeat your password"
-                :disabled="loading"
               />
 
               <button
-                type="button"
-                class="password-toggle"
+                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
                 :disabled="loading"
-                :aria-label="
-                  showConfirmPassword
-                    ? 'Hide password'
-                    : 'Show password'
-                "
+                class="password-toggle"
+                type="button"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
                 <EyeOff v-if="showConfirmPassword" :size="17" />
@@ -486,21 +452,14 @@ async function register() {
               </button>
             </div>
 
-            <small
-              v-if="confirmPassword && !passwordsMatch"
-              class="validation-message"
-            >
+            <small v-if="confirmPassword && !passwordsMatch" class="validation-message">
               Passwords do not match.
             </small>
           </div>
 
           <!-- TERMS -->
           <label class="terms">
-            <input
-              v-model="acceptedTerms"
-              type="checkbox"
-              :disabled="loading"
-            />
+            <input v-model="acceptedTerms" :disabled="loading" type="checkbox" />
 
             <span class="custom-checkbox">
               <Check :size="12" />
@@ -515,11 +474,7 @@ async function register() {
           </label>
 
           <!-- SUBMIT -->
-          <button
-            type="submit"
-            class="register-button"
-            :disabled="!canSubmit"
-          >
+          <button :disabled="!canSubmit" class="register-button" type="submit">
             <span>
               {{ loading ? 'Creating account...' : 'Create account' }}
             </span>
@@ -544,9 +499,7 @@ async function register() {
         <div class="legal">
           <ShieldCheck :size="13" />
 
-          <span>
-            Your information is securely transmitted and protected.
-          </span>
+          <span> Your information is securely transmitted and protected. </span>
         </div>
       </div>
     </section>
@@ -590,16 +543,8 @@ async function register() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(
-      circle at 75% 25%,
-      rgba(49, 133, 207, 0.42),
-      transparent 31%
-    ),
-    radial-gradient(
-      circle at 20% 85%,
-      rgba(11, 82, 147, 0.5),
-      transparent 34%
-    ),
+    radial-gradient(circle at 75% 25%, rgba(49, 133, 207, 0.42), transparent 31%),
+    radial-gradient(circle at 20% 85%, rgba(11, 82, 147, 0.5), transparent 34%),
     linear-gradient(145deg, #042f5c 0%, #07559b 52%, #123e9b 100%);
 }
 
@@ -703,11 +648,7 @@ async function register() {
   border-radius: 19px;
   padding: 24px 26px;
   background:
-    radial-gradient(
-      circle at 88% 15%,
-      rgba(89, 174, 237, 0.38),
-      transparent 28%
-    ),
+    radial-gradient(circle at 88% 15%, rgba(89, 174, 237, 0.38), transparent 28%),
     linear-gradient(135deg, #126aa9, #1741a7);
   box-shadow:
     0 25px 55px rgba(1, 26, 55, 0.28),
