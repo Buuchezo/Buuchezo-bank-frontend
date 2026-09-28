@@ -185,11 +185,8 @@
                     width="18"
                   >
                     <rect height="13" rx="2" width="18" x="3" y="7" />
-
                     <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-
                     <path d="M3 12h18" />
-
                     <path d="M10 12v2h4v-2" />
                   </svg>
                 </div>
@@ -254,9 +251,7 @@
                     width="18"
                   >
                     <circle cx="12" cy="12" r="9" />
-
                     <line x1="12" x2="12" y1="10" y2="16" />
-
                     <circle cx="12" cy="7" fill="currentColor" r="0.8" />
                   </svg>
                 </div>
@@ -289,9 +284,7 @@
                     width="18"
                   >
                     <circle cx="12" cy="12" r="9" />
-
                     <path d="M8.5 9a3.5 3.5 0 0 1 7 0c0 2-1.5 2.8-2.7 3.5-.8.4-1.3.8-1.3 1.5" />
-
                     <circle cx="12" cy="17" fill="currentColor" r="0.8" />
                   </svg>
                 </div>
@@ -340,9 +333,7 @@
                     width="18"
                   >
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-
                     <polyline points="10 17 15 12 10 7" />
-
                     <line x1="15" x2="3" y1="12" y2="12" />
                   </svg>
                 </div>
@@ -375,11 +366,8 @@
                     width="18"
                   >
                     <circle cx="9" cy="7" r="4" />
-
                     <path d="M3 21v-2a6 6 0 0 1 12 0v2" />
-
                     <line x1="19" x2="19" y1="8" y2="14" />
-
                     <line x1="16" x2="22" y1="11" y2="11" />
                   </svg>
                 </div>
@@ -397,9 +385,10 @@
       </div>
     </div>
   </header>
+
   <!-- ==============================================================
-     MOBILE MENU BACKDROP
-================================================================ -->
+       MOBILE MENU BACKDROP
+  ================================================================ -->
 
   <Transition name="mobile-backdrop">
     <div
@@ -428,7 +417,6 @@
           width="20"
         >
           <circle cx="11" cy="11" r="7" />
-
           <line x1="16.5" x2="21" y1="16.5" y2="21" />
         </svg>
 
@@ -452,9 +440,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png' /* ================================================================
-   ROUTER
-================================================================ */
+import buuchezoBankLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
 /* ================================================================
    ROUTER
@@ -470,12 +456,81 @@ const accountMenuOpen = ref(false)
 
 const accountMenu = ref<HTMLElement | null>(null)
 
+/* ================================================================
+   MOBILE PAGE SCROLL LOCK
+================================================================ */
+
+let savedScrollPosition = 0
+let pageScrollLocked = false
+
+const lockPageScroll = () => {
+  if (pageScrollLocked || window.innerWidth > 900) {
+    return
+  }
+
+  savedScrollPosition = window.scrollY
+
+  document.documentElement.classList.add('mobile-menu-open')
+  document.body.classList.add('mobile-menu-open')
+
+  /*
+    Fix the body in its current position.
+
+    This is stronger than overflow:hidden alone because it also
+    prevents mobile browsers from continuing to move the document
+    underneath the menu.
+  */
+  document.body.style.position = 'fixed'
+  document.body.style.top = `-${savedScrollPosition}px`
+  document.body.style.left = '0'
+  document.body.style.right = '0'
+  document.body.style.width = '100%'
+  document.body.style.overflow = 'hidden'
+
+  pageScrollLocked = true
+}
+
+const unlockPageScroll = () => {
+  if (!pageScrollLocked) {
+    return
+  }
+
+  document.documentElement.classList.remove('mobile-menu-open')
+  document.body.classList.remove('mobile-menu-open')
+
+  document.body.style.position = ''
+  document.body.style.top = ''
+  document.body.style.left = ''
+  document.body.style.right = ''
+  document.body.style.width = ''
+  document.body.style.overflow = ''
+
+  /*
+    Return the user to exactly the position they were at before
+    opening the mobile menu.
+  */
+  window.scrollTo(0, savedScrollPosition)
+
+  pageScrollLocked = false
+}
+
+/* ================================================================
+   TOGGLE MOBILE MENU
+================================================================ */
+
 const toggleAccountMenu = () => {
   accountMenuOpen.value = !accountMenuOpen.value
+
+  if (accountMenuOpen.value) {
+    lockPageScroll()
+  } else {
+    unlockPageScroll()
+  }
 }
 
 const closeAccountMenu = () => {
   accountMenuOpen.value = false
+  unlockPageScroll()
 }
 
 /* ================================================================
@@ -488,6 +543,33 @@ const handleOutsideClick = (event: MouseEvent) => {
   if (accountMenu.value && !accountMenu.value.contains(target)) {
     closeAccountMenu()
   }
+}
+
+/* ================================================================
+   PREVENT BACKGROUND SCROLL WHILE MOBILE MENU IS OPEN
+================================================================ */
+
+const preventBackgroundScroll = (event: Event) => {
+  if (!accountMenuOpen.value || window.innerWidth > 900) {
+    return
+  }
+
+  const target = event.target as HTMLElement | null
+
+  /*
+    Allow the mobile dropdown itself to scroll.
+
+    This means:
+    - The page behind the menu cannot scroll.
+    - The backdrop cannot scroll the page.
+    - The mobile menu can still scroll if its content is taller
+      than the available screen height.
+  */
+  if (target?.closest('.account-dropdown')) {
+    return
+  }
+
+  event.preventDefault()
 }
 
 /* ================================================================
@@ -521,10 +603,33 @@ const closeSearch = () => {
 
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
+
+  /*
+    These listeners provide an additional protection layer for
+    mobile browsers and for layouts where the actual scrollable
+    element is not the body.
+  */
+  document.addEventListener('touchmove', preventBackgroundScroll, {
+    passive: false,
+  })
+
+  document.addEventListener('wheel', preventBackgroundScroll, {
+    passive: false,
+  })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
+
+  document.removeEventListener('touchmove', preventBackgroundScroll)
+
+  document.removeEventListener('wheel', preventBackgroundScroll)
+
+  /*
+    Always restore page scrolling if this component is destroyed
+    while the menu is open.
+  */
+  unlockPageScroll()
 })
 </script>
 
@@ -1077,6 +1182,29 @@ onBeforeUnmount(() => {
 }
 
 /* ================================================================
+   MOBILE MENU SCROLL LOCK
+================================================================ */
+
+/*
+  Prevent the root document from scrolling while the mobile menu
+  is open.
+*/
+
+:global(html.mobile-menu-open) {
+  overflow: hidden !important;
+
+  overscroll-behavior: none !important;
+}
+
+:global(body.mobile-menu-open) {
+  overflow: hidden !important;
+
+  overscroll-behavior: none !important;
+
+  touch-action: none !important;
+}
+
+/* ================================================================
    MOBILE MENU BACKDROP
 ================================================================ */
 
@@ -1094,11 +1222,13 @@ onBeforeUnmount(() => {
     Slight darkening while keeping the
     page visible underneath.
   */
+
   background: rgba(7, 27, 56, 0.22);
 
   /*
     Blur the page underneath the menu.
   */
+
   backdrop-filter: blur(5px);
 
   -webkit-backdrop-filter: blur(5px);
@@ -1109,6 +1239,7 @@ onBeforeUnmount(() => {
     Prevent touch gestures from passing
     through to the page underneath.
   */
+
   touch-action: none;
 }
 
@@ -1300,6 +1431,7 @@ onBeforeUnmount(() => {
       Static positioning here allows the full-width
       fixed dropdown to escape the menu container.
     */
+
     position: static;
   }
 
@@ -1358,6 +1490,7 @@ onBeforeUnmount(() => {
     /*
       Keep menu above the backdrop.
     */
+
     z-index: 100;
 
     box-shadow: 0 16px 35px rgba(6, 47, 89, 0.09);
@@ -1394,6 +1527,7 @@ onBeforeUnmount(() => {
     /*
       White mobile navbar like the Wealth page.
     */
+
     background: #ffffff;
 
     border-bottom: none;
