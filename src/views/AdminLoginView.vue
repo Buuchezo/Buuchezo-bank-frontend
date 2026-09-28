@@ -3,7 +3,7 @@
     <div class="admin-login-visual">
       <div class="visual-glow"></div>
 
-      <RouterLink to="/" class="brand">
+      <RouterLink class="brand" to="/">
         <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
         <span>Buuchezo Bank</span>
       </RouterLink>
@@ -40,7 +40,7 @@
     <div class="admin-login-form-area">
       <div class="admin-login-container">
         <div class="mobile-brand">
-          <span class="brand-mark">B</span>
+          <img :src="buuchezoBankBlueLogo" alt="Buuchezo Bank" class="mobile-brand__logo" />
           <span>Buuchezo Bank</span>
         </div>
 
@@ -59,10 +59,10 @@
             <input
               id="admin-email"
               v-model="email"
-              type="email"
-              placeholder="admin@example.com"
               autocomplete="username"
+              placeholder="admin@example.com"
               required
+              type="email"
             />
           </div>
 
@@ -74,12 +74,12 @@
                 id="admin-password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter your administrator password"
                 autocomplete="current-password"
+                placeholder="Enter your administrator password"
                 required
               />
 
-              <button type="button" class="password-toggle" @click="showPassword = !showPassword">
+              <button class="password-toggle" type="button" @click="showPassword = !showPassword">
                 {{ showPassword ? 'Hide' : 'Show' }}
               </button>
             </div>
@@ -89,7 +89,7 @@
             {{ errorMessage }}
           </div>
 
-          <button type="submit" class="login-submit" :disabled="isLoading">
+          <button :disabled="isLoading" class="login-submit" type="submit">
             <span>
               {{ isLoading ? 'Signing in...' : 'Sign in as administrator' }}
             </span>
@@ -126,11 +126,12 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, ArrowUpRight } from 'lucide-vue-next'
 import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+import buuchezoBankBlueLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
 interface AdminLoginResponse {
   statusCode: number
@@ -424,10 +425,12 @@ async function handleLogin() {
   font-weight: 700;
   color: #071f38;
 }
-
-.mobile-brand .brand-mark {
-  color: white;
-  background: #0b477d;
+.mobile-brand__logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .form-heading {

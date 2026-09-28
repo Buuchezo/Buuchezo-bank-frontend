@@ -3,8 +3,8 @@
     <!-- LEFT SIDE -->
     <section class="business-visual">
       <div class="visual-content">
-        <RouterLink to="/business" class="brand">
-          <span class="brand-mark">B</span>
+        <RouterLink class="brand" to="/business">
+          <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="brand-logo" />
 
           <div class="brand-text">
             <strong>Buuchezo Bank</strong>
@@ -21,8 +21,8 @@
           </h1>
 
           <p>
-            Manage your business accounts, payments, transfers and
-            team access from one secure banking platform.
+            Manage your business accounts, payments, transfers and team access from one secure
+            banking platform.
           </p>
 
           <div class="feature-list">
@@ -58,8 +58,11 @@
     <section class="login-section">
       <div class="login-container">
         <div class="mobile-brand">
-          <RouterLink to="/business" class="brand">
-            <span class="brand-mark">B</span>
+          <RouterLink class="brand" to="/business">
+            <div class="mobile-brand">
+              <img :src="buuchezoBankBlueLogo" alt="Buuchezo Bank" class="mobile-brand__logo" />
+              <span>Buuchezo Bank</span>
+            </div>
 
             <div class="brand-text">
               <strong>Buuchezo Bank</strong>
@@ -75,41 +78,28 @@
 
             <h2>Welcome back.</h2>
 
-            <p>
-              Sign in to manage your business account.
-            </p>
+            <p>Sign in to manage your business account.</p>
           </div>
 
-          <form
-            class="login-form"
-            @submit.prevent="handleLogin"
-          >
+          <form class="login-form" @submit.prevent="handleLogin">
             <div class="form-group">
-              <label for="email">
-                Business email
-              </label>
+              <label for="email"> Business email </label>
 
               <input
                 id="email"
                 v-model="email"
-                type="email"
                 autocomplete="email"
                 placeholder="you@company.com"
                 required
+                type="email"
               />
             </div>
 
             <div class="form-group">
               <div class="label-row">
-                <label for="password">
-                  Password
-                </label>
+                <label for="password"> Password </label>
 
-                <button
-                  type="button"
-                  class="forgot-button"
-                  @click="handleForgotPassword"
-                >
+                <button class="forgot-button" type="button" @click="handleForgotPassword">
                   Forgot password?
                 </button>
               </div>
@@ -124,39 +114,23 @@
                   required
                 />
 
-                <button
-                  type="button"
-                  class="password-toggle"
-                  @click="showPassword = !showPassword"
-                >
+                <button class="password-toggle" type="button" @click="showPassword = !showPassword">
                   {{ showPassword ? 'Hide' : 'Show' }}
                 </button>
               </div>
             </div>
 
             <label class="remember-row">
-              <input
-                v-model="rememberMe"
-                type="checkbox"
-              />
+              <input v-model="rememberMe" type="checkbox" />
 
-              <span>
-                Keep me signed in
-              </span>
+              <span> Keep me signed in </span>
             </label>
 
-            <div
-              v-if="errorMessage"
-              class="error-message"
-            >
+            <div v-if="errorMessage" class="error-message">
               {{ errorMessage }}
             </div>
 
-            <button
-              type="submit"
-              class="login-button"
-              :disabled="isLoading"
-            >
+            <button :disabled="isLoading" class="login-button" type="submit">
               <span>
                 {{ isLoading ? 'Signing in...' : 'Sign in to Business Banking' }}
               </span>
@@ -168,15 +142,10 @@
           <div class="bottom-links">
             <p>
               Don't have a business account?
-              <RouterLink to="/business/onboarding">
-                Open a business account
-              </RouterLink>
+              <RouterLink to="/business/onboarding"> Open a business account </RouterLink>
             </p>
 
-            <RouterLink
-              to="/login"
-              class="personal-login-link"
-            >
+            <RouterLink class="personal-login-link" to="/login">
               Personal Banking login
             </RouterLink>
           </div>
@@ -189,31 +158,23 @@
 
             <h2>Verify your identity.</h2>
 
-            <p>
-              Enter the 6-digit authentication code from your
-              authenticator app.
-            </p>
+            <p>Enter the 6-digit authentication code from your authenticator app.</p>
           </div>
 
-          <form
-            class="login-form"
-            @submit.prevent="handleTwoFactorLogin"
-          >
+          <form class="login-form" @submit.prevent="handleTwoFactorLogin">
             <div class="form-group">
-              <label for="twoFactorCode">
-                Authentication code
-              </label>
+              <label for="twoFactorCode"> Authentication code </label>
 
               <input
                 id="twoFactorCode"
                 v-model="twoFactorCode"
-                type="text"
-                inputmode="numeric"
                 autocomplete="one-time-code"
+                class="two-factor-input"
+                inputmode="numeric"
                 maxlength="6"
                 placeholder="000000"
-                class="two-factor-input"
                 required
+                type="text"
               />
 
               <small class="input-help">
@@ -221,38 +182,24 @@
               </small>
             </div>
 
-            <div
-              v-if="errorMessage"
-              class="error-message"
-            >
+            <div v-if="errorMessage" class="error-message">
               {{ errorMessage }}
             </div>
 
             <button
-              type="submit"
+              :disabled="isTwoFactorLoading || twoFactorCode.length !== 6"
               class="login-button"
-              :disabled="
-                isTwoFactorLoading ||
-                twoFactorCode.length !== 6
-              "
+              type="submit"
             >
               <span>
-                {{
-                  isTwoFactorLoading
-                    ? 'Verifying...'
-                    : 'Verify and continue'
-                }}
+                {{ isTwoFactorLoading ? 'Verifying...' : 'Verify and continue' }}
               </span>
 
               <span class="button-arrow">→</span>
             </button>
           </form>
 
-          <button
-            type="button"
-            class="back-button"
-            @click="backToLogin"
-          >
+          <button class="back-button" type="button" @click="backToLogin">
             ← Use a different account
           </button>
         </template>
@@ -261,9 +208,11 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import buuchezoBankBlueLogo from '@/assets/images/buuchezobank-blue-logo.png'
+import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
 
 interface LoginUser {
   id: number
@@ -332,8 +281,7 @@ async function handleLogin(): Promise<void> {
   errorMessage.value = ''
 
   if (!email.value.trim() || !password.value) {
-    errorMessage.value =
-      'Please enter your email and password.'
+    errorMessage.value = 'Please enter your email and password.'
 
     return
   }
@@ -341,30 +289,23 @@ async function handleLogin(): Promise<void> {
   isLoading.value = true
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/auth/login`,
-      {
-        method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
-        body: JSON.stringify({
-          email: email.value.trim(),
-          password: password.value,
-        }),
+      headers: {
+        'Content-Type': 'application/json',
       },
-    )
 
-    const result =
-      (await response.json()) as LoginResponse
+      body: JSON.stringify({
+        email: email.value.trim(),
+        password: password.value,
+      }),
+    })
+
+    const result = (await response.json()) as LoginResponse
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'Login failed. Please check your credentials.',
-      )
+      throw new Error(result.message || 'Login failed. Please check your credentials.')
     }
 
     /*
@@ -375,14 +316,11 @@ async function handleLogin(): Promise<void> {
 
     if (result.data?.requiresTwoFactor === true) {
       if (!result.data.challengeToken) {
-        throw new Error(
-          'Two-factor authentication was requested but no challenge was provided.',
-        )
+        throw new Error('Two-factor authentication was requested but no challenge was provided.')
       }
 
       requiresTwoFactor.value = true
-      challengeToken.value =
-        result.data.challengeToken
+      challengeToken.value = result.data.challengeToken
       twoFactorCode.value = ''
 
       return
@@ -398,22 +336,15 @@ async function handleLogin(): Promise<void> {
     const user = result.data?.user
 
     if (!token || !user) {
-      throw new Error(
-        'Invalid login response from server.',
-      )
+      throw new Error('Invalid login response from server.')
     }
 
     await completeBusinessLogin(token, user)
   } catch (error) {
-    console.error(
-      'Business login error:',
-      error,
-    )
+    console.error('Business login error:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to sign in to Business Banking.'
+      error instanceof Error ? error.message : 'Unable to sign in to Business Banking.'
   } finally {
     isLoading.value = false
   }
@@ -431,8 +362,7 @@ async function handleTwoFactorLogin(): Promise<void> {
   const code = twoFactorCode.value.trim()
 
   if (!challengeToken.value) {
-    errorMessage.value =
-      'Your login session has expired. Please sign in again.'
+    errorMessage.value = 'Your login session has expired. Please sign in again.'
 
     backToLogin()
 
@@ -440,8 +370,7 @@ async function handleTwoFactorLogin(): Promise<void> {
   }
 
   if (!/^\d{6}$/.test(code)) {
-    errorMessage.value =
-      'Please enter the 6-digit authentication code.'
+    errorMessage.value = 'Please enter the 6-digit authentication code.'
 
     return
   }
@@ -449,52 +378,38 @@ async function handleTwoFactorLogin(): Promise<void> {
   isTwoFactorLoading.value = true
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/auth/2fa/login`,
-      {
-        method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/auth/2fa/login`, {
+      method: 'POST',
 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
-        body: JSON.stringify({
-          challengeToken: challengeToken.value,
-          code,
-        }),
+      headers: {
+        'Content-Type': 'application/json',
       },
-    )
 
-    const result =
-      (await response.json()) as LoginResponse
+      body: JSON.stringify({
+        challengeToken: challengeToken.value,
+        code,
+      }),
+    })
+
+    const result = (await response.json()) as LoginResponse
 
     if (!response.ok) {
-      throw new Error(
-        result.message ||
-        'Invalid authentication code.',
-      )
+      throw new Error(result.message || 'Invalid authentication code.')
     }
 
     const token = result.data?.token
     const user = result.data?.user
 
     if (!token || !user) {
-      throw new Error(
-        'Invalid two-factor authentication response from server.',
-      )
+      throw new Error('Invalid two-factor authentication response from server.')
     }
 
     await completeBusinessLogin(token, user)
   } catch (error) {
-    console.error(
-      'Business two-factor login error:',
-      error,
-    )
+    console.error('Business two-factor login error:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to verify the authentication code.'
+      error instanceof Error ? error.message : 'Unable to verify the authentication code.'
   } finally {
     isTwoFactorLoading.value = false
   }
@@ -514,42 +429,27 @@ async function handleTwoFactorLogin(): Promise<void> {
  * ------------------------------------------------------------
  */
 
-async function completeBusinessLogin(
-  token: string,
-  user: LoginUser,
-): Promise<void> {
+async function completeBusinessLogin(token: string, user: LoginUser): Promise<void> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/businesses/me`,
-      {
-        method: 'GET',
+    const response = await fetch(`${API_BASE_URL}/api/businesses/me`, {
+      method: 'GET',
 
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    )
+    })
 
     if (response.status === 401) {
-      throw new Error(
-        'Your authentication session is invalid. Please sign in again.',
-      )
+      throw new Error('Your authentication session is invalid. Please sign in again.')
     }
 
-    const result =
-      (await response.json()) as
-        | Business[]
-        | BusinessListResponse
+    const result = (await response.json()) as Business[] | BusinessListResponse
 
     if (!response.ok) {
-      throw new Error(
-        'Unable to verify your business account.',
-      )
+      throw new Error('Unable to verify your business account.')
     }
 
-    const businesses = Array.isArray(result)
-      ? result
-      : result.data || []
+    const businesses = Array.isArray(result) ? result : result.data || []
 
     /*
      * The credentials are valid, but this user does
@@ -557,8 +457,7 @@ async function completeBusinessLogin(
      */
 
     if (businesses.length === 0) {
-      errorMessage.value =
-        'These credentials do not have access to a business account.'
+      errorMessage.value = 'These credentials do not have access to a business account.'
 
       return
     }
@@ -566,8 +465,7 @@ async function completeBusinessLogin(
     const selectedBusiness = businesses[0]
 
     if (!selectedBusiness) {
-      errorMessage.value =
-        'Unable to determine your business account.'
+      errorMessage.value = 'Unable to determine your business account.'
 
       return
     }
@@ -576,29 +474,18 @@ async function completeBusinessLogin(
      * Only now create the customer session.
      */
 
-    const storage = rememberMe.value
-      ? localStorage
-      : sessionStorage
+    const storage = rememberMe.value ? localStorage : sessionStorage
 
-    storage.setItem(
-      'accessToken',
-      token,
-    )
+    storage.setItem('accessToken', token)
 
-    storage.setItem(
-      'user',
-      JSON.stringify(user),
-    )
+    storage.setItem('user', JSON.stringify(user))
 
     /*
      * Store the business context so the business
      * frontend can use it immediately.
      */
 
-    storage.setItem(
-      'business',
-      JSON.stringify(selectedBusiness),
-    )
+    storage.setItem('business', JSON.stringify(selectedBusiness))
 
     /*
      * Business login goes to Business Dashboard,
@@ -607,15 +494,10 @@ async function completeBusinessLogin(
 
     await router.push('/business/dashboard')
   } catch (error) {
-    console.error(
-      'Business account verification failed:',
-      error,
-    )
+    console.error('Business account verification failed:', error)
 
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Unable to verify your business account.'
+      error instanceof Error ? error.message : 'Unable to verify your business account.'
   }
 }
 
@@ -639,8 +521,7 @@ function backToLogin(): void {
  */
 
 function handleForgotPassword(): void {
-  errorMessage.value =
-    'Password recovery will be available soon.'
+  errorMessage.value = 'Password recovery will be available soon.'
 }
 </script>
 
@@ -670,13 +551,7 @@ function handleForgotPassword(): void {
 
   color: #ffffff;
 
-  background:
-    linear-gradient(
-      145deg,
-      #062f59 0%,
-      #07559b 55%,
-      #143fbd 100%
-    );
+  background: linear-gradient(145deg, #062f59 0%, #07559b 55%, #143fbd 100%);
 
   overflow: hidden;
 }
@@ -1021,8 +896,7 @@ function handleForgotPassword(): void {
 .login-form input:focus {
   border-color: #1683dc;
 
-  box-shadow:
-    0 0 0 3px rgba(22, 131, 220, 0.09);
+  box-shadow: 0 0 0 3px rgba(22, 131, 220, 0.09);
 }
 
 .login-form input::placeholder {
@@ -1272,15 +1146,13 @@ function handleForgotPassword(): void {
   .mobile-brand .brand {
     color: #082f56;
   }
-
-  .mobile-brand .brand-mark {
-    color: #ffffff;
-
-    background: #07559b;
-
-    border-color: #07559b;
+  .mobile-brand__logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
   }
-
   .mobile-brand .brand-text span {
     color: #8998a3;
   }
