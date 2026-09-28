@@ -9,7 +9,7 @@
       <!-- =====================================================
        FADED CURRENCY BACKGROUND
   ====================================================== -->
-      <div class="currency-background" aria-hidden="true">
+      <div aria-hidden="true" class="currency-background">
         <div class="global-globe">
           <div class="globe-grid globe-grid-horizontal"></div>
           <div class="globe-grid globe-grid-vertical"></div>
@@ -30,7 +30,7 @@
         <span class="currency-symbol currency-yen-small">¥</span>
       </div>
 
-      <RouterLink to="/" class="auth-brand">
+      <RouterLink class="auth-brand" to="/">
         <img :src="buuchezoBankLogo" alt="Buuchezo Bank" class="banking-logo-image" />
         <span>Buuchezo Bank</span>
       </RouterLink>
@@ -49,13 +49,13 @@
           <div class="preview-top">
             <div class="preview-brand">
               <img
-                src="@/assets/images/buuchezobank-logo.png"
                 alt="Buuchezo Bank"
                 class="preview-logo"
+                src="@/assets/images/buuchezobank-logo.png"
               />
               <span>Buuchezo Bank</span>
             </div>
-            <span class="preview-contactless" aria-label="Contactless payment">◉</span>
+            <span aria-label="Contactless payment" class="preview-contactless">◉</span>
           </div>
           <div class="preview-chip"></div>
 
@@ -81,7 +81,7 @@
       <div class="auth-form-container">
         <!-- Mobile brand -->
         <div class="mobile-brand">
-          <span class="auth-brand-mark">B</span>
+          <img :src="buuchezoBankBlueLogo" alt="Buuchezo Bank" class="mobile-brand__logo" />
           <span>Buuchezo Bank</span>
         </div>
 
@@ -105,10 +105,10 @@
               <input
                 id="email"
                 v-model="email"
-                type="email"
-                placeholder="you@example.com"
                 autocomplete="email"
+                placeholder="you@example.com"
                 required
+                type="email"
               />
             </div>
 
@@ -117,7 +117,7 @@
               <div class="label-row">
                 <label for="password">Password</label>
 
-                <button type="button" class="forgot-password" @click="handleForgotPassword">
+                <button class="forgot-password" type="button" @click="handleForgotPassword">
                   Forgot password?
                 </button>
               </div>
@@ -127,12 +127,12 @@
                   id="password"
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Enter your password"
                   autocomplete="current-password"
+                  placeholder="Enter your password"
                   required
                 />
 
-                <button type="button" class="password-toggle" @click="showPassword = !showPassword">
+                <button class="password-toggle" type="button" @click="showPassword = !showPassword">
                   {{ showPassword ? 'Hide' : 'Show' }}
                 </button>
               </div>
@@ -153,7 +153,7 @@
             </div>
 
             <!-- Submit -->
-            <button type="submit" class="auth-submit" :disabled="isLoading">
+            <button :disabled="isLoading" class="auth-submit" type="submit">
               <span>
                 {{ isLoading ? 'Signing in...' : 'Sign in' }}
               </span>
@@ -205,13 +205,13 @@
               <input
                 id="twoFactorCode"
                 v-model="twoFactorCode"
-                type="text"
-                inputmode="numeric"
                 autocomplete="one-time-code"
+                class="two-factor-input"
+                inputmode="numeric"
                 maxlength="6"
                 placeholder="000000"
-                class="two-factor-input"
                 required
+                type="text"
               />
 
               <small class="input-help">
@@ -224,9 +224,9 @@
             </div>
 
             <button
-              type="submit"
-              class="auth-submit"
               :disabled="isTwoFactorLoading || twoFactorCode.length !== 6"
+              class="auth-submit"
+              type="submit"
             >
               <span>
                 {{ isTwoFactorLoading ? 'Verifying...' : 'Verify code' }}
@@ -236,7 +236,7 @@
             </button>
           </form>
 
-          <button type="button" class="back-to-login" @click="backToLogin">
+          <button class="back-to-login" type="button" @click="backToLogin">
             <ArrowLeft :size="15" />
             Use a different account
           </button>
@@ -250,11 +250,12 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-vue-next'
 import buuchezoBankLogo from '@/assets/images/buuchezobank-logo.png'
+import buuchezoBankBlueLogo from '@/assets/images/buuchezobank-blue-logo.png'
 
 interface LoginUser {
   id: number
@@ -1182,11 +1183,12 @@ const handleForgotPassword = () => {
   font-weight: 700;
   color: #062f59;
 }
-
-.mobile-brand .auth-brand-mark {
-  color: white;
-
-  background: #07559b;
+.mobile-brand__logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* =========================================================

@@ -517,7 +517,7 @@ function logout() {
    * Business users and customers both use the normal
    * authentication session.
    */
-  router.push('/login')
+  router.push('/')
 }
 
 /*
