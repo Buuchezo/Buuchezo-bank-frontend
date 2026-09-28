@@ -494,7 +494,7 @@ function logout() {
     sessionStorage.removeItem('adminAccessToken')
     sessionStorage.removeItem('adminUser')
 
-    router.push('/admin/login')
+    router.push('/')
 
     return
   }
