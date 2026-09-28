@@ -2,21 +2,30 @@
 /* RESET                                                            */
 /* ================================================================ */
 
-
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
+  width: 100%;
+  max-width: 100%;
+
   margin: 0;
   padding: 0;
 
   scroll-behavior: smooth;
+
+  overflow-x: hidden;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
+
   margin: 0;
+  padding: 0;
 
   min-width: 320px;
 
@@ -32,6 +41,21 @@ body {
   background: #ffffff;
 
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  overflow-x: hidden;
+}
+
+#app {
+  width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
+
+  margin: 0;
+  padding: 0;
+
+  overflow-x: hidden;
 }
 
 button,
@@ -45,6 +69,17 @@ button {
   cursor: pointer;
 }
 
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
 a {
   color: inherit;
 }
@@ -56,6 +91,8 @@ a {
 
 .navbar {
   width: 100%;
+  max-width: 100%;
+
   height: 78px;
 
   display: flex;
@@ -82,7 +119,9 @@ a {
 
   gap: 11px;
 
-  min-width: 250px;
+  min-width: 0;
+
+  flex-shrink: 0;
 
   text-decoration: none;
 }
@@ -90,6 +129,8 @@ a {
 .brand-logo {
   width: 40px;
   height: 40px;
+
+  min-width: 40px;
 
   display: flex;
   align-items: center;
@@ -109,11 +150,15 @@ a {
   font-size: 24px;
 
   font-weight: 800;
+
+  flex-shrink: 0;
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
+
+  min-width: 0;
 }
 
 .brand-copy strong {
@@ -122,6 +167,8 @@ a {
   line-height: 1.1;
 
   letter-spacing: -0.3px;
+
+  white-space: nowrap;
 }
 
 .brand-copy span {
@@ -132,6 +179,8 @@ a {
   color: #8191a6;
 
   letter-spacing: 0.2px;
+
+  white-space: nowrap;
 }
 
 
@@ -146,6 +195,10 @@ a {
   gap: 30px;
 
   flex: 1;
+
+  min-width: 0;
+
+  margin-left: 30px;
 }
 
 .nav-link {
@@ -160,6 +213,8 @@ a {
   font-weight: 500;
 
   text-decoration: none;
+
+  white-space: nowrap;
 
   transition:
     color 0.2s ease;
@@ -200,6 +255,8 @@ a {
   align-items: center;
 
   gap: 10px;
+
+  flex-shrink: 0;
 }
 
 .search-button,
@@ -218,6 +275,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  flex-shrink: 0;
 }
 
 .language-button {
@@ -229,6 +288,8 @@ a {
   padding: 8px 7px;
 
   font-size: 13px;
+
+  white-space: nowrap;
 }
 
 .login-button {
@@ -254,15 +315,20 @@ a {
 
   text-decoration: none;
 
+  white-space: nowrap;
+
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .login-button:hover {
   background: #f6f9fc;
 
   border-color: #8fa4b8;
+
+  transform: translateY(-1px);
 }
 
 .open-account-button {
@@ -274,6 +340,8 @@ a {
   gap: 10px;
 
   padding: 0 18px;
+
+  border: 0;
 
   border-radius: 7px;
 
@@ -287,19 +355,29 @@ a {
 
   text-decoration: none;
 
+  white-space: nowrap;
+
+  flex-shrink: 0;
+
   transition:
     transform 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .open-account-button:hover {
   background: #07518f;
 
   transform: translateY(-1px);
+
+  box-shadow:
+    0 7px 18px rgba(6, 62, 115, 0.16);
 }
 
 .open-account-button .arrow {
   font-size: 17px;
+
+  line-height: 1;
 }
 
 
@@ -308,6 +386,9 @@ a {
 /* ================================================================ */
 
 .hero {
+  width: 100%;
+  max-width: 100%;
+
   min-height:
     calc(100vh - 78px);
 
@@ -316,6 +397,8 @@ a {
 
   padding:
     80px 8%;
+
+  overflow: hidden;
 
   background:
     linear-gradient(
@@ -327,7 +410,11 @@ a {
 }
 
 .hero-content {
+  width: 100%;
+
   max-width: 650px;
+
+  min-width: 0;
 }
 
 .hero-eyebrow {
@@ -347,6 +434,8 @@ a {
 .hero h1 {
   margin: 0;
 
+  max-width: 100%;
+
   font-size:
     clamp(
       52px,
@@ -361,6 +450,8 @@ a {
   font-weight: 750;
 
   color: #071b38;
+
+  overflow-wrap: break-word;
 }
 
 .hero h1 span {
@@ -368,6 +459,8 @@ a {
 }
 
 .hero p {
+  width: 100%;
+
   max-width: 500px;
 
   margin:
@@ -390,6 +483,8 @@ a {
   align-items: center;
 
   gap: 13px;
+
+  max-width: 100%;
 }
 
 .hero-primary-button {
@@ -401,21 +496,41 @@ a {
   padding:
     14px 22px;
 
+  border: 0;
+
   border-radius: 7px;
 
   background: #063e73;
 
-  color: white;
+  color: #ffffff;
 
   text-decoration: none;
 
   font-size: 14px;
 
   font-weight: 600;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.hero-primary-button:hover {
+  background: #07518f;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 7px 18px rgba(6, 62, 115, 0.16);
 }
 
 .hero-primary-button span {
   font-size: 17px;
+
+  line-height: 1;
 }
 
 .hero-secondary-button {
@@ -431,18 +546,35 @@ a {
 
   border-radius: 7px;
 
-  background: white;
+  background: #ffffff;
 
   color: #163250;
 
   font-size: 14px;
 
   font-weight: 500;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hero-secondary-button:hover {
+  background: #f7fafc;
+
+  border-color: #aebfd0;
+
+  transform: translateY(-1px);
 }
 
 .play-icon {
   width: 22px;
   height: 22px;
+
+  min-width: 22px;
 
   display: flex;
   align-items: center;
@@ -457,7 +589,7 @@ a {
 
 
 /* ================================================================ */
-/* RESPONSIVE                                                       */
+/* TABLET                                                           */
 /* ================================================================ */
 
 @media (max-width: 1100px) {
@@ -471,16 +603,50 @@ a {
   }
 
   .navbar-navigation {
-    margin-left: 35px;
+    margin-left: 25px;
 
     gap: 20px;
   }
 
+  .navbar-actions {
+    gap: 7px;
+  }
+
+  .login-button {
+    padding: 0 14px;
+  }
+
+  .open-account-button {
+    padding: 0 14px;
+  }
+
+  .hero {
+    padding:
+      70px 6%;
+  }
+
 }
+
+
+/* ================================================================ */
+/* MOBILE NAVIGATION                                                */
+/* ================================================================ */
 
 @media (max-width: 850px) {
 
+  html,
+  body,
+  #app {
+    width: 100%;
+    max-width: 100vw;
+
+    overflow-x: hidden;
+  }
+
   .navbar {
+    width: 100%;
+    max-width: 100vw;
+
     padding: 0 20px;
   }
 
@@ -501,16 +667,48 @@ a {
   }
 
   .hero {
+    width: 100%;
+    max-width: 100vw;
+
     padding:
       70px 25px;
+
+    overflow: hidden;
+  }
+
+  .hero-content {
+    max-width: 100%;
   }
 
 }
+
+
+/* ================================================================ */
+/* SMALL MOBILE                                                     */
+/* ================================================================ */
 
 @media (max-width: 550px) {
 
   .navbar {
     height: 70px;
+
+    padding:
+      0 16px;
+  }
+
+  .navbar-brand {
+    gap: 9px;
+  }
+
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+
+    border-radius: 8px;
+
+    font-size: 21px;
   }
 
   .brand-copy span {
@@ -521,26 +719,156 @@ a {
     font-size: 15px;
   }
 
+  .navbar-actions {
+    gap: 5px;
+  }
+
+  .search-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .open-account-button {
+    height: 38px;
+
+    padding:
+      0 11px;
+
+    gap: 7px;
+
+    font-size: 12px;
+  }
+
+  .open-account-button .arrow {
+    font-size: 15px;
+  }
+
   .hero {
     min-height:
       calc(100vh - 70px);
+
+    padding:
+      58px 20px 70px;
+
+    align-items: flex-start;
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 18px;
+
+    font-size: 10px;
+
+    letter-spacing: 1.8px;
   }
 
   .hero h1 {
+    max-width: 100%;
+
     font-size: 48px;
 
     letter-spacing: -2.5px;
+
+    line-height: 1;
+  }
+
+  .hero p {
+    max-width: 100%;
+
+    margin:
+      23px 0 28px;
+
+    font-size: 15px;
+
+    line-height: 1.65;
   }
 
   .hero-actions {
+    width: 100%;
+
     flex-direction: column;
 
     align-items: stretch;
+
+    gap: 10px;
   }
 
   .hero-primary-button,
   .hero-secondary-button {
+    width: 100%;
+
     justify-content: center;
   }
 
+}
+
+
+/* ================================================================ */
+/* VERY SMALL MOBILE                                                */
+/* ================================================================ */
+
+@media (max-width: 380px) {
+
+  .navbar {
+    padding:
+      0 12px;
+  }
+
+  .brand-copy strong {
+    font-size: 14px;
+  }
+
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+
+  .open-account-button {
+    padding:
+      0 9px;
+
+    font-size: 11px;
+  }
+
+  .hero {
+    padding:
+      52px 16px 60px;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+
+    letter-spacing: -2px;
+  }
+
+  .hero p {
+    font-size: 14px;
+  }
+
+}
+
+
+/* ================================================================ */
+/* GLOBAL MOBILE OVERFLOW PROTECTION                                */
+/* ================================================================ */
+
+/*
+ * The banking application contains multiple pages and components.
+ * A single oversized child must never be allowed to move the
+ * complete mobile viewport horizontally.
+ */
+
+@media (max-width: 900px) {
+
+  html,
+  body,
+  #app {
+    overflow-x: hidden !important;
+  }
+
+  .navbar,
+  .hero {
+    max-width: 100vw;
+  }
 }
